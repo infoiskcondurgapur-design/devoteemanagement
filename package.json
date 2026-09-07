@@ -1,28 +1,110 @@
 {
-  "name": "devotee-management-web",
+  "name": "devotee-management",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron/main.js",
+  "build": {
+    "appId": "com.iskcon.devoteemgmt",
+    "productName": "Devotee Management",
+    "win": {
+      "target": "nsis"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "extraResources": [
+      {
+        "from": "whatsapp-bot",
+        "to": "whatsapp-bot",
+        "filter": [
+          "**/*",
+          "!sessions/**",
+          "!.wwebjs_cache/**",
+          "!backups/**",
+          "!*.db",
+          "!.env",
+          "!**/*.log",
+          "!google-credentials.json",
+          "!google-oauth-credentials.json",
+          "!google-oauth-tokens.json",
+          "!google-sync-info.json",
+          "!initial_admin_password.txt",
+          "!_dedupe_removed_*.json",
+          "!dedupe_devotees.mjs",
+          "!test-*.mjs",
+          "!check_*.mjs",
+          "!tests/**"
+        ]
+      }
+    ]
+  },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "dev": "vite --host --port 5173",
+    "robot": "node whatsapp-bot/server.mjs",
+    "test:regression": "node --test \"whatsapp-bot/tests/**/*.test.mjs\"",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "electron:dev": "cross-env NODE_ENV=development concurrently -k \"npm run dev\" \"npm run robot\" \"wait-on tcp:5173 && wait-on tcp:3001 && electron .\"",
+    "electron:build": "npm run build && electron-builder"
   },
   "dependencies": {
-    "lucide-react": "^1.39.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "@aws-sdk/client-s3": "^3.1127.0",
+    "@hookform/resolvers": "^5.2.2",
+    "@vercel/postgres": "^0.10.0",
+    "body-parser": "^2.3.0",
+    "cloudinary": "^2.11.0",
+    "clsx": "^2.1.1",
+    "cors": "^2.8.6",
+    "date-fns": "^4.1.0",
+    "express": "^5.2.1",
+    "firebase": "^12.7.0",
+    "gapi-script": "^1.2.0",
+    "googleapis": "^170.1.0",
+    "helmet": "^8.3.0",
+    "html-to-image": "^1.11.13",
+    "html2canvas": "^1.4.1",
+    "html5-qrcode": "^2.3.8",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.562.0",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-hook-form": "^7.72.0",
+    "react-icons": "^5.5.0",
+    "react-leaflet": "^5.0.0",
+    "react-router-dom": "^7.11.0",
+    "reactflow": "^11.11.4",
+    "recharts": "^3.6.0",
+    "tailwind-merge": "^3.4.0",
+    "xlsx": "^0.18.5",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^24.13.3",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@vitejs/plugin-react": "^6.1.0",
-    "oxlint": "^1.79.0",
-    "tailwindcss": "^4.3.3",
-    "typescript": "~6.0.2",
-    "vite": "^8.2.2"
+    "@eslint/js": "^9.39.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.23",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.4.0",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "pg": "^8.23.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "vite": "^7.2.4",
+    "vite-plugin-pwa": "^1.2.0",
+    "wait-on": "^9.0.3"
   }
 }

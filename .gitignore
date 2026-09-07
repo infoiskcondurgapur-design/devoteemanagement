@@ -20,5 +20,64 @@ dist-ssr
 *.suo
 *.ntvs*
 *.njsproj
-*.sln
 *.sw?
+
+# Google Sheets credentials
+google-credentials.json
+google-oauth-credentials.json
+google-oauth-tokens.json
+google-sync-info.json
+
+# Environment variables
+.env
+.env.local
+
+# Local application data (never commit)
+*.db
+release/
+whatsapp-bot/sessions/
+whatsapp-bot/.wwebjs_cache/
+**/initial_admin_password.txt
+whatsapp-bot/automation_state.json
+
+# Secrets / private keys (never commit)
+deploy-keys/
+
+# Vercel / firebase local state
+.vercel
+.env*
+.firebase/
+.firebaserc
+
+# Heavy or non-source directories
+backups/
+build/
+.venv/
+devotee_management_python/
+.wwebjs_cache/
+Devotee Management - Copy/
+
+# Garbage / debug artifacts and one-off scripts
+api_response.json
+api_response.txt
+env_dump.json
+sukanta_dump.txt
+duplicate_report.txt
+error_summary.txt
+error_summary_utf8.txt
+build.log
+build2.log
+build3.log
+build_error.log
+build_log.txt
+build_output.txt
+dev_error.log
+dev_error_utf8.log
+lint_output.txt
+check_db.mjs
+test_api.mjs
+check_duplicates.py
+check_sukanta.py
+fix_7za.py
+fix_7za.spec
+remove_duplicates.py

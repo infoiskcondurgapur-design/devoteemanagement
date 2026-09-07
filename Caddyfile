@@ -1,0 +1,29 @@
+# Caddy configuration for the Devotee Management System (web edition)
+# Env var DOMAIN is injected by docker-compose (e.g. yourname.duckdns.org).
+# With no DOMAIN set (localhost), it serves plain HTTP on :80 for testing.
+
+{$DOMAIN:localhost} {
+	# Terminating TLS in Caddy; pass real request origin/scheme to the API.
+	header_up X-Forwarded-Proto {scheme}
+	header_up X-Forwarded-Host {host}
+
+	# API + WebSocket -> Express backend
+	handle /api/* {
+		reverse_proxy api:3001
+	}
+	handle /ws {
+		reverse_proxy api:3001
+	}
+
+	# Static web build (served from ./web mounted at /usr/share/caddy/dms-web)
+	root * /usr/share/caddy/dms-web
+	file_server
+
+	# SPA fallback: serve index.html for client-side routes that aren't files
+	try_files {path} {path}/ /index.html
+
+	# Longer SSE keep-alive timeouts
+	header {
+		X-Content-Type-Options nosniff
+	}
+}

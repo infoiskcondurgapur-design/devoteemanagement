@@ -1,0 +1,59 @@
+# Production deployment for the Devotee Management System (web edition)
+#
+# Topology:
+#   Caddy  (public :80/:443, auto-HTTPS via Let's Encrypt; serves static web build + proxies /api & /ws)
+#     └── api   (Express API + SQLite + WhatsApp bot; internal :3001)
+#
+# Persistent data lives on a Docker named volume so SQLite DB + WhatsApp sessions
+# survive container restarts/redeploys.
+#
+# Usage (on the server):
+#   1. Place this repo somewhere like /opt/dms
+#   2. Copy the built web bundle to ./web  (i.e. rsync dist/ -> web/)
+#      Example: cp -r "E:/WEBSITE/Devotee Management Web/." ./web/
+#   3. cp .env.example .env  and fill in secrets + your public (sub)domain
+#   4. docker compose -f docker-compose.prod.yml up -d --build
+#
+# For a free subdomain (DuckDNS etc.), set DOMAIN to yourname.duckdns.org and point
+# that subdomain's A/AAAA record at this server's public IP.
+
+services:
+  api:
+    build:
+      context: ./whatsapp-bot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_PATH: /data/devotee_mgmt.db
+      HOST: 0.0.0.0
+      NODE_ENV: production
+      CHROME_PATH: ${CHROME_PATH:-/usr/bin/chromium}
+      # Frontend origin served by Caddy; used for CORS allowlist.
+      ALLOWED_ORIGINS: ${SCHEME:-https}://${DOMAIN:-localhost}
+    volumes:
+      - dms_data:/data
+    expose:
+      - "3001"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+      SCHEME: ${SCHEME:-https}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./web:/usr/share/caddy/dms-web:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  dms_data:
+  caddy_data:
+  caddy_config:
