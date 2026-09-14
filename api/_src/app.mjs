@@ -46,26 +46,34 @@ export const createApp = () => {
     app.use(bodyParser.json({ limit: '15mb' }));
     app.use(bodyParser.urlencoded({ limit: '15mb', extended: true }));
 
-    app.get('/api/system/health', (req, res) => {
+    // Middleware to normalize req.url for Vercel serverless rewrites
+    app.use((req, res, next) => {
+        if (!req.url.startsWith('/api')) {
+            req.url = '/api' + (req.url.startsWith('/') ? '' : '/') + req.url;
+        }
+        next();
+    });
+
+    app.get(['/api/system/health', '/system/health'], (req, res) => {
         res.json({ success: true, status: 'healthy' });
     });
 
-    app.use('/api/auth', authRoutes);
-    app.use('/api/devotees', devoteeRoutes);
-    app.use('/api/events', eventRoutes);
-    app.use('/api/sadhana', sadhanaRoutes);
-    app.use('/api/system', systemRoutes);
-    app.use('/api/seva', sevaRoutes);
-    app.use('/api/donations', financeRoutes);
-    app.use('/api/finance', financeRoutes);
-    app.use('/api/backup', backupRoutes);
-    app.use('/api/courses', courseRoutes);
-    app.use('/api/tours', tourRoutes);
-    app.use('/api/inventory', inventoryRoutes);
-    app.use('/api/attendance', attendanceRoutes);
-    app.use('/api/counseling', counselingRoutes);
+    app.use(['/api/auth', '/auth'], authRoutes);
+    app.use(['/api/devotees', '/devotees'], devoteeRoutes);
+    app.use(['/api/events', '/events'], eventRoutes);
+    app.use(['/api/sadhana', '/sadhana'], sadhanaRoutes);
+    app.use(['/api/system', '/system'], systemRoutes);
+    app.use(['/api/seva', '/seva'], sevaRoutes);
+    app.use(['/api/donations', '/donations'], financeRoutes);
+    app.use(['/api/finance', '/finance'], financeRoutes);
+    app.use(['/api/backup', '/backup'], backupRoutes);
+    app.use(['/api/courses', '/courses'], courseRoutes);
+    app.use(['/api/tours', '/tours'], tourRoutes);
+    app.use(['/api/inventory', '/inventory'], inventoryRoutes);
+    app.use(['/api/attendance', '/attendance'], attendanceRoutes);
+    app.use(['/api/counseling', '/counseling'], counselingRoutes);
 
-    app.post('/api/upload', async (req, res) => {
+    app.post(['/api/upload', '/upload'], async (req, res) => {
         try {
             const { image } = req.body;
             if (!image) return res.status(400).json({ success: false, error: 'No image provided' });
@@ -76,8 +84,8 @@ export const createApp = () => {
         }
     });
 
-    // Catch-all for unmatched /api routes (helps Vercel health checks / 404s)
-    app.use('/api', (req, res) => {
+    // Catch-all for unmatched /api routes
+    app.use(['/api', '/'], (req, res) => {
         res.status(404).json({ success: false, error: 'Not found' });
     });
 
