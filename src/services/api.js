@@ -11,7 +11,18 @@ const handleResponse = async (response) => {
 // Configurable API base URL. In web deployments set VITE_API_URL to the backend origin
 // (e.g. https://api.your-subdomain.duckdns.org). Falls back to the local backend for
 // desktop/dev usage.
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const getInitialBaseUrl = () => {
+    if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+    if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+        const h = window.location.hostname;
+        if (h !== 'localhost' && h !== '127.0.0.1' && !window.location.protocol.startsWith('file')) {
+            return ''; // Same-origin relative API requests for Vercel
+        }
+    }
+    return 'http://localhost:3001';
+};
+
+const BASE_URL = getInitialBaseUrl();
 
 const getApiUrl = (url) => {
     if (url.startsWith('http://') || url.startsWith('https://')) {
