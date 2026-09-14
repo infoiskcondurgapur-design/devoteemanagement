@@ -19,6 +19,9 @@ export const getPool = async () => {
             ssl: process.env.POSTGRES_SSL === '1' ? { rejectUnauthorized: false } : undefined
         });
     } else {
+        if (!process.env.POSTGRES_URL && !process.env.DATABASE_URL && !process.env.POSTGRES_URL_NON_POOLING) {
+            throw new Error('Database connection failed: POSTGRES_URL is missing. Please attach a Vercel Postgres database to your project in Vercel Storage.');
+        }
         _pool = createPool();
     }
     return _pool;
