@@ -1,5 +1,5 @@
-import { initDb } from './database.mjs';
-import { createApp } from './app.mjs';
+import { initDb } from './_src/database.mjs';
+import { createApp } from './_src/app.mjs';
 
 // Ensure schema exists on cold start (idempotent). Best-effort: if the DB is
 // already migrated, this is a no-op. Failures here should not block requests
