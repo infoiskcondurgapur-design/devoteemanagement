@@ -2,11 +2,14 @@
   "name": "devotee-management",
   "private": true,
   "version": "0.0.0",
+  "description": "Devotee Management System",
+  "author": "ISKCON",
   "type": "module",
   "main": "electron/main.js",
   "build": {
     "appId": "com.iskcon.devoteemgmt",
     "productName": "Devotee Management",
+    "npmRebuild": false,
     "win": {
       "target": "nsis"
     },

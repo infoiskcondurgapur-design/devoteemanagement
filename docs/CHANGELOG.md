@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## [2026-09-14]
+
+### Windows Desktop Application Build & Package
+- **Electron Builder Configuration**: Configured `package.json` with `"npmRebuild": false` to prevent unnecessary and failing native module compilation (`bufferutil` node-gyp build) when optional C++ WebSockets addons are absent.
+- **Package Metadata**: Added application `description` and `author` fields to package configuration.
+- **Standalone Windows Executable**: Successfully compiled Vite production assets and generated the final NSIS setup installer file: `release/Devotee Management Setup 0.0.0.exe` (139 MB).
+
 ## [2026-09-07]
 
 ### Vercel (web) deployment: serverless backend + Vercel Postgres + WhatsApp removal
