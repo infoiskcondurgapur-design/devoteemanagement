@@ -7,6 +7,10 @@
 - **Package Metadata**: Added application `description` and `author` fields to package configuration.
 - **Standalone Windows Executable**: Successfully compiled Vite production assets and generated the final NSIS setup installer file: `release/Devotee Management Setup 0.0.0.exe` (139 MB).
 
+### Progressive Web App (PWA) Support
+- **Service Worker & Manifest**: Generated standard PWA icon assets (`apple-touch-icon.png`, `pwa-192x192.png`, `pwa-512x512.png`, `maskable-icon.png`) and registered `VitePWA` workbox caching.
+- **PWA Installation Component**: Integrated [`src/components/PwaInstallPrompt.jsx`](file:///e:/WEBSITE/Devotee%20Management%20Web/src/components/PwaInstallPrompt.jsx) in the header for 1-click installation on Chrome, Edge, and iOS Safari.
+
 ## [2026-09-07]
 
 ### Vercel (web) deployment: serverless backend + Vercel Postgres + WhatsApp removal
