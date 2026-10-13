@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Shield, Camera, Save } from 'lucide-react';
+import { User, Mail, Shield, Camera, Save, Maximize2 } from 'lucide-react';
+import ImageModal from '../components/ImageModal';
 
 const Profile = () => {
     const { currentUser } = useAuth();
     const [isEditing, setIsEditing] = useState(false);
+    const [showImageModal, setShowImageModal] = useState(false);
     const [formData, setFormData] = useState({
         name: currentUser?.name || '',
         email: currentUser?.email || '',
@@ -35,11 +37,22 @@ const Profile = () => {
                 <div className="px-8 pb-8">
                     <div className="relative -mt-16 mb-6">
                         <div className="relative inline-block">
-                            <img
-                                src={formData.photo || '/default-avatar.png'}
-                                alt={formData.name}
-                                className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-white dark:bg-slate-900 object-cover"
-                            />
+                            <div
+                                onClick={() => formData.photo && !isEditing && setShowImageModal(true)}
+                                className={`relative rounded-full overflow-hidden ${formData.photo && !isEditing ? 'cursor-pointer group' : ''}`}
+                                title={formData.photo && !isEditing ? "Click to view original image" : ""}
+                            >
+                                <img
+                                    src={formData.photo || '/default-avatar.png'}
+                                    alt={formData.name}
+                                    className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-white dark:bg-slate-900 object-cover transition-transform duration-200 group-hover:scale-105"
+                                />
+                                {formData.photo && !isEditing && (
+                                    <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                        <Maximize2 className="w-6 h-6 drop-shadow" />
+                                    </div>
+                                )}
+                            </div>
                             {isEditing && (
                                 <label className="absolute bottom-0 right-0 p-2 bg-white dark:bg-slate-900 rounded-full shadow-md border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:bg-slate-900/50 transition-colors">
                                     <Camera className="w-5 h-5 text-slate-600 dark:text-slate-300" />
@@ -116,6 +129,15 @@ const Profile = () => {
                     This application is running entirely on your local device. Your data is stored in your browser's local storage and is never sent to any server. Remember to use the "Backup Data" feature in the sidebar to keep your data safe.
                 </p>
             </div>
+
+            {/* Original Profile Picture Modal */}
+            <ImageModal
+                isOpen={showImageModal}
+                onClose={() => setShowImageModal(false)}
+                imageUrl={formData.photo}
+                title={formData.name || 'Admin'}
+                subtitle="Administrator Profile Picture"
+            />
         </div>
     );
 };

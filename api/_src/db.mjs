@@ -1,22 +1,25 @@
 import { createPool } from '@vercel/postgres';
 import { CAMEL_CASE_KEYS, NUMERIC_COLUMNS } from './schema.mjs';
 
-// @vercel/postgres reads POSTGRES_URL automatically. A single pooled connection
-// is reused across serverless warm invocations. Created lazily so importing the
-// API modules (e.g. for tests) works even when POSTGRES_URL is not set yet.
-//
-// For local development against a plain Postgres (not Neon/Vercel Postgres) set
-// POSTGRES_DRIVER=local; the node-postgres driver is then used instead of the
-// Neon WebSocket client (which only speaks to Neon-style endpoints).
+// @vercel/postgres remains the default for Neon/Vercel Postgres. Set
+// POSTGRES_DRIVER=pg and SUPABASE_DATABASE_URL to use node-postgres with
+// Supabase (use its transaction pooler URL for serverless deployments).
+// Pools are created lazily so API modules can be imported without credentials.
 let _pool = null;
 export const getPool = async () => {
     if (_pool) return _pool;
-    if (process.env.POSTGRES_DRIVER === 'local') {
+    if (process.env.POSTGRES_DRIVER === 'pg' || process.env.POSTGRES_DRIVER === 'local') {
         const { default: pg } = await import('pg');
+        const connectionString = process.env.SUPABASE_DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.STORAGE_URL;
+        if (!connectionString) {
+            throw new Error('Database connection failed: set SUPABASE_DATABASE_URL (or POSTGRES_URL / DATABASE_URL).');
+        }
         _pool = new pg.Pool({
-            connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.STORAGE_URL,
-            max: 5,
-            ssl: process.env.POSTGRES_SSL === '1' ? { rejectUnauthorized: false } : undefined
+            connectionString,
+            // Keep the per-serverless-instance pool small; Supabase's pooler
+            // handles the aggregate connection count across function instances.
+            max: 1,
+            ssl: process.env.POSTGRES_SSL === '0' ? undefined : { rejectUnauthorized: false }
         });
     } else {
         const connStr = process.env.POSTGRES_URL || process.env.STORAGE_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL_NON_POOLING;

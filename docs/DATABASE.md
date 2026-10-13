@@ -4,16 +4,23 @@
 The Devotee Management System uses **two engines** depending on where it runs:
 
 - **Desktop (Electron)**: **SQLite3** stored locally at `whatsapp-bot/devotee_mgmt.db`. The database file is stored locally at `whatsapp-bot/devotee_mgmt.db`.
-- **Web (Vercel)**: **PostgreSQL** (Vercel Postgres / Neon) reached through the serverless API in root `api/`. The schema is defined in `api/schema.mjs`, executed by `api/database.mjs` `initDb()`, and the original SQLite data is migrated with `api/scripts/migrate.mjs` (see "Migration" below).
+- **Web (Vercel)**: **PostgreSQL** (currently Neon; Supabase is also supported) reached through the serverless API in root `api/`. The schema is defined in `api/_src/schema.mjs` and initialized by `api/_src/database.mjs` `initDb()`.
 
 ### Postgres identifier convention
 All PostgreSQL columns are created **lowercase**. `api/schema.mjs` lowercases every quoted identifier in the source DDL (`"createdAt"` → `"createdat"`) while keeping quotes so reserved words such as `key` remain legal. Queries in `api/database.mjs` reference columns unquoted (Postgres folds them to lowercase), and `api/db.mjs` restores camelCase result keys at read time (e.g. `spiritualname` → `spiritualName`) using `CAMEL_CASE_KEYS`, which is computed from the original (pre-lowercase) DDL. Primary keys are `BIGINT GENERATED ALWAYS AS IDENTITY` (an explicit data type is required before `GENERATED` in PostgreSQL); identity values from SQLite are preserved during migration with `OVERRIDING SYSTEM VALUE`, and sequences are reset afterward.
 
 ### Migration
-`api/scripts/migrate.mjs` copies the SQLite database (`whatsapp-bot/devotee_mgmt.db`) into any Postgres instance:
+`api/_src/scripts/migrate-neon-to-supabase.mjs` copies all application tables from the current hosted Neon database to Supabase:
+- Set `SUPABASE_DATABASE_URL` to the Supabase transaction-pooler URI and provide the current Neon connection as `SOURCE_DATABASE_URL`, `POSTGRES_URL`, or `DATABASE_URL`. Keep both secrets out of source control; `node --env-file=.env.local ...` loads them from the ignored local env file.
+- The default is a read-only dry run that prints source and target row counts. Review the counts before running with `--apply`.
+- Apply refuses to copy if any target table contains rows, never deletes or overwrites target data, and writes all table rows in one transaction while preserving identity values.
+- Runtime Supabase connection: set `POSTGRES_DRIVER=pg` and `SUPABASE_DATABASE_URL`; TLS is on by default. In Vercel, use the transaction pooler URI and keep this URI in a server-side environment variable.
+
+`api/_src/scripts/migrate.mjs` is the older SQLite-to-Postgres migration:
 - Target via `POSTGRES_URL` (or `DATABASE_URL`); set `POSTGRES_SSL=1` when targeting Vercel/Neon.
 - Wipes all 25 target tables first, then copies row-for-row; `''` values on non-text columns are coerced to `NULL`.
 - Run locally against a vanilla Postgres with the `pg` driver — the `@vercel/postgres` (Neon) WebSocket client in `api/db.mjs` cannot talk to a plain Postgres (the `POSTGRES_DRIVER=local` env switch selects `pg` for local development).
+- Do not use this wipe-and-copy script for a Neon-to-Supabase migration.
 
 ---
 
@@ -58,7 +65,8 @@ Contains detailed biographical, family, contact, and spiritual info.
 - **courses**: `TEXT`
 - **anniversary**: `TEXT`
 - **photo**: `TEXT` (Cloudinary URL)
-- **status**: `TEXT DEFAULT 'Active'` (Active / Inactive)
+- **status**: `TEXT DEFAULT 'Active'` (Active / Inactive / Pending)
+- **source**: `TEXT` (e.g. `Public Form` for submissions via `POST /api/public/register`; NULL/absent for admin-created rows)
 - **createdAt**: `TEXT`
 - **shraddhaName**: `TEXT`
 - **shraddhaDate**: `TEXT`
@@ -221,12 +229,14 @@ Created by `initDb()` and guaranteed by `healSchema()`. The table and its DB fun
 - Text inputs must be sanitized to strip dangerous characters before executing SQLite writes.
 - Mandatory fields (e.g. devotee name, transaction dates, positive payment values) are validated in Express middleware controllers.
 - **Duplicate protection (application layer)** (`database.mjs` `addDevotee`/`updateDevotee`): rejects records whose `contact` + normalized `name` already exist on a different `id`, returning a clean "already exists" error. A deliberately **non-unique** index `idx_devotees_contact` on `devotees(contact)` accelerates the lookup; a schema-level `UNIQUE` constraint is intentionally avoided because `INSERT OR REPLACE` would silently overwrite existing rows (e.g. family members sharing one phone number).
+- **Pending registrations**: rows created by `POST /api/public/register` are stored with `status = 'Pending'` and `source = 'Public Form'`. Dashboard stats, weekly/birthday/anniversary queries, and the credential-linking sweep (`getUnlinkedDevotees`) all exclude Pending rows (`IFNULL(status,'Active') != 'Pending'` on SQLite, `COALESCE(status,'Active') != 'Pending'` on Postgres), so unapproved submissions never inflate totals or trigger WhatsApp password messages. Approval is a normal `PUT /api/devotees/:id` setting `status: 'Active'`.
 
 ---
 
 ## Migration Notes
 - `course_payments` / `tour_payments` tables are created in `initDb()` **and** ensured by `healSchema()` so pre-existing databases are upgraded on startup without manual migration.
 - The `users` table (server-side authentication) is created in `initDb()` and ensured by `healSchema()`; the initial admin is seeded by `ensureAdmin()` on first start.
+- `devotees.source` is part of `DEVOTEE_COLUMNS` and included in every select/insert/update. SQLite creates it in the DDL for new databases; Postgres heals existing Neon tables at startup via `ALTER TABLE devotees ADD COLUMN IF NOT EXISTS` inside `initDb()` (plain `CREATE TABLE IF NOT EXISTS` cannot add columns to an existing table).
 - Duplicate devotee records are consolidated by `whatsapp-bot/dedupe_devotees.mjs` (keeps the most complete row, remaps child-table foreign keys, writes a JSON backup of removed rows). True duplicates are the same contact + same name (whitespace/case-insensitive); shared-phone records with different names are preserved.
 
 ---

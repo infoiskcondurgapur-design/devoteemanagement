@@ -2,11 +2,13 @@ import React, { Suspense, lazy } from 'react'; // Refreshing module graph: 2026-
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DevoteeProvider } from './context/DevoteeContext';
 import { SadhanaProvider } from './context/SadhanaContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import ReferenceDataProvider from './context/ReferenceDataContext';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const Layout = lazy(() => import('./components/layout/Layout'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
 const DevoteeList = lazy(() => import('./pages/devotees/DevoteeList'));
 const DevoteeProfile = lazy(() => import('./pages/devotees/DevoteeProfile'));
 const DevoteeForm = lazy(() => import('./pages/devotees/DevoteeForm'));
@@ -29,6 +31,7 @@ const Settings = lazy(() => import('./pages/Settings'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const Events = lazy(() => import('./pages/Events'));
 const SelfUpdate = lazy(() => import('./pages/SelfUpdate'));
+const PublicRegister = lazy(() => import('./pages/public/PublicRegister'));
 
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -44,17 +47,24 @@ const CourseDetails = lazy(() => import('./pages/courses/CourseDetails'));
 import TourList from './pages/tours/TourList';
 const TourForm = lazy(() => import('./pages/tours/TourForm'));
 const TourDetails = lazy(() => import('./pages/tours/TourDetails'));
+const ChangeRequestForm = lazy(() => import('./pages/ChangeRequestForm'));
+const AdminChangeRequests = lazy(() => import('./pages/AdminChangeRequests'));
+const MyRequests = lazy(() => import('./pages/MyRequests'));
 
 
-
-// Loading component for Suspense
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900/50 dark:bg-slate-900">
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
   </div>
 );
 
-// Protected Route Component removed: all routes are now public.
+// Authenticated route guard: redirects to /login when there is no valid session.
+const RequireAuth = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return children;
+};
 import { NotificationProvider } from './context/NotificationContext';
 import { NotificationEngine } from './context/NotificationEngine';
 import { ThemeProvider } from './context/ThemeContext';
@@ -68,17 +78,23 @@ function App() {
         <LanguageProvider>
           <DevoteeProvider>
             <SadhanaProvider>
-            <AuthProvider>
-            <NotificationProvider>
+<AuthProvider>
+                <ReferenceDataProvider>
+              <NotificationProvider>
               <NotificationEngine />
                     <HashRouter>
                       <CommandPalette />
                       <ErrorBoundary>
                         <Suspense fallback={<PageLoader />}>
                           <Routes>
-                            <Route path="/self-update" element={<SelfUpdate />} />
+                            <Route path="/self-update" element={<RequireAuth><SelfUpdate /></RequireAuth>} />
 
-                            <Route path="/" element={<Layout />}>
+                            <Route path="/login" element={<LoginPage />} />
+
+                            {/* Public, shareable self-registration — no auth required */}
+                            <Route path="/register" element={<PublicRegister />} />
+
+                            <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
                                 <Route index element={<Dashboard />} />
 
                                 {/* Devotee Management */}
@@ -87,6 +103,9 @@ function App() {
                                 <Route path="devotees/batch-id" element={<BatchIDCardGenerator />} />
                                 <Route path="devotees/:id" element={<DevoteeProfile />} />
                                 <Route path="devotees/:id/edit" element={<DevoteeForm />} />
+                                <Route path="change-request/:id" element={<RequireAuth><ChangeRequestForm /></RequireAuth>} />
+                                <Route path="my-requests" element={<RequireAuth><MyRequests /></RequireAuth>} />
+                                <Route path="admin/change-requests" element={<RequireAuth><AdminChangeRequests /></RequireAuth>} />
 
                                 {/* Events & Seva */}
                                 <Route path="seva" element={<SevaBoard />} />
@@ -130,6 +149,7 @@ function App() {
                       </ErrorBoundary>
                     </HashRouter>
                   </NotificationProvider>
+              </ReferenceDataProvider>
             </AuthProvider>
             </SadhanaProvider>
           </DevoteeProvider>

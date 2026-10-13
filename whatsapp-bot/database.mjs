@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import fs from 'fs';
@@ -19,6 +20,13 @@ export const dbPath = process.env.DB_PATH
 
 console.log('[DB] Using database at:', dbPath);
 const db = new sqlite3.Database(dbPath);
+
+// ─── Password hashing (scrypt) ──────────────────────────────────────
+const hashPassword = (password) => {
+    const salt = crypto.randomBytes(32).toString('hex');
+    const hash = crypto.scryptSync(String(password), salt, 64).toString('hex');
+    return `${salt}:${hash}`;
+};
 
 // Generic SQLite async helpers
 const runAsync = (sql, params = []) => new Promise((resolve, reject) => {
@@ -53,7 +61,7 @@ const DEVOTEE_COLUMNS = [
     'child2Name', 'child2Dob', 'child2Status',
     'child3Name', 'child3Dob', 'child3Status',
     'shraddhaName', 'shraddhaDate', 'feedback', 'otherFamilyMembers', 'currentService',
-    'photo', 'status', 'createdAt'
+    'photo', 'status', 'source', 'createdAt'
 ];
 
 /**
@@ -162,6 +170,7 @@ export const initDb = () => {
                 currentService TEXT,
                 photo TEXT,
                 status TEXT DEFAULT 'Active',
+                source TEXT,
                 createdAt TEXT
             )`, async (err) => {
                 if (err) reject(err);
@@ -480,6 +489,23 @@ export const initDb = () => {
                     console.log('[DB] All tables initialized successfully');
                     resolve();
                 }
+            });
+
+            // Change Requests Table
+            db.run(`CREATE TABLE IF NOT EXISTS change_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                devoteeId TEXT NOT NULL,
+                userId TEXT NOT NULL,
+                requestedBy TEXT NOT NULL,
+                changes TEXT NOT NULL,
+                reason TEXT,
+                status TEXT DEFAULT 'pending',
+                reviewedBy TEXT,
+                reviewedAt TEXT,
+                createdAt TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (devoteeId) REFERENCES devotees(id)
+            )`, (err) => {
+                if (err) reject(err);
             });
         });
     });
@@ -849,17 +875,20 @@ export const getDevoteeStats = () => {
         lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
         const lastMonth = lastMonthDate.toISOString().slice(0, 7); // YYYY-MM
 
+        // Pending (unapproved public registrations) are excluded so dashboard
+        // totals only reflect approved devotees.
         const query = `
             SELECT 
                 COUNT(*) as total,
                 SUM(CASE WHEN spiritualStatus = 'Initiated' THEN 1 ELSE 0 END) as initiated,
                 SUM(CASE WHEN spiritualStatus = 'Sheltered' THEN 1 ELSE 0 END) as sheltered,
                 SUM(CASE WHEN (spiritualStatus = 'Aspiring' OR spiritualStatus IS NULL OR spiritualStatus = '') THEN 1 ELSE 0 END) as aspiring,
-                (SELECT COUNT(*) FROM devotees WHERE strftime('%m-%d', dob) = ?) as birthdaysToday,
-                (SELECT COUNT(*) FROM devotees WHERE strftime('%m-%d', anniversary) = ?) as anniversariesToday,
-                (SELECT COUNT(*) FROM devotees WHERE strftime('%Y-%m', createdAt) = ?) as currentMonthRegistrations,
-                (SELECT COUNT(*) FROM devotees WHERE strftime('%Y-%m', createdAt) = ?) as lastMonthRegistrations
+                (SELECT COUNT(*) FROM devotees WHERE strftime('%m-%d', dob) = ? AND IFNULL(status, 'Active') != 'Pending') as birthdaysToday,
+                (SELECT COUNT(*) FROM devotees WHERE strftime('%m-%d', anniversary) = ? AND IFNULL(status, 'Active') != 'Pending') as anniversariesToday,
+                (SELECT COUNT(*) FROM devotees WHERE strftime('%Y-%m', createdAt) = ? AND IFNULL(status, 'Active') != 'Pending') as currentMonthRegistrations,
+                (SELECT COUNT(*) FROM devotees WHERE strftime('%Y-%m', createdAt) = ? AND IFNULL(status, 'Active') != 'Pending') as lastMonthRegistrations
             FROM devotees
+            WHERE IFNULL(status, 'Active') != 'Pending'
         `;
 
         db.get(query, [mm_dd, mm_dd, currentMonth, lastMonth], async (err, row) => {
@@ -885,7 +914,7 @@ export const getDevoteeStats = () => {
                     date(createdAt) as date,
                     COUNT(*) as count
                 FROM devotees
-                WHERE createdAt >= date('now', '-7 days')
+                WHERE createdAt >= date('now', '-7 days') AND IFNULL(status, 'Active') != 'Pending'
                 GROUP BY date(createdAt)
             `;
 
@@ -906,9 +935,9 @@ export const getDevoteeStats = () => {
                 stats.weeklyActivity = weeklyActivity;
 
                 // Birthdays/Anniversaries Lists
-                db.all("SELECT id, name, initiatedName, photo, dob, contact, whatsapp FROM devotees WHERE strftime('%m-%d', dob) = ?", [mm_dd], (err, birthdays) => {
+                db.all("SELECT id, name, initiatedName, photo, dob, contact, whatsapp FROM devotees WHERE strftime('%m-%d', dob) = ? AND IFNULL(status, 'Active') != 'Pending'", [mm_dd], (err, birthdays) => {
                     stats.birthdaysTodayList = birthdays || [];
-                    db.all("SELECT id, name, initiatedName, photo, anniversary, contact, whatsapp FROM devotees WHERE strftime('%m-%d', anniversary) = ?", [mm_dd], (err, anniversaries) => {
+                    db.all("SELECT id, name, initiatedName, photo, anniversary, contact, whatsapp FROM devotees WHERE strftime('%m-%d', anniversary) = ? AND IFNULL(status, 'Active') != 'Pending'", [mm_dd], (err, anniversaries) => {
                         stats.anniversariesTodayList = anniversaries || [];
                         resolve(stats);
                     });
@@ -1158,6 +1187,13 @@ export const getDevoteeByPhone = (phone) => new Promise((resolve, reject) => {
 
 export const getDevoteeById = (id) => new Promise((resolve, reject) => {
     db.get('SELECT * FROM devotees WHERE id = ?', [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row || null);
+    });
+});
+
+export const getDevoteeByContact = (contact) => new Promise((resolve, reject) => {
+    db.get('SELECT * FROM devotees WHERE contact = ?', [contact], (err, row) => {
         if (err) reject(err);
         else resolve(row || null);
     });
@@ -1769,4 +1805,121 @@ export const logAudit = (userId, userName, action, details) => {
 
 export const getAuditLogs = (limit = 100) => {
     return allAsync("SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ?", [limit]);
+};
+
+// ─── Change Requests ───────────────────────────────────────────────────
+const CHANGEABLE_FIELDS = new Set([
+    'name', 'initiatedName', 'spiritualName', 'email', 'gender', 'dob', 'age',
+    'bloodGroup', 'education', 'occupation', 'contact', 'whatsapp', 'address',
+    'village', 'district', 'pinCode', 'state', 'maritalStatus', 'spiritualStatus',
+    'counselor', 'spiritualMaster', 'shelterDate', 'initiatedDate1', 'initiatedDate2'
+]);
+
+export const createChangeRequest = ({ devoteeId, userId, requestedBy, changes, reason }) => {
+    return runAsync(
+        `INSERT INTO change_requests (devoteeId, userId, requestedBy, changes, reason) VALUES (?, ?, ?, ?, ?)`,
+        [devoteeId, userId, requestedBy, JSON.stringify(changes), reason || null]
+    ).then(res => ({ success: true, id: res.lastID }));
+};
+
+export const getPendingRequests = () => {
+    return allAsync(`
+        SELECT cr.*, d.name as devoteeName, d.contact as devoteeContact, u.fullName as requestedByName
+        FROM change_requests cr
+        JOIN devotees d ON cr.devoteeId = d.id
+        LEFT JOIN users u ON cr.userId = u.id
+        WHERE cr.status = 'pending'
+        ORDER BY cr.createdAt DESC
+    `);
+};
+
+export const getRequestsByUserId = (userId) => {
+    return allAsync(`
+        SELECT cr.*, d.name as devoteeName
+        FROM change_requests cr
+        JOIN devotees d ON cr.devoteeId = d.id
+        WHERE cr.userId = ?
+        ORDER BY cr.createdAt DESC
+    `, [userId]);
+};
+
+export const getAllRequests = () => {
+    return allAsync(`
+        SELECT cr.*, d.name as devoteeName, d.contact as devoteeContact, u.fullName as requestedByName
+        FROM change_requests cr
+        JOIN devotees d ON cr.devoteeId = d.id
+        LEFT JOIN users u ON cr.userId = u.id
+        ORDER BY cr.createdAt DESC
+        LIMIT 200
+    `);
+};
+
+export const approveChangeRequest = (id, adminUsername) => {
+    return new Promise((resolve, reject) => {
+        db.get("SELECT * FROM change_requests WHERE id = ? AND status = 'pending'", [id], async (err, row) => {
+            if (err) return reject(err);
+            if (!row) return resolve({ success: false, error: 'Request not found or already processed' });
+            try {
+                const raw = JSON.parse(row.changes);
+                const changes = {};
+                for (const [field, value] of Object.entries(raw)) {
+                    if (CHANGEABLE_FIELDS.has(field)) changes[field] = value;
+                }
+                if (Object.keys(changes).length === 0) {
+                    return resolve({ success: false, error: 'No valid fields to apply' });
+                }
+                const fields = Object.keys(changes);
+                const values = Object.values(changes);
+                const placeholders = fields.map(() => '?').join(', ');
+                const updateFields = fields.map(f => `${f} = ?`).join(', ');
+                await runAsync(`UPDATE devotees SET ${updateFields} WHERE id = ?`, [...values, row.devoteeId]);
+                await runAsync(
+                    `UPDATE change_requests SET status = 'applied', reviewedBy = ?, reviewedAt = datetime('now') WHERE id = ?`,
+                    [adminUsername, id]
+                );
+                resolve({ success: true });
+            } catch (e) { reject(e); }
+        });
+    });
+};
+
+export const rejectChangeRequest = (id, adminUsername) => {
+    return runAsync(
+        `UPDATE change_requests SET status = 'rejected', reviewedBy = ?, reviewedAt = datetime('now') WHERE id = ?`,
+        [adminUsername, id]
+    ).then(() => ({ success: true }));
+};
+
+// ─── Credential Linking ────────────────────────────────────────────────
+export const linkUserToDevotee = (devoteeId, devotee) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const existing = await getUserByIdentity(devotee.contact);
+            if (existing) { resolve({ skipped: true, userId: existing.id }); return; }
+            const password = crypto.randomBytes(10).toString('base64url');
+            const passwordHash = hashPassword(password);
+            const result = await createUser({
+                username: devotee.contact,
+                email: devotee.email || `${devotee.contact}@temp.local`,
+                passwordHash,
+                role: 'viewer',
+                fullName: devotee.name
+            });
+            resolve({ success: true, userId: result.id, generatedPassword: password });
+        } catch (err) { reject(err); }
+    });
+};
+
+export const getUnlinkedDevotees = () => {
+    return new Promise((resolve, reject) => {
+        db.all(`
+            SELECT d.* FROM devotees d
+            LEFT JOIN users u ON d.contact = u.username
+            WHERE u.id IS NULL AND d.contact IS NOT NULL AND d.contact != ''
+              AND IFNULL(d.status, 'Active') != 'Pending'
+        `, (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows || []);
+        });
+    });
 };

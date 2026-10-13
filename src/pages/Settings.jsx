@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
     RefreshCw, Loader2, CheckCircle2, RotateCcw,
-    Monitor, Download, HardDrive, Archive, Cloud
+    Monitor, Download, HardDrive, Archive, Cloud, Plus, Trash2, User, GraduationCap, MessageSquare
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useToast } from '../components/Toast';
 import apiService from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useReferenceData, LIST_TYPES } from '../context/ReferenceDataContext';
 
 const SectionCard = ({ children, className = '' }) => (
     <div className={clsx('bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden', className)}>
@@ -28,6 +30,94 @@ const SectionHeader = ({ icon: Icon, title, subtitle, badge }) => (
     </div>
 );
 
+const NameListPanel = ({ listKey, label, icon: Icon, customNames, onAdd, onRemove }) => {
+    const [value, setValue] = useState('');
+    const [busy, setBusy] = useState(false);
+    const toast = useToast();
+
+    const handleAdd = async (e) => {
+        e.preventDefault();
+        if (!value.trim()) return;
+        setBusy(true);
+        try {
+            await onAdd(listKey, value);
+            setValue('');
+            toast.success(`${label} added`);
+        } catch {
+            toast.error(`Failed to add ${label.toLowerCase()}`);
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const handleRemove = async (name) => {
+        setBusy(true);
+        try {
+            if (await onRemove(listKey, name)) {
+                toast.success(`${label} removed`);
+            }
+        } catch {
+            toast.error(`Failed to remove ${label.toLowerCase()}`);
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    return (
+        <div className="p-5">
+            <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-indigo-50 dark:bg-slate-800 rounded-lg">
+                    <Icon className="w-4 h-4 text-indigo-600 dark:text-indigo-300" />
+                </div>
+                <div>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{label}</p>
+                    <p className="text-xs text-slate-400">{customNames.length} custom added · {customNames.length > 0 ? 'can be removed' : 'none yet'}</p>
+                </div>
+            </div>
+
+            <form onSubmit={handleAdd} className="flex gap-2 mb-4">
+                <input
+                    type="text"
+                    value={value}
+                    onChange={e => setValue(e.target.value)}
+                    placeholder={`Add ${label.toLowerCase()} name…`}
+                    className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
+                <button
+                    type="submit"
+                    disabled={busy || !value.trim()}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                >
+                    {busy ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                    Add
+                </button>
+            </form>
+
+            {customNames.length > 0 ? (
+                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                    {customNames.map(name => (
+                        <div key={name} className="flex items-center justify-between gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-lg">
+                            <span className="text-sm text-slate-700 dark:text-slate-300 truncate">{name}</span>
+                            <button
+                                onClick={() => handleRemove(name)}
+                                disabled={busy}
+                                className="p-1.5 text-slate-400 hover:text-red-500 rounded-md hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors shrink-0"
+                                title={`Remove ${name}`}
+                            >
+                                <Trash2 size={13} />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-xs text-slate-400 dark:text-slate-500 py-2">
+                    No custom names yet. Displays built-in defaults plus anything you add here.
+                </p>
+            )}
+        </div>
+    );
+};
+
 const Settings = () => {
     const [health, setHealth] = useState('checking');
     const [backupFiles, setBackupFiles] = useState([]);
@@ -37,7 +127,57 @@ const Settings = () => {
     const [googleBackingUp, setGoogleBackingUp] = useState(false);
     const [cloudBackupStatus, setCloudBackupStatus] = useState(null);
     const [cloudSyncing, setCloudSyncing] = useState(false);
+    const [whatsappStatus, setWhatsappStatus] = useState('checking');
+    const [whatsappQr, setWhatsappQr] = useState(null);
+    const [whatsappLoading, setWhatsappLoading] = useState(false);
     const toast = useToast();
+    const { isAdmin } = useAuth();
+    const { customCounselors, customSpiritualMasters, addName, removeName } = useReferenceData();
+
+    const fetchWhatsAppStatus = async () => {
+        try {
+            const data = await apiService.getWhatsAppStatus();
+            if (data.success) {
+                setWhatsappStatus(data.status || 'UNKNOWN');
+                if (data.status === 'QR_RECEIVED') {
+                    const qrData = await apiService.getWhatsAppQR();
+                    if (qrData.success && qrData.qr) {
+                        setWhatsappQr(qrData.qr);
+                    }
+                } else if (data.status === 'READY') {
+                    setWhatsappQr(null);
+                }
+            }
+        } catch {
+            setWhatsappStatus('OFFLINE');
+        }
+    };
+
+    const handleRestartWhatsApp = async () => {
+        setWhatsappLoading(true);
+        try {
+            await apiService.restartWhatsApp();
+            toast.info('Restarting WhatsApp client...');
+            setTimeout(fetchWhatsAppStatus, 4000);
+        } catch (err) {
+            toast.error('Failed to restart WhatsApp: ' + err.message);
+        } finally {
+            setWhatsappLoading(false);
+        }
+    };
+
+    const handleLogoutWhatsApp = async () => {
+        setWhatsappLoading(true);
+        try {
+            await apiService.logoutWhatsApp();
+            toast.success('Disconnected WhatsApp session');
+            setTimeout(fetchWhatsAppStatus, 2000);
+        } catch (err) {
+            toast.error('Failed to disconnect: ' + err.message);
+        } finally {
+            setWhatsappLoading(false);
+        }
+    };
 
     const fetchHealth = async () => {
         try {
@@ -155,15 +295,20 @@ const Settings = () => {
         fetchBackupList();
         fetchGoogleStatus();
         fetchCloudStatus();
+        fetchWhatsAppStatus();
         const interval = setInterval(() => {
             fetchHealth();
         }, 15000);
         const cloudInterval = setInterval(() => {
             fetchCloudStatus();
         }, 30000);
+        const waInterval = setInterval(() => {
+            fetchWhatsAppStatus();
+        }, 8000);
         return () => {
             clearInterval(interval);
             clearInterval(cloudInterval);
+            clearInterval(waInterval);
         };
     }, []);
 
@@ -201,6 +346,34 @@ const Settings = () => {
                     </div>
                 </SectionCard>
 
+                {isAdmin && (
+                    <SectionCard>
+                        <SectionHeader
+                            icon={User}
+                            title="Reference Names"
+                            subtitle="Manage counselor & spiritual master names shown in the devotee forms"
+                        />
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 divide-y-0 max-lg:divide-y lg:divide-x lg:divide-slate-100 dark:lg:divide-slate-800">
+                            <NameListPanel
+                                listKey={LIST_TYPES.counselors}
+                                label="Counselors"
+                                icon={User}
+                                customNames={customCounselors}
+                                onAdd={addName}
+                                onRemove={removeName}
+                            />
+                            <NameListPanel
+                                listKey={LIST_TYPES.spiritualMasters}
+                                label="Spiritual Masters"
+                                icon={GraduationCap}
+                                customNames={customSpiritualMasters}
+                                onAdd={addName}
+                                onRemove={removeName}
+                            />
+                        </div>
+                    </SectionCard>
+                )}
+
                 <SectionCard>
                     <SectionHeader icon={Archive} title="Backup & Export" subtitle="Download CSV snapshot" />
                     <div className="p-5 space-y-4">
@@ -230,6 +403,113 @@ const Settings = () => {
                                 </div>
                             )}
                         </div>
+                    </div>
+                </SectionCard>
+
+                <SectionCard>
+                    <SectionHeader
+                        icon={MessageSquare}
+                        title="WhatsApp Bot"
+                        subtitle="Automated WhatsApp messaging & broadcasts"
+                        badge={
+                            <span className={clsx(
+                                "text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5",
+                                whatsappStatus === 'READY' ? "bg-emerald-100 text-emerald-800" :
+                                whatsappStatus === 'QR_RECEIVED' ? "bg-amber-100 text-amber-800" :
+                                "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                            )}>
+                                <span className={clsx(
+                                    "w-2 h-2 rounded-full",
+                                    whatsappStatus === 'READY' ? "bg-emerald-500 animate-pulse" :
+                                    whatsappStatus === 'QR_RECEIVED' ? "bg-amber-500" : "bg-slate-400"
+                                )} />
+                                {whatsappStatus === 'READY' ? 'Connected' :
+                                 whatsappStatus === 'QR_RECEIVED' ? 'Scan QR Code' :
+                                 whatsappStatus === 'INITIALIZING' ? 'Initializing...' :
+                                 whatsappStatus === 'DISCONNECTED' ? 'Disconnected' :
+                                 whatsappStatus === 'OFFLINE' ? 'Server Offline' : whatsappStatus}
+                            </span>
+                        }
+                    />
+                    <div className="p-5 space-y-4">
+                        {whatsappStatus === 'READY' ? (
+                            <div className="space-y-4">
+                                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center gap-3">
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                                    <div>
+                                        <p className="text-sm font-bold text-emerald-900 dark:text-emerald-100">WhatsApp is linked and active</p>
+                                        <p className="text-xs text-emerald-700 dark:text-emerald-300 mt-0.5">Automated sadhana notifications, broadcasts, and birthday greetings are operational.</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                    <button
+                                        onClick={fetchWhatsAppStatus}
+                                        className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+                                    >
+                                        <RefreshCw size={12} /> Check Status
+                                    </button>
+                                    <button
+                                        onClick={handleLogoutWhatsApp}
+                                        disabled={whatsappLoading}
+                                        className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors flex items-center gap-1.5"
+                                    >
+                                        {whatsappLoading ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />} Disconnect
+                                    </button>
+                                </div>
+                            </div>
+                        ) : whatsappStatus === 'QR_RECEIVED' && whatsappQr ? (
+                            <div className="flex flex-col sm:flex-row items-center gap-6 p-2">
+                                <div className="p-3 bg-white rounded-2xl border-2 border-slate-200 shadow-sm shrink-0">
+                                    <img src={whatsappQr} alt="WhatsApp QR Code" className="w-48 h-48 rounded-lg" />
+                                </div>
+                                <div className="space-y-3 text-center sm:text-left">
+                                    <div>
+                                        <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Scan QR Code with WhatsApp</h3>
+                                        <ol className="text-xs text-slate-500 dark:text-slate-400 mt-2 space-y-1 list-decimal list-inside">
+                                            <li>Open <strong>WhatsApp</strong> on your mobile phone</li>
+                                            <li>Go to <strong>Settings</strong> &gt; <strong>Linked Devices</strong></li>
+                                            <li>Tap <strong>Link a Device</strong> and point your camera here</li>
+                                        </ol>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 pt-2 justify-center sm:justify-start">
+                                        <button
+                                            onClick={fetchWhatsAppStatus}
+                                            className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+                                        >
+                                            <RefreshCw size={12} /> Refresh QR
+                                        </button>
+                                        <button
+                                            onClick={handleRestartWhatsApp}
+                                            disabled={whatsappLoading}
+                                            className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold hover:bg-slate-200 transition-colors flex items-center gap-1.5"
+                                        >
+                                            {whatsappLoading ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />} Restart Bot
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <p className="text-xs text-slate-600 dark:text-slate-300">
+                                    Current status: <span className="font-semibold text-slate-800 dark:text-slate-100">{whatsappStatus}</span>
+                                </p>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={fetchWhatsAppStatus}
+                                        className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+                                    >
+                                        <RefreshCw size={12} /> Check Status
+                                    </button>
+                                    <button
+                                        onClick={handleRestartWhatsApp}
+                                        disabled={whatsappLoading}
+                                        className="px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-semibold hover:bg-indigo-100 transition-colors flex items-center gap-1.5"
+                                    >
+                                        {whatsappLoading ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />} Connect / Restart
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </SectionCard>
 

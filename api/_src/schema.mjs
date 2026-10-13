@@ -61,6 +61,7 @@ export const TABLES = {
         "currentService" TEXT,
         "photo" TEXT,
         "status" TEXT DEFAULT 'Active',
+        "source" TEXT,
         "createdAt" TEXT
     )`,
     system_logs: `CREATE TABLE IF NOT EXISTS system_logs (
@@ -294,6 +295,18 @@ export const TABLES = {
         action TEXT NOT NULL,
         details TEXT,
         timestamp TEXT DEFAULT NOW()
+    )`,
+    change_requests: `CREATE TABLE IF NOT EXISTS change_requests (
+        id ${SERIAL} PRIMARY KEY,
+        "devoteeId" TEXT NOT NULL,
+        "userId" TEXT NOT NULL,
+        "requestedBy" TEXT NOT NULL,
+        changes TEXT NOT NULL,
+        reason TEXT,
+        status TEXT DEFAULT 'pending',
+        "reviewedBy" TEXT,
+        "reviewedAt" TEXT,
+        "createdAt" TEXT DEFAULT NOW()
     )`
 };
 

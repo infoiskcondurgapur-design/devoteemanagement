@@ -1,5 +1,100 @@
 # CHANGELOG
 
+## [2026-10-13]
+
+### Devotee List Real-Time Synchronization & Pagination Decoupling
+- **Root Cause Resolution**:
+  - `DevoteeContext.jsx` previously overwrote the global congregation list (`devotees`) inside `fetchPaginatedDevotees`, replacing all 172 records with only the 25 items of the active page. This broke components depending on the full dataset (`DevoteeMap`, `Reports`, `CounselorDashboard`, `Attendance`).
+  - Separated state into `devotees` (full congregation, queried up to `limit=2000`) and `paginatedDevotees` (dedicated slice for table/grid views).
+  - Fixed `DevoteeList.jsx` initial mount logic which was skipping server-side pagination due to `isFirstRender.current`, causing page 1 to dump all cached devotees and desynchronize page controls.
+- **WebSocket Client Integration (`src/services/wsClient.js`)**:
+  - Implemented client-side WebSocket manager connecting to `whatsapp-bot/services/wsService.mjs` with automatic reconnection, heartbeat, and window visibility awareness.
+  - Subscribes to `DEVOTEE_CREATED`, `DEVOTEE_UPDATED`, `DEVOTEE_DELETED`, and `DATA_MUTATED` events broadcast by the backend.
+  - Dispatches `dms:sync` and `devotees:refresh` DOM events to dynamically refresh devotee lists without page reloads.
+- **UI Enhancements (`DevoteeList.jsx`)**:
+  - Added real-time **Live Sync** status badge in the header indicating active WebSocket synchronization.
+  - Added manual **Sync Now** refresh button with rotation micro-animation.
+  - Pagination now strictly reflects server bounds ("Showing 1–25 of 172 devotees"), navigating seamlessly across all pages.
+
+
+### WhatsApp Bot UI Integration & Device Linking
+- **Live WhatsApp Bot Control Panel (`Settings.jsx`)**: Added an automated status & linking card to the Settings page. Displays live connection state (`Connected`, `Scan QR Code`, `Initializing`, `Disconnected`), live-streaming QR code, status check, and restart/disconnect buttons.
+- **API Client Extensions (`api.js`)**: Added `getWhatsAppStatus`, `getWhatsAppQR`, `restartWhatsApp`, and `logoutWhatsApp` helpers for controlling the background bot service.
+
+### Original Profile Picture Preview Modal
+- **Full-Resolution Image Lightbox**: Added `src/components/ImageModal.jsx` enabling devotees' profile pictures to be previewed in their uncropped, original high resolution upon clicking.
+- **Interactive Controls**: Lightbox includes backdrop-click to dismiss, `Esc` key listener, zoom in/out toggle, direct download button, and an "Open Original in New Tab" external link.
+- **Smart URL Resolution**: Added `getOriginalImageUrl` utility that strips thumbnail/cropping dimensions from Cloudinary transformation paths and Unsplash query parameters, providing maximum available clarity.
+- **Integrated Views**:
+  - `DevoteeProfile.jsx`: Profile picture header features subtle hover zoom effect with maximize icon overlay; clicking opens the original image modal.
+  - `DevoteeList.jsx`: Both table avatar and grid card picture open the original image modal on click without interrupting navigation.
+  - `Profile.jsx`: Admin profile avatar preview on click.
+  - `Dashboard.jsx`: Birthday and anniversary devotees' profile photos can be clicked to view original image.
+  - `CounselorDashboard.jsx`: Counselee list profile pictures are now clickable for original image preview.
+
+### Backend Parity & Authentication Token Collision Fix
+- **Token Unique Nonce (`jti`)**: Added `jti: crypto.randomUUID()` to `signToken` in both `whatsapp-bot/services/authService.mjs` and `api/_src/services/authService.mjs`. Prevents rapid successive logins within the same second from generating identical deterministic tokens that collide with the revocation cache (`revokedTokens`). Restored 100% pass rate (21/21) in regression tests.
+- **Desktop Electron Backend Route Parity**: Added missing `attendanceRoutes.mjs`, `attendanceController.mjs`, `counselingRoutes.mjs`, and `counselingController.mjs` to `whatsapp-bot/` and mounted `/api/attendance` and `/api/counseling` in `server.mjs`.
+- **Serverless Web Backend Route Parity**: Added `change_requests` table DDL to `api/_src/schema.mjs`, change request queries/approval handlers to `api/_src/database.mjs`, added `api/_src/routes/changeRequestRoutes.mjs`, and mounted `/api/change-requests` in `api/_src/app.mjs`.
+
+## [2026-10-09]
+
+### Supabase PostgreSQL support and safe hosted-data migration
+- Added a `pg` driver mode for the web API using `POSTGRES_DRIVER=pg` and `SUPABASE_DATABASE_URL`; TLS is enabled by default and the application pool is capped at one connection per serverless instance.
+- Added `api/_src/scripts/migrate-neon-to-supabase.mjs` to copy the existing hosted Neon tables into an empty Supabase project. It is dry-run by default, reports row counts, refuses non-empty targets, preserves identity ids, and wraps writes in one transaction.
+- Updated deployment and database documentation. Desktop continues to use local SQLite; this change configures Supabase for the hosted API only.
+
+## [2026-10-08]
+
+### Local SQLite re-synced from Neon (86 → 172 devotees)
+- **Problem**: the local DB (`whatsapp-bot/devotee_mgmt.db`) held only 86 devotees while the deployed Neon DB had 172 (local was a strict subset — 86 common ids, 0 local-only). Dashboard totals therefore showed 86 instead of the expected 172.
+- **Fix**: new script `scripts/import-from-neon.mjs` pulls missing `devotees` rows from Neon into SQLite — never overwrites existing local rows (INSERT OR IGNORE by id), auto-backups to `whatsapp-bot/backups/` before applying, dry-run by default (`--apply` to execute). Neon columns map by lowercasing the SQLite column names; `source` has no Neon counterpart and stays `NULL` (consistent with local rows).
+- **Verified**: local total 172, `/api/devotees/stats` → `total: 172`, and the one content conflict (Sampa Mondal's contact) kept the better local value `918158953524` (Neon has the un-normalized `8158953524`).
+- **Warning**: `api/_src/scripts/migrate.mjs` is **wipe-and-copy SQLite→Postgres** — never run it while Neon is ahead; it would destroy the 172.
+
+## [2026-10-07]
+
+### Public Self-Registration Form (`#/register`)
+- **Shareable link**: Anonymous visitors open `https://<host>/#/register` (web) or the local app URL + `#/register` (desktop) and fill the full 3-step wizard (Personal → Family & Location → Spiritual Life) with an optional photo — no login required. New page `src/pages/public/PublicRegister.jsx` (lazy route in `src/App.jsx`) reuses `DevoteeForm` steps; `StepNavigation` gained a `submitLabel` prop ("Submit Registration"). Success screen shows a Reference ID; the left `VerticalNav` is hidden on mobile for a kiosk-friendly layout.
+- **New endpoint `POST /api/public/register`** on **both** backends (`whatsapp-bot/controllers|routes/publicController|publicRoutes.mjs` and the `api/_src/` mirror): strict validation (name, enum membership for gender/relation/marital/spiritual status, `contact` `^[6-9]\d{9}$`, photo `data:image/` base64 ≤ 14,000,000 chars), hidden honeypot field `website` silently swallows bots, and server-owned fields (`id`, `status`, `source`, `createdAt`) are always stripped and forced (`status: 'Pending'`, `source: 'Public Form'`). Duplicates (same name + contact) return a **generic 409** that never reveals the existing devotee's name. Photos upload via this endpoint only (`/api/upload` stays authenticated); desktop broadcasts `DEVOTEE_CREATED` over WebSocket. No WhatsApp greeting and no login credentials are issued until an admin approves.
+- **Rate limiting**: dedicated `publicRegisterLimiter` (10 / 15 min / IP, `RATE_LIMIT_PUBLIC_MAX` override) mounted after the global limiter; `express-rate-limit@^8.7.0` added to root dependencies. Auth gates in `server.mjs` and `api/_src/app.mjs` allowlist `/public/register` alongside `/login`.
+- **`devotees.source` column**: added to `DEVOTEE_COLUMNS` + DDL (SQLite) and the Postgres schema; existing Neon tables are healed at startup via `ALTER TABLE devotees ADD COLUMN IF NOT EXISTS` in `initDb()`. Dashboard stats, weekly/birthday/anniversary queries, and `getUnlinkedDevotees` (credential-linking WhatsApp sweep) all exclude `status = 'Pending'` (`IFNULL`/`COALESCE(status,'Active') != 'Pending'`) so pending rows never inflate totals or trigger password messages.
+- **Admin approval queue**: `DevoteeList` gains a `Pending` filter option, amber Pending badge (tagged "• Public" when `source === 'Public Form'`), amber grid indicator, and `UserCheck` approve buttons; `DevoteeProfile` shows a "Pending Approval" badge and an admin Approve button. Approval is a normal `PUT /api/devotees/:id { status: 'Active' }`.
+- **Anonymous-401 fixes**: `api.js` only dispatches `app:unauthorized` when a token exists and emits a new `auth:changed` event from `setToken`; `AuthContext` skips the redirect for `/login` and `/register` hashes; `DevoteeContext` and `ReferenceDataContext` gate polling/fetches on an authenticated token with `auth:changed` listeners — visiting `#/register` logged out no longer produces redirect loops or 401 noise.
+
+### Logout now invalidates tokens
+- Stateless HMAC tokens are revoked server-side: `revokeToken`/`revokeRequestToken` in both `authService.mjs` mirrors keep an in-memory denylist (bounded, prunes expired entries) checked by `verifyToken`; `POST /api/auth/logout` records the presented token before returning success. Fixes the `logout invalidates the issued token` regression test.
+
+### Dev bypass login (local only, `DMS_AUTH_BYPASS=1`)
+- **New endpoints (both backends)**: `GET /api/auth/bypass` (`{enabled}` status) and `POST /api/auth/bypass` (issues an admin token with no password when `DMS_AUTH_BYPASS=1`; **403** otherwise). Both are allowlisted through the auth gate; a loud boot warning prints while enabled. The flag is set in local `whatsapp-bot\.env` only — **never** in the Vercel env, where the endpoints stay inert.
+- **Frontend**: `api.js` gains `authBypassStatus`/`authBypass`; `AuthContext` exposes `bypassEnabled` + `bypassLogin`; `LoginPage` shows a dashed **"Skip login (dev mode)"** button only when the status endpoint reports enabled.
+- **Auth-gate hardening**: both gates now compare public paths against the URL **path only** (query string stripped) so `?x=/auth/login` can no longer satisfy an allowlist check.
+- **Tests**: +2 (bypass status → `enabled:false` and bypass POST → 403 with the flag forced off via `DMS_AUTH_BYPASS: '0'`); health-wait raised to 90s because boot (schema heal + prod-DB merge) can exceed the old 30s budget. Suite now **21/21**.
+
+### Verification
+- `npm run test:regression`: **21/21 pass** (6 public-registration tests, 2 bypass tests, logout-revocation test).
+- `npm run build` passes (vite 7.3.0, `PublicRegister` chunk emitted); `npx eslint .` has 0 errors (25 pre-existing warnings); backend files pass `node --check`.
+- Docs updated: `API.md` (§9 Public Registration + 401/409/429 status codes), `DATABASE.md` (`source` column, Pending exclusion rules, Postgres heal note).
+
+## [2026-09-25]
+
+### Change Request Workflow (Devotee Self-Service)
+- **Devotee Login Accounts**: Devotees log in with their contact number; an auto-generated password is created and delivered via WhatsApp (`linkUserToDevotee` in `whatsapp-bot/database.mjs`, migration run by `whatsapp-bot/server.mjs` on startup). Username = `devotee.contact`, role `viewer`.
+- **Profile Edit Parity with Role**: Admins see Edit/Delete on the profile; non-admin devotees see a "Request Changes" button instead (`DevoteeProfile.jsx`).
+- **Change Requests**: New `change_requests` table plus `whatsapp-bot/routes/changeRequestRoutes.mjs` (`POST /`, `GET /pending`, `GET /history`, `GET /mine`, `PUT /:id/approve`, `PUT /:id/reject`). Statuses: `pending | approved | rejected | applied`. Approve only whitelists 25 safe devotee columns (`CHANGEABLE_FIELDS`) and applies via parameterized UPDATE.
+- **Frontend Pages**: `src/pages/ChangeRequestForm.jsx`, `src/pages/AdminChangeRequests.jsx` (admin approve/reject), `src/pages/MyRequests.jsx` (devotee status tracking); routes registered in `src/App.jsx`; quick-access entries added to the Command Palette.
+- **Auth plumb-through**: `authController`/`authService` include `devoteeId`; `AuthContext` exposes `devoteeId`, `canEdit`, `canRequestChanges`.
+
+### Admin-Managed Reference Names (Counselors & Spiritual Masters)
+- **New `ReferenceDataContext`** (`src/context/ReferenceDataContext.jsx`): reads `counselors_list` / `spiritual_masters_list` (JSON arrays) from the existing `settings` table via `GET /api/system/settings`, and exposes `counselors` / `spiritualMasters` as the deduped union of the built-in defaults + custom entries.
+- **Settings UI**: Admin-only "Reference Names" card with add/remove inputs for both lists (`Settings.jsx`); changes persist via `POST /api/system/settings`.
+- **Live dropdowns**: Devotee Form Counselor + Spiritual Master selects (`SpiritualLifeStep.jsx`) and the Counselor Dashboard list (`CounselorDashboard.jsx`) now use the context lists.
+- Added counselor "Lakshirani Dayamoyee Debi Dasi" to the built-in defaults.
+- Fixed a `getDevoteeById` missing-closure-paren syntax bug in `whatsapp-bot/database.mjs`.
+
+### Verification
+- `npm run build` passes (vite 7.3.0); `npx eslint .` exits with 0 errors (24 pre-existing warnings); backend files pass `node --check`.
+
 ## [2026-09-14]
 
 ### Windows Desktop Application Build & Package

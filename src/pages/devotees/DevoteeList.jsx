@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, Filter, Eye, Edit, Trash, LayoutGrid, List, MessageSquare, X, ChevronLeft, ChevronRight, Layout } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Trash, LayoutGrid, List, MessageSquare, X, ChevronLeft, ChevronRight, Layout, UserCheck, Maximize2, RefreshCw } from 'lucide-react';
 import { useDevotees } from '../../context/DevoteeContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '../../components/Toast';
@@ -7,13 +7,14 @@ import clsx from 'clsx';
 
 import ConfirmationModal from '../../components/ConfirmationModal';
 import WhatsAppModal from '../../components/WhatsAppModal';
+import ImageModal from '../../components/ImageModal';
 
 const PAGE_SIZE = 25;
 
 const DevoteeList = () => {
     const { 
-        devotees, totalCount, filterOptions, fetchPaginatedDevotees, 
-        deleteDevotee 
+        devotees, paginatedDevotees: contextPaginatedDevotees, totalCount, filterOptions, fetchPaginatedDevotees, 
+        deleteDevotee, updateDevotee, isLiveConnected, fetchDevotees
     } = useDevotees();
     const navigate = useNavigate();
     const toast = useToast();
@@ -24,6 +25,7 @@ const DevoteeList = () => {
     const [isSearching, setIsSearching] = useState(false);
     const [activeDevotee, setActiveDevotee] = useState(null);
     const [showWhatsApp, setShowWhatsApp] = useState(false);
+    const [selectedImageDevotee, setSelectedImageDevotee] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(25);
     const [selectedIds, setSelectedIds] = useState(new Set());
@@ -48,21 +50,24 @@ const DevoteeList = () => {
         setScrollTop(e.target.scrollTop);
     };
 
-    // Server-side paginated fetch effect.
-    // Skip the initial run: DevoteeContext already hydrates `devotees` + `totalCount`
-    // on mount, so refetching here on first render duplicates that request.
-    const isFirstRender = React.useRef(true);
+    // Server-side paginated fetch effect:
+    // Fetches immediately on mount and when page, size, search, or filters change
     React.useEffect(() => {
-        if (isFirstRender.current) {
-            isFirstRender.current = false;
-            return;
-        }
+        setIsSearching(true);
         const delayDebounceFn = setTimeout(() => {
-            setIsSearching(true);
             fetchPaginatedDevotees(currentPage, pageSize, searchTerm, filters)
                 .finally(() => setIsSearching(false));
-        }, 300);
+        }, 150);
         return () => clearTimeout(delayDebounceFn);
+    }, [currentPage, pageSize, searchTerm, filters]);
+
+    // Live refresh listener (auto-syncs view when devotees are added, updated, or deleted)
+    React.useEffect(() => {
+        const handleLiveRefresh = () => {
+            fetchPaginatedDevotees(currentPage, pageSize, searchTerm, filters);
+        };
+        window.addEventListener('devotees:refresh', handleLiveRefresh);
+        return () => window.removeEventListener('devotees:refresh', handleLiveRefresh);
     }, [currentPage, pageSize, searchTerm, filters]);
 
     // Measure virtualization container height
@@ -78,11 +83,22 @@ const DevoteeList = () => {
         });
         resizeObserver.observe(container);
         return () => resizeObserver.disconnect();
-    }, [viewMode, devotees]);
+    }, [viewMode, contextPaginatedDevotees]);
 
     const counselors = filterOptions?.counselors || [];
     const districts = filterOptions?.districts || [];
-    const safeDevotees = Array.isArray(devotees) ? devotees : [];
+
+    // Safely memoize active paginated devotees
+    const safeDevotees = useMemo(() => {
+        if (Array.isArray(contextPaginatedDevotees) && contextPaginatedDevotees.length > 0) {
+            return contextPaginatedDevotees;
+        }
+        if (Array.isArray(devotees) && devotees.length > 0) {
+            const start = (currentPage - 1) * pageSize;
+            return devotees.slice(start, start + pageSize);
+        }
+        return [];
+    }, [contextPaginatedDevotees, devotees, currentPage, pageSize]);
 
     // Virtualized table rows calculation
     const rowHeight = 72; // Avg row height in pixels
@@ -111,11 +127,22 @@ const DevoteeList = () => {
     }, [safeDevotees, scrollTop, containerHeight]);
 
     const totalPages = Math.ceil(totalCount / pageSize);
-    const paginatedDevotees = safeDevotees; // Server-side paginated already
+    const paginatedDevotees = safeDevotees;
 
     const clearFilters = () => {
         setFilters({ status: '', gender: '', counselor: '', spiritualStatus: '', district: '' });
         setCurrentPage(1);
+    };
+
+    // Approve a Pending public registration: promote it to Active.
+    const approveDevotee = async (devotee) => {
+        try {
+            await updateDevotee(devotee.id, { status: 'Active' });
+            toast.success(`${devotee.name} approved and activated.`);
+            fetchPaginatedDevotees(currentPage, pageSize, searchTerm, filters);
+        } catch (err) {
+            toast.error('Approve failed: ' + err.message);
+        }
     };
 
     const toggleSelect = (id) => {
@@ -149,16 +176,35 @@ const DevoteeList = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Devotees</h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Devotees</h1>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${isLiveConnected ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isLiveConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+                            {isLiveConnected ? 'Live Sync' : 'Synced'}
+                        </span>
+                    </div>
                     <p className="text-slate-500 dark:text-slate-400">
                         Total {totalCount} devotees
                         {hasActiveFilters && <span className="text-orange-600 font-medium"> (filtered)</span>}
                     </p>
                 </div>
-                <Link to="/devotees/new" className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-xl hover:bg-orange-700 transition-colors shadow-lg shadow-orange-900/20">
-                    <Plus className="w-5 h-5" />
-                    <span>Add Devotee</span>
-                </Link>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => {
+                            fetchPaginatedDevotees(currentPage, pageSize, searchTerm, filters);
+                            fetchDevotees();
+                            toast.info('Devotee list refreshed');
+                        }}
+                        title="Refresh list"
+                        className="p-2 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+                    >
+                        <RefreshCw className="w-5 h-5" />
+                    </button>
+                    <Link to="/devotees/new" className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-xl hover:bg-orange-700 transition-colors shadow-lg shadow-orange-900/20">
+                        <Plus className="w-5 h-5" />
+                        <span>Add Devotee</span>
+                    </Link>
+                </div>
             </div>
 
             {/* Search, Filter Toggle & View Toggle */}
@@ -253,6 +299,7 @@ const DevoteeList = () => {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                         <select value={filters.status} onChange={e => { setFilters(f => ({ ...f, status: e.target.value })); setCurrentPage(1); }} className={selectClass}>
                             <option value="">All Status</option>
+                            <option value="Pending">Pending</option>
                             <option value="Active">Active</option>
                             <option value="Inactive">Inactive</option>
                         </select>
@@ -317,11 +364,27 @@ const DevoteeList = () => {
                                         </td>
                                         <td className="px-6 py-4 sticky left-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:bg-slate-900/50/50 z-10">
                                             <div className="flex items-center gap-4 min-w-[200px]">
-                                                <img
-                                                    src={devotee.photo || '/default-avatar.png'}
-                                                    alt={devotee.name}
-                                                    className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
-                                                />
+                                                <div 
+                                                    onClick={(e) => {
+                                                        if (devotee.photo) {
+                                                            e.stopPropagation();
+                                                            setSelectedImageDevotee(devotee);
+                                                        }
+                                                    }}
+                                                    className={`relative group shrink-0 ${devotee.photo ? 'cursor-pointer' : ''}`}
+                                                    title={devotee.photo ? "Click to view original image" : ""}
+                                                >
+                                                    <img
+                                                        src={devotee.photo || '/default-avatar.png'}
+                                                        alt={devotee.name}
+                                                        className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm transition-transform duration-200 group-hover:scale-105"
+                                                    />
+                                                    {devotee.photo && (
+                                                        <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                                            <Maximize2 className="w-4 h-4 drop-shadow" />
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 <div>
                                                     <div className="font-semibold text-slate-900 truncate max-w-[150px]">{devotee.name}</div>
                                                     {devotee.initiatedName && (
@@ -331,8 +394,9 @@ const DevoteeList = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight ${devotee.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100'}`}>
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight ${devotee.status === 'Active' ? 'bg-green-100 text-green-800' : devotee.status === 'Pending' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100'}`}>
                                                 {devotee.status}
+                                                {devotee.source === 'Public Form' && devotee.status === 'Pending' && <span className="ml-1 normal-case font-semibold opacity-70">• Public</span>}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">{devotee.gender || '-'}</td>
@@ -341,6 +405,15 @@ const DevoteeList = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">{devotee.counselor || '-'}</td>
                                         <td className="px-6 py-4 text-right sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:bg-slate-900/50/50 z-10">
                                             <div className="flex items-center justify-end gap-2">
+                                                {devotee.status === 'Pending' && (
+                                                    <button
+                                                        onClick={() => approveDevotee(devotee)}
+                                                        className="p-2 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors"
+                                                        title="Approve Registration"
+                                                    >
+                                                        <UserCheck className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                                 <Link to={`/devotees/${devotee.id}`} className="p-2 text-slate-400 dark:text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors">
                                                     <Eye className="w-4 h-4" />
                                                 </Link>
@@ -378,9 +451,20 @@ const DevoteeList = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {paginatedDevotees.map((devotee) => (
                         <div key={devotee.id} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center">
-                            <div className="relative mb-4">
-                                <img src={devotee.photo || '/default-avatar.png'} alt={devotee.name} className="w-24 h-24 rounded-full object-cover border-4 border-slate-50 shadow-inner" />
-                                <span className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white ${devotee.status === 'Active' ? 'bg-green-500' : 'bg-slate-400'}`}></span>
+                            <div 
+                                onClick={() => {
+                                    if (devotee.photo) setSelectedImageDevotee(devotee);
+                                }}
+                                className={`relative mb-4 group ${devotee.photo ? 'cursor-pointer' : ''}`}
+                                title={devotee.photo ? "Click to view original image" : ""}
+                            >
+                                <img src={devotee.photo || '/default-avatar.png'} alt={devotee.name} className="w-24 h-24 rounded-full object-cover border-4 border-slate-50 shadow-inner transition-transform duration-200 group-hover:scale-105" />
+                                <span className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white ${devotee.status === 'Active' ? 'bg-green-500' : devotee.status === 'Pending' ? 'bg-amber-400' : 'bg-slate-400'}`}></span>
+                                {devotee.photo && (
+                                    <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                        <Maximize2 className="w-5 h-5 drop-shadow" />
+                                    </div>
+                                )}
                             </div>
                             <h3 className="font-bold text-slate-900 text-lg mb-1">{devotee.name}</h3>
                             {devotee.initiatedName && <p className="text-sm text-orange-600 font-medium mb-3">{devotee.initiatedName}</p>}
@@ -389,6 +473,11 @@ const DevoteeList = () => {
                                 <p className="text-xs mt-1">{devotee.gender} • {devotee.counselor}</p>
                             </div>
                             <div className="flex items-center gap-2 mt-auto w-full pt-4 border-t border-slate-100 dark:border-slate-800">
+                                {devotee.status === 'Pending' && (
+                                    <button onClick={() => approveDevotee(devotee)} className="flex-1 p-2 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors flex justify-center" title="Approve Registration">
+                                        <UserCheck className="w-4 h-4" />
+                                    </button>
+                                )}
                                 <Link to={`/devotees/${devotee.id}`} className="flex-1 p-2 text-slate-500 dark:text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors flex justify-center">
                                     <Eye className="w-4 h-4" />
                                 </Link>
@@ -491,7 +580,17 @@ const DevoteeList = () => {
 
             <WhatsAppModal
                 isOpen={showWhatsApp}
+                onClose={() => setShowWhatsApp(false)}
                 devotee={activeDevotee}
+            />
+
+            {/* Original Profile Picture Modal */}
+            <ImageModal
+                isOpen={!!selectedImageDevotee}
+                onClose={() => setSelectedImageDevotee(null)}
+                imageUrl={selectedImageDevotee?.photo}
+                title={selectedImageDevotee?.name}
+                subtitle={selectedImageDevotee?.initiatedName || selectedImageDevotee?.status}
             />
 
             {/* Batch Action Bar */}

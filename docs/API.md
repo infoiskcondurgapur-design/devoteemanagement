@@ -9,10 +9,20 @@
 
 ## Authentication
 
-Admin login was removed; all endpoints under `/api` are public and require no bearer token.
+All endpoints under `/api` (except the public set below) require a bearer token: `Authorization: Bearer <jwt>`.
 
-- **Removed**: `POST /api/auth/login`, `GET /api/auth/session`, `POST /api/auth/verify-password`, `POST /api/auth/logout`.
-- **Kept**: Google OAuth endpoints (`GET /api/auth/google/status`, `GET /api/auth/google/url`, `GET /api/auth/google/callback`) for Google Sheets integration, and `GET /api/system/health`.
+- **Login**: `POST /api/auth/login` with `{ username, password }` → `{ success, token, user }`. Users: the seeded `admin` (credentials from `ADMIN_USERNAME`/`ADMIN_PASSWORD` env) and devotee accounts (username = contact number, role `viewer`).
+- **Session**: `GET /api/auth/session`, **Logout**: `POST /api/auth/logout` (revokes the presented token server-side), **Password check**: `POST /api/auth/verify-password`.
+- **Public (no token)**: `/api/system/health`, `POST /api/auth/login`, `GET|POST /api/auth/bypass`, `/api/auth/google/*`, `POST /api/public/register`.
+- **Gate rule**: the auth gate matches against the URL **path only** (query strings are stripped first so `?x=/auth/login` cannot satisfy a public-path check).
+
+### Dev bypass login (development only)
+
+For local development when credentials are unknown:
+
+- `GET /api/auth/bypass` → `{ success, enabled }` — reports whether the bypass is on.
+- `POST /api/auth/bypass` → `{ success, token, user }` (admin token, no password) when enabled; **403** when disabled.
+- Enabled **only** by `DMS_AUTH_BYPASS=1` in the environment (set in local `whatsapp-bot\.env`; never set it in the Vercel environment). Both backends print a loud boot warning while enabled, and the login page shows a "Skip login (dev mode)" button only when the status endpoint reports `enabled: true`.
 
 ---
 
@@ -198,12 +208,38 @@ The `whatsapp-bot/` server owns WhatsApp integration and its SSE stream. These e
 #### `POST /api/whatsapp/broadcast`
 - **Purpose**: Trigger custom WhatsApp broadcast messages to a dynamic devotee list.
 
+### 9. Public Registration (`/api/public`)
+
+Anonymous endpoints for the shareable self-registration form (`#/register`). Available on **both** backends (desktop + Vercel web). No `Authorization` header required; rate limited to 10 submissions / 15 min / IP (`RATE_LIMIT_PUBLIC_MAX` overrides the cap).
+
+#### `POST /api/public/register`
+- **Purpose**: Anyone can submit a full devotee registration (3-step form data + optional base64 photo) for admin approval.
+- **Auth**: None.
+- **Body**: JSON with the same fields as `POST /api/devotees` (see §1). Server-owned fields (`id`, `status`, `source`, `createdAt`) are always stripped and forced server-side. Optional honeypot field `website` — if filled, the request succeeds but nothing is stored.
+- **Validation (400)**: `name` required; `gender` ∈ GENDERS; `relationType` ∈ RELATION_TYPES; `contact` must match `^[6-9]\d{9}$`; `maritalStatus` ∈ MARITAL_STATUSES; `spiritualStatus` ∈ SPIRITUAL_STATUSES; photo must be a `data:image/...` base64 string ≤ 14,000,000 chars.
+- **Response (200)**:
+  ```json
+  {
+    "success": true,
+    "id": "generated-uuid",
+    "status": "Pending",
+    "message": "Registration submitted for approval."
+  }
+  ```
+- **Side effects**: photo (if provided) is uploaded to Cloudinary (desktop) and the row is stored with `status = 'Pending'`, `source = 'Public Form'`. Desktop broadcasts `DEVOTEE_CREATED` over WebSocket so open admin screens refresh. **No WhatsApp greeting and no login credentials are issued** until an admin approves (status → `Active`).
+- **Errors**: `400` validation failed; `409` duplicate name + contact — returns the generic message `"A registration with this name and mobile number already exists."` and never reveals the existing devotee's name; `429` rate limited.
+
+Pending rows are excluded from `GET /api/devotees/stats`, weekly/birthday/anniversary queries, and credential-linking sweeps.
+
 ---
 
 ## Status Codes
 - **200 — Success**: The action executed successfully.
 - **400 — Bad Request**: Invalid JSON formatting or missing parameters.
+- **401 — Unauthorized**: Missing/expired/revoked token (tokens are revoked server-side by `POST /api/auth/logout`).
 - **404 — Not Found**: Requested ID does not exist in the database.
+- **409 — Conflict**: Duplicate submission on a public endpoint (generic message only).
+- **429 — Too Many Requests**: Rate limit exceeded.
 - **500 — Server Error**: Unhandled exception on the backend server.
 
 ---

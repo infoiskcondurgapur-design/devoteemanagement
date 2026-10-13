@@ -1,21 +1,24 @@
 import React, { useState, useMemo } from 'react';
 import { useDevotees } from '../../context/DevoteeContext';
 import { useSadhana } from '../../context/SadhanaContext';
-import { Search, User, ChevronRight, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { useReferenceData } from '../../context/ReferenceDataContext';
+import { Search, User, ChevronRight, AlertTriangle, CheckCircle, Clock, Maximize2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { COUNSELORS_LIST } from '../../data/counselors';
+import ImageModal from '../../components/ImageModal';
 
 const CounselorDashboard = () => {
     const { devotees } = useDevotees();
     const { getEntriesByDevotee } = useSadhana();
+    const { counselors: knownCounselors } = useReferenceData();
+    const [selectedImageDevotee, setSelectedImageDevotee] = useState(null);
 
     // extract unique counselors
     const counselors = useMemo(() => {
-        // Merge used counselors with static list to ensure coverage
+        // Merge used counselors with reference list to ensure coverage
         const used = new Set(devotees.map(d => d.counselor).filter(c => c));
-        const all = new Set([...COUNSELORS_LIST, ...used]);
+        const all = new Set([...knownCounselors, ...used]);
         return Array.from(all).sort();
-    }, [devotees]);
+    }, [devotees, knownCounselors]);
 
     const [selectedCounselor, setSelectedCounselor] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -122,7 +125,18 @@ const CounselorDashboard = () => {
                                         <tr key={devotee.id} className="hover:bg-slate-50 dark:bg-slate-900/50/50 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <img src={devotee.photo || '/default-avatar.png'} alt={devotee.name} className="w-10 h-10 rounded-full object-cover" />
+                                                    <div 
+                                                        onClick={() => devotee.photo && setSelectedImageDevotee(devotee)}
+                                                        className={`relative group shrink-0 ${devotee.photo ? 'cursor-pointer' : ''}`}
+                                                        title={devotee.photo ? "Click to view original image" : ""}
+                                                    >
+                                                        <img src={devotee.photo || '/default-avatar.png'} alt={devotee.name} className="w-10 h-10 rounded-full object-cover transition-transform duration-200 group-hover:scale-105" />
+                                                        {devotee.photo && (
+                                                            <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                                                <Maximize2 className="w-3.5 h-3.5 drop-shadow" />
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <div>
                                                         <div className="font-medium text-slate-900">{devotee.name}</div>
                                                         <div className="text-xs text-orange-600">{devotee.initiatedName || 'Uninitiated'}</div>
@@ -158,6 +172,15 @@ const CounselorDashboard = () => {
                     </div>
                 </div>
             )}
+
+            {/* Original Profile Picture Modal */}
+            <ImageModal
+                isOpen={!!selectedImageDevotee}
+                onClose={() => setSelectedImageDevotee(null)}
+                imageUrl={selectedImageDevotee?.photo}
+                title={selectedImageDevotee?.name}
+                subtitle={selectedImageDevotee?.initiatedName || selectedImageDevotee?.spiritualStatus}
+            />
         </div>
     );
 };

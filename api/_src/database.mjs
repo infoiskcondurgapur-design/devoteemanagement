@@ -16,15 +16,27 @@ const DEVOTEE_COLUMNS = [
     'child2Name', 'child2Dob', 'child2Status',
     'child3Name', 'child3Dob', 'child3Status',
     'shraddhaName', 'shraddhaDate', 'feedback', 'otherFamilyMembers', 'currentService',
-    'photo', 'status', 'createdAt'
+    'photo', 'status', 'source', 'createdAt'
 ];
 
 // Applies the full schema + default settings. Idempotent; safe to run on a
 // fresh database (e.g. during the one-off data migration).
 export const initDb = async () => {
-    const pool = getPool();
+    const pool = await getPool();
     for (const ddl of INIT_DDL) {
         await pool.query(ddl);
+    }
+    // CREATE TABLE IF NOT EXISTS cannot alter a pre-existing table, so heal
+    // any columns added to DEVOTEE_COLUMNS after the table was first created.
+    const existingCols = await pool.query(
+        "SELECT column_name FROM information_schema.columns WHERE table_name = 'devotees'"
+    );
+    const present = new Set(existingCols.rows.map(r => r.column_name));
+    for (const col of DEVOTEE_COLUMNS) {
+        if (!present.has(col.toLowerCase())) {
+            console.log(`[DB] Healing schema: adding missing devotees.${col} column`);
+            await pool.query(`ALTER TABLE devotees ADD COLUMN IF NOT EXISTS "${col.toLowerCase()}" TEXT`);
+        }
     }
     for (const [key, value] of SETTINGS_SEEDS) {
         await pool.query(
@@ -164,15 +176,26 @@ export const getFilterOptions = async () => {
     };
 };
 
-export const addDevotee = async (data) => {
-    const filteredData = {};
+const INTEGER_FIELDS = new Set(['age', 'rounds']);
+
+// Builds the map of DB columns from incoming payload. PostgreSQL INT columns
+// reject '' ("invalid input syntax for type integer"), so empty strings are
+// normalized to null while arrays are persisted as JSON.
+const toDevoteeRow = (data) => {
+    const row = {};
     DEVOTEE_COLUMNS.forEach(col => {
         if (data[col] !== undefined) {
             let val = data[col];
             if (Array.isArray(val)) val = JSON.stringify(val);
-            filteredData[col] = val;
+            if (INTEGER_FIELDS.has(col) && val === '') val = null;
+            row[col] = val;
         }
     });
+    return row;
+};
+
+export const addDevotee = async (data) => {
+    const filteredData = toDevoteeRow(data);
 
     const checkContact = (data.contact || '').toString().trim();
     const checkName = (data.name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
@@ -203,14 +226,8 @@ export const addDevotee = async (data) => {
 };
 
 export const updateDevotee = async (id, data) => {
-    const filteredData = {};
-    DEVOTEE_COLUMNS.forEach(col => {
-        if (data[col] !== undefined && col !== 'id') {
-            let val = data[col];
-            if (Array.isArray(val)) val = JSON.stringify(val);
-            filteredData[col] = val;
-        }
-    });
+    const filteredData = toDevoteeRow(data);
+    delete filteredData.id;
 
     const checkContact = (filteredData.contact || '').toString().trim();
     const checkName = (filteredData.name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
@@ -238,17 +255,20 @@ export const deleteDevotee = async (id) => {
 };
 
 export const getDevoteeStats = async () => {
+    // Pending (unapproved public registrations) are excluded so dashboard
+    // totals only reflect approved devotees.
     const query = `
         SELECT
             COUNT(*) as total,
             SUM(CASE WHEN spiritualStatus = 'Initiated' THEN 1 ELSE 0 END) as initiated,
             SUM(CASE WHEN spiritualStatus = 'Sheltered' THEN 1 ELSE 0 END) as sheltered,
             SUM(CASE WHEN (spiritualStatus = 'Aspiring' OR spiritualStatus IS NULL OR spiritualStatus = '') THEN 1 ELSE 0 END) as aspiring,
-            (SELECT COUNT(*) FROM devotees WHERE TO_CHAR(NULLIF(dob, '')::date, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD')) as birthdaysToday,
-            (SELECT COUNT(*) FROM devotees WHERE TO_CHAR(NULLIF(anniversary, '')::date, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD')) as anniversariesToday,
-            (SELECT COUNT(*) FROM devotees WHERE TO_CHAR(NULLIF(createdAt, '')::date, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM')) as currentMonthRegistrations,
-            (SELECT COUNT(*) FROM devotees WHERE TO_CHAR(NULLIF(createdAt, '')::date, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'YYYY-MM')) as lastMonthRegistrations
+            (SELECT COUNT(*) FROM devotees WHERE TO_CHAR(NULLIF(dob, '')::date, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD') AND COALESCE(status, 'Active') != 'Pending') as birthdaysToday,
+            (SELECT COUNT(*) FROM devotees WHERE TO_CHAR(NULLIF(anniversary, '')::date, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD') AND COALESCE(status, 'Active') != 'Pending') as anniversariesToday,
+            (SELECT COUNT(*) FROM devotees WHERE TO_CHAR(NULLIF(createdAt, '')::date, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM') AND COALESCE(status, 'Active') != 'Pending') as currentMonthRegistrations,
+            (SELECT COUNT(*) FROM devotees WHERE TO_CHAR(NULLIF(createdAt, '')::date, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 month', 'YYYY-MM') AND COALESCE(status, 'Active') != 'Pending') as lastMonthRegistrations
         FROM devotees
+        WHERE COALESCE(status, 'Active') != 'Pending'
     `;
 
     const row = await getAsync(query);
@@ -271,6 +291,7 @@ export const getDevoteeStats = async () => {
                 COUNT(*) as count
             FROM devotees
             WHERE NULLIF(createdAt, '')::date >= CURRENT_DATE - 7
+              AND COALESCE(status, 'Active') != 'Pending'
             GROUP BY NULLIF(createdAt, '')::date
         `;
         const activityRows = await allAsync(weeklyActivityQuery);
@@ -289,10 +310,10 @@ export const getDevoteeStats = async () => {
 
     try {
         stats.birthdaysTodayList = await allAsync(
-            "SELECT id, name, initiatedName, photo, dob, contact, whatsapp FROM devotees WHERE TO_CHAR(NULLIF(dob, '')::date, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD')"
+            "SELECT id, name, initiatedName, photo, dob, contact, whatsapp FROM devotees WHERE TO_CHAR(NULLIF(dob, '')::date, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD') AND COALESCE(status, 'Active') != 'Pending'"
         );
         stats.anniversariesTodayList = await allAsync(
-            "SELECT id, name, initiatedName, photo, anniversary, contact, whatsapp FROM devotees WHERE TO_CHAR(NULLIF(anniversary, '')::date, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD')"
+            "SELECT id, name, initiatedName, photo, anniversary, contact, whatsapp FROM devotees WHERE TO_CHAR(NULLIF(anniversary, '')::date, 'MM-DD') = TO_CHAR(CURRENT_DATE, 'MM-DD') AND COALESCE(status, 'Active') != 'Pending'"
         );
     } catch (error) {
         console.error('[DB] Birthday list query error:', error);
@@ -312,7 +333,7 @@ export const addSadhanaEntry = async (entry) => {
     await runAsync(
         `INSERT INTO sadhana (id, devoteeId, date, rounds, timestamp) VALUES (?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET devoteeId = EXCLUDED.devoteeId, date = EXCLUDED.date, rounds = EXCLUDED.rounds, timestamp = EXCLUDED.timestamp`,
-        [id, devoteeId, date, rounds, timestamp]
+        [id, devoteeId, date, rounds === '' ? null : rounds, timestamp]
     );
     return { id };
 };
@@ -343,14 +364,7 @@ export const restoreFromBackup = async (backupData) => {
 
         const devotees = backupData.devotees || [];
         for (const devotee of devotees) {
-            const filteredData = {};
-            DEVOTEE_COLUMNS.forEach(col => {
-                if (devotee[col] !== undefined) {
-                    let val = devotee[col];
-                    if (Array.isArray(val)) val = JSON.stringify(val);
-                    filteredData[col] = val;
-                }
-            });
+            const filteredData = toDevoteeRow(devotee);
             const columns = Object.keys(filteredData).join(', ');
             const placeholders = Object.keys(filteredData).map(() => '?').join(', ');
             const values = Object.values(filteredData);
@@ -363,7 +377,7 @@ export const restoreFromBackup = async (backupData) => {
             const { id, devoteeId, date, rounds, timestamp } = entry;
             await tx.run(
                 'INSERT INTO sadhana (id, devoteeId, date, rounds, timestamp) VALUES (?, ?, ?, ?, ?)',
-                [id, devoteeId, date, rounds, timestamp]
+                [id, devoteeId, date, rounds === '' ? null : rounds, timestamp]
             );
         }
 
@@ -1135,4 +1149,110 @@ export const logAudit = async (userId, userName, action, details) => {
 
 export const getAuditLogs = async (limit = 100) => {
     return allAsync('SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT ?', [limit]);
+};
+
+export const getDevoteeByContact = async (contact) => {
+    return getAsync('SELECT * FROM devotees WHERE contact = ? LIMIT 1', [contact]);
+};
+
+// ─── Change Requests ───────────────────────────────────────────────────
+const CHANGEABLE_FIELDS = new Set([
+    'name', 'initiatedName', 'spiritualName', 'email', 'gender', 'dob', 'age',
+    'bloodGroup', 'education', 'occupation', 'contact', 'whatsapp', 'address',
+    'village', 'district', 'pinCode', 'state', 'maritalStatus', 'spiritualStatus',
+    'counselor', 'spiritualMaster', 'shelterDate', 'initiatedDate1', 'initiatedDate2'
+]);
+
+export const createChangeRequest = async ({ devoteeId, userId, requestedBy, changes, reason }) => {
+    const res = await runAsync(
+        `INSERT INTO change_requests (devoteeId, userId, requestedBy, changes, reason) VALUES (?, ?, ?, ?, ?) RETURNING id`,
+        [devoteeId, userId, requestedBy, JSON.stringify(changes), reason || null]
+    );
+    return { success: true, id: res.lastID };
+};
+
+export const getPendingRequests = async () => {
+    return allAsync(`
+        SELECT cr.*, d.name as devoteeName, d.contact as devoteeContact, u.fullName as requestedByName
+        FROM change_requests cr
+        JOIN devotees d ON cr.devoteeId = d.id
+        LEFT JOIN users u ON cr.userId = CAST(u.id AS TEXT)
+        WHERE cr.status = 'pending'
+        ORDER BY cr.createdAt DESC
+    `);
+};
+
+export const getRequestsByUserId = async (userId) => {
+    return allAsync(`
+        SELECT cr.*, d.name as devoteeName
+        FROM change_requests cr
+        JOIN devotees d ON cr.devoteeId = d.id
+        WHERE cr.userId = ?
+        ORDER BY cr.createdAt DESC
+    `, [String(userId)]);
+};
+
+export const getAllRequests = async () => {
+    return allAsync(`
+        SELECT cr.*, d.name as devoteeName, d.contact as devoteeContact, u.fullName as requestedByName
+        FROM change_requests cr
+        JOIN devotees d ON cr.devoteeId = d.id
+        LEFT JOIN users u ON cr.userId = CAST(u.id AS TEXT)
+        ORDER BY cr.createdAt DESC
+        LIMIT 200
+    `);
+};
+
+export const approveChangeRequest = async (id, adminUsername) => {
+    const row = await getAsync("SELECT * FROM change_requests WHERE id = ? AND status = 'pending'", [id]);
+    if (!row) return { success: false, error: 'Request not found or already processed' };
+    const raw = typeof row.changes === 'string' ? JSON.parse(row.changes) : (row.changes || {});
+    const changes = {};
+    for (const [field, value] of Object.entries(raw)) {
+        if (CHANGEABLE_FIELDS.has(field)) changes[field] = value;
+    }
+    if (Object.keys(changes).length === 0) {
+        return { success: false, error: 'No valid fields to apply' };
+    }
+    await updateDevotee(row.devoteeId, changes);
+    await runAsync(
+        `UPDATE change_requests SET status = 'applied', reviewedBy = ?, reviewedAt = NOW() WHERE id = ?`,
+        [adminUsername, id]
+    );
+    return { success: true };
+};
+
+export const rejectChangeRequest = async (id, adminUsername) => {
+    await runAsync(
+        `UPDATE change_requests SET status = 'rejected', reviewedBy = ?, reviewedAt = NOW() WHERE id = ?`,
+        [adminUsername, id]
+    );
+    return { success: true };
+};
+
+export const linkUserToDevotee = async (devoteeId, devotee) => {
+    const existing = await getUserByIdentity(devotee.contact);
+    if (existing) return { skipped: true, userId: existing.id };
+    const cryptoModule = await import('crypto');
+    const password = cryptoModule.default.randomBytes(10).toString('base64url');
+    const salt = cryptoModule.default.randomBytes(32).toString('hex');
+    const hash = cryptoModule.default.scryptSync(String(password), salt, 64).toString('hex');
+    const passwordHash = `${salt}:${hash}`;
+    const result = await createUser({
+        username: devotee.contact,
+        email: devotee.email || `${devotee.contact}@temp.local`,
+        passwordHash,
+        role: 'viewer',
+        fullName: devotee.name
+    });
+    return { success: true, userId: result.id, generatedPassword: password };
+};
+
+export const getUnlinkedDevotees = async () => {
+    return allAsync(`
+        SELECT d.* FROM devotees d
+        LEFT JOIN users u ON d.contact = u.username
+        WHERE u.id IS NULL AND d.contact IS NOT NULL AND d.contact != ''
+          AND COALESCE(d.status, 'Active') != 'Pending'
+    `);
 };

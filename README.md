@@ -71,22 +71,20 @@ To build the standalone Windows setup installer executable:
 
 ## Vercel (Web) Deployment
 
-The web version runs the same React frontend on Vercel with a **serverless Express API** (root `api/`, `vercel.json` rewrites `/api/(.*)` → `/api`) and **Vercel Postgres**. WhatsApp bot features are removed from the web build (receipts share via `https://wa.me` links); the desktop (`whatsapp-bot/`) keeps full WhatsApp integration.
+The web version runs the same React frontend on Vercel with a **serverless Express API** (root `api/`, `vercel.json` rewrites `/api/(.*)` → `/api`) and PostgreSQL. The web backend supports Neon/Vercel Postgres and Supabase. WhatsApp bot features are removed from the web build (receipts share via `https://wa.me` links); the desktop (`whatsapp-bot/`) keeps full WhatsApp integration and local SQLite storage.
 
 ### 1. Provision a Postgres database
-Create a Vercel Postgres (or Neon) project. In Vercel, link the project to the database so its `POSTGRES_URL` (and `POSTGRES_SSL`-related) env vars are injected automatically.
+For Supabase, create a project and copy the PostgreSQL transaction-pooler URI from **Connect**. Keep the database password private. The web backend connects with node-postgres (`pg`); it does not use a Supabase browser key.
 
-### 2. Migrate the existing data (one-time, from your machine)
+### 2. Migrate existing hosted data (one-time, from your machine)
 ```bash
-npm install                        # includes pg (devDependency used by the migration)
-$env:POSTGRES_URL   = '<your postgres url>'   # or DATABASE_URL
-$env:POSTGRES_SSL   = "1"                     # required for Vercel/Neon (TLS)
-node api/scripts/migrate.mjs       # copies whatsapp-bot/devotee_mgmt.db → Postgres
+node --env-file=.env.local api/_src/scripts/migrate-neon-to-supabase.mjs
 ```
-The migration wipes the 25 target tables and copies row-for-row (identity ids preserved, sequences reset).
+Add `SUPABASE_DATABASE_URL` to the ignored `.env.local` file. The current Neon URI can be supplied as `SOURCE_DATABASE_URL`, `POSTGRES_URL`, or `DATABASE_URL`. The command is a dry run and prints row counts without copying. Review it, then run `node --env-file=.env.local api/_src/scripts/migrate-neon-to-supabase.mjs --apply`. It copies all app tables in one transaction, preserves identity ids, and refuses to write if any target table already contains rows. The older SQLite-to-Postgres script wipes populated target tables; do not use it for this Neon-to-Supabase move.
 
 ### 3. Configure environment variables (Vercel project settings)
-- `POSTGRES_URL` — Vercel Postgres connection string (link the Postgres integration to inject automatically). Do **not** set `POSTGRES_DRIVER` on Vercel.
+- `POSTGRES_DRIVER=pg` — selects node-postgres for Supabase.
+- `SUPABASE_DATABASE_URL` — Supabase transaction-pooler URI from the project Connect panel. TLS is enabled by default.
 - `ALLOWED_ORIGINS` — comma-separated origins allowed by CORS (your Vercel app URL).
 - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` — server-side image uploads.
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `GOOGLE_SHEETS_CREDENTIALS` — Google Sheets backup / OAuth.

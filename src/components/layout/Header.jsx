@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Settings, Search, ChevronRight, User, Menu, Sun, Moon } from 'lucide-react';
+import { Bell, Settings, Search, ChevronRight, User, Menu, Sun, Moon, LogOut } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -10,7 +10,7 @@ import NetworkStatus from '../NetworkStatus';
 const Header = ({ toggleSidebar, isSidebarOpen }) => {
     const { unreadCount } = useNotifications();
     const location = useLocation();
-    const { currentUser } = useAuth();
+    const { currentUser, logout } = useAuth();
     const { darkMode, toggleDarkMode } = useTheme();
 
     // Simple breadcrumb logic
@@ -78,9 +78,18 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                         <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400 mt-0.5">Manager</p>
                     </div>
                     <div className="w-9 h-9 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-full flex items-center justify-center font-bold border-2 border-white dark:border-slate-800 shadow-sm">
-                        {currentUser?.displayName?.[0] || 'A'}
+                        {currentUser?.displayName?.[0] || currentUser?.fullName?.[0] || currentUser?.username?.[0] || 'A'}
                     </div>
                 </div>
+
+                {/* Sign out */}
+                <button
+                    onClick={logout}
+                    className="p-2 text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded-full transition-colors"
+                    title="Sign Out"
+                >
+                    <LogOut className="w-5 h-5" />
+                </button>
             </div>
         </header >
     );

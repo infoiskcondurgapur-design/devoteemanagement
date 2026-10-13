@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import apiService from '../services/api';
+import wsClient from '../services/wsClient';
 
 const DevoteeContext = createContext();
 
@@ -13,6 +14,7 @@ export const useDevotees = () => {
 
 export const DevoteeProvider = ({ children }) => {
     const [devotees, setDevotees] = useState([]);
+    const [paginatedDevotees, setPaginatedDevotees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saveStatus, setSaveStatus] = useState('saved');
     const [stats, setStats] = useState(null);
@@ -21,6 +23,7 @@ export const DevoteeProvider = ({ children }) => {
     const [events, setEvents] = useState([]);
     const [totalCount, setTotalCount] = useState(0);
     const [filterOptions, setFilterOptions] = useState({ counselors: [], districts: [] });
+    const [isLiveConnected, setIsLiveConnected] = useState(false);
 
     // ✅ Safe localStorage helper — strips base64 photos to avoid quota errors but keeps URLs
     const safeLocalStorageSave = (devoteeList) => {
@@ -52,50 +55,107 @@ export const DevoteeProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        const fetchDevotees = async () => {
-            try {
-                const result = await apiService.get('/api/devotees?limit=100');
-                if (result.success) {
-                    const saved = localStorage.getItem('devotees');
-                    const localData = saved ? JSON.parse(saved) : [];
-
-                    if (result.total === 0 && localData.length > 0) {
-                        for (const dev of localData) {
-                            await apiService.post('/api/devotees', dev);
-                        }
-                        const reResult = await apiService.get('/api/devotees?limit=100');
-                        const healed = await healNullIds(reResult.data || []);
-                        setDevotees(healed);
-                        setTotalCount(reResult.total || healed.length);
-                    } else {
-                        const healed = await healNullIds(result.data || []);
-                        setDevotees(healed);
-                        setTotalCount(result.total || healed.length);
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to fetch devotees from SQL:', error);
-                const saved = localStorage.getItem('devotees');
-                setDevotees(saved ? JSON.parse(saved) : []);
-            } finally {
-                setLoading(false);
-            }
+        let statsInterval = null;
+        const stopPolling = () => {
+            if (statsInterval) { clearInterval(statsInterval); statsInterval = null; }
+            wsClient.disconnect();
         };
-
-        fetchDevotees();
-        fetchStats();
-        fetchEvents();
-        checkGoogleSheetsStatus();
-        fetchFilterOptions();
-
-        const statsInterval = setInterval(() => {
+        const startPolling = () => {
+            stopPolling();
+            wsClient.connect();
+            fetchDevotees();
             fetchStats();
             fetchEvents();
             checkGoogleSheetsStatus();
             fetchFilterOptions();
-        }, 15000);
-        return () => clearInterval(statsInterval);
+            statsInterval = setInterval(() => {
+                fetchStats();
+                fetchEvents();
+                checkGoogleSheetsStatus();
+                fetchFilterOptions();
+            }, 15000);
+        };
+
+        // Real-Time WebSocket event listener
+        const handleSync = (e) => {
+            const { type } = e.detail || {};
+            if (['DEVOTEE_CREATED', 'DEVOTEE_UPDATED', 'DEVOTEE_DELETED', 'DATA_MUTATED'].includes(type)) {
+                fetchDevotees();
+                fetchStats();
+                fetchFilterOptions();
+                window.dispatchEvent(new CustomEvent('devotees:refresh'));
+            }
+        };
+
+        const handleWsStatus = (e) => {
+            setIsLiveConnected(!!e.detail?.connected);
+        };
+
+        // Auto-refresh when user focuses back on the tab
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && apiService.authGetToken()) {
+                fetchStats();
+                fetchFilterOptions();
+                window.dispatchEvent(new CustomEvent('devotees:refresh'));
+            }
+        };
+
+        window.addEventListener('dms:sync', handleSync);
+        window.addEventListener('dms:ws-status', handleWsStatus);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Anonymous visitors (public pages like #/register) must not fire admin
+        // API calls — they would only produce 401 noise and rate-limit pressure.
+        if (apiService.authGetToken()) startPolling();
+        else setLoading(false);
+
+        const onAuthChanged = () => {
+            if (apiService.authGetToken()) startPolling();
+            else { stopPolling(); setLoading(false); }
+        };
+        window.addEventListener('auth:changed', onAuthChanged);
+
+        return () => {
+            stopPolling();
+            window.removeEventListener('dms:sync', handleSync);
+            window.removeEventListener('dms:ws-status', handleWsStatus);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('auth:changed', onAuthChanged);
+        };
     }, []);
+
+    // Master devotee list query (loads complete congregation up to 2000 for Map, Reports, CounselorDashboard, etc.)
+    const fetchDevotees = async () => {
+        try {
+            const result = await apiService.get('/api/devotees?limit=2000');
+            if (result.success) {
+                const saved = localStorage.getItem('devotees');
+                const localData = saved ? JSON.parse(saved) : [];
+
+                if (result.total === 0 && localData.length > 0) {
+                    for (const dev of localData) {
+                        await apiService.post('/api/devotees', dev);
+                    }
+                    const reResult = await apiService.get('/api/devotees?limit=2000');
+                    const healed = await healNullIds(reResult.data || []);
+                    setDevotees(healed);
+                    setTotalCount(reResult.total || healed.length);
+                    safeLocalStorageSave(healed);
+                } else {
+                    const healed = await healNullIds(result.data || []);
+                    setDevotees(healed);
+                    setTotalCount(result.total || healed.length);
+                    safeLocalStorageSave(healed);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch devotees from SQL:', error);
+            const saved = localStorage.getItem('devotees');
+            setDevotees(saved ? JSON.parse(saved) : []);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const fetchFilterOptions = async () => {
         try {
@@ -111,6 +171,7 @@ export const DevoteeProvider = ({ children }) => {
         }
     };
 
+    // Dedicated paginated fetch for the DevoteeList table. Updates paginatedDevotees WITHOUT wiping the master devotees list!
     const fetchPaginatedDevotees = async (page = 1, limit = 25, search = '', filters = {}) => {
         setLoading(true);
         try {
@@ -125,10 +186,11 @@ export const DevoteeProvider = ({ children }) => {
 
             const result = await apiService.get(url);
             if (result.success) {
-                setDevotees(result.data || []);
+                const data = result.data || [];
+                setPaginatedDevotees(data);
                 setTotalCount(result.total || 0);
                 return {
-                    data: result.data || [],
+                    data,
                     total: result.total || 0
                 };
             }
@@ -258,9 +320,12 @@ export const DevoteeProvider = ({ children }) => {
             const newDevotee = { ...payload, id: newId };
             const updatedDevotees = [newDevotee, ...devotees].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             setDevotees(updatedDevotees);
+            setPaginatedDevotees(prev => [newDevotee, ...prev]);
+            setTotalCount(prev => prev + 1);
             safeLocalStorageSave(updatedDevotees);
             fetchStats();
             setSaveStatus('saved');
+            window.dispatchEvent(new CustomEvent('devotees:refresh'));
             return newDevotee;
         } catch (error) {
             console.error('Error adding devotee:', error);
@@ -296,8 +361,10 @@ export const DevoteeProvider = ({ children }) => {
                 safeLocalStorageSave(updated);
                 return updated;
             });
+            setPaginatedDevotees(prev => prev.map(d => d.id === id ? { ...d, ...finalData } : d));
             fetchStats();
             setSaveStatus('saved');
+            window.dispatchEvent(new CustomEvent('devotees:refresh'));
         } catch (error) {
             console.error("Error updating devotee: ", error);
             setSaveStatus('error');
@@ -313,7 +380,10 @@ export const DevoteeProvider = ({ children }) => {
                 safeLocalStorageSave(updated);
                 return updated;
             });
+            setPaginatedDevotees(prev => prev.filter(d => d.id !== id));
+            setTotalCount(prev => Math.max(0, prev - 1));
             fetchStats(); // Refresh stats from backend
+            window.dispatchEvent(new CustomEvent('devotees:refresh'));
         } catch (error) {
             console.error("Error deleting devotee: ", error);
         }
@@ -433,7 +503,10 @@ export const DevoteeProvider = ({ children }) => {
 
     const value = {
         devotees,
+        paginatedDevotees,
         loading,
+        isLiveConnected,
+        fetchDevotees,
         addDevotee,
         updateDevotee,
         deleteDevotee,

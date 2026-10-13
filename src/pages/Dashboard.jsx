@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { formatDate } from '../lib/dateUtils';
 import { useNavigate } from 'react-router-dom';
-import { Users, Calendar, Plus, Crown, Shield, User, Heart, Cake, Download, TrendingUp, Sparkles, Activity, RefreshCw, ChevronRight, MapPin } from 'lucide-react';
+import { Users, Calendar, Plus, Crown, Shield, User, Heart, Cake, Download, TrendingUp, Sparkles, Activity, RefreshCw, ChevronRight, MapPin, Maximize2 } from 'lucide-react';
 import clsx from 'clsx';
 import { useDevotees } from '../context/DevoteeContext';
 import { useToast } from '../components/Toast';
 import ErrorBoundary from '../components/ErrorBoundary';
 import WhatsAppModal from '../components/WhatsAppModal';
+import ImageModal from '../components/ImageModal';
 import { MessageSquare } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -37,6 +38,7 @@ const Dashboard = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeDevotee, setActiveDevotee] = useState(null);
     const [showWhatsApp, setShowWhatsApp] = useState(false);
+    const [selectedImageDevotee, setSelectedImageDevotee] = useState(null);
 
     const upcomingBirthdays = (() => {
         const today = new Date();
@@ -151,8 +153,17 @@ const Dashboard = () => {
                                     <div className="space-y-4 max-h-[340px] overflow-y-auto pr-3 custom-scrollbar">
                                         {statsData.birthdaysToday.map((d) => (
                                             <div key={d.id} className="group flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-pink-200 transition-all">
-                                                <div className="w-10 h-10 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm">
-                                                    <img src={d.photo || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
+                                                <div 
+                                                    onClick={() => d.photo && setSelectedImageDevotee(d)}
+                                                    className={`w-10 h-10 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm relative group/img ${d.photo ? 'cursor-pointer' : ''}`}
+                                                    title={d.photo ? "Click to view original image" : ""}
+                                                >
+                                                    <img src={d.photo || '/default-avatar.png'} alt="" className="w-full h-full object-cover transition-transform group-hover/img:scale-105" />
+                                                    {d.photo && (
+                                                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                                            <Maximize2 className="w-3.5 h-3.5 drop-shadow" />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">{d.name}</p>
@@ -189,8 +200,17 @@ const Dashboard = () => {
                                     <div className="space-y-4 max-h-[340px] overflow-y-auto pr-3 custom-scrollbar">
                                         {statsData.anniversariesToday.map((d) => (
                                             <div key={d.id} className="group flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-rose-200 transition-all">
-                                                <div className="w-10 h-10 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm">
-                                                    <img src={d.photo || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
+                                                <div 
+                                                    onClick={() => d.photo && setSelectedImageDevotee(d)}
+                                                    className={`w-10 h-10 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm relative group/img ${d.photo ? 'cursor-pointer' : ''}`}
+                                                    title={d.photo ? "Click to view original image" : ""}
+                                                >
+                                                    <img src={d.photo || '/default-avatar.png'} alt="" className="w-full h-full object-cover transition-transform group-hover/img:scale-105" />
+                                                    {d.photo && (
+                                                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                                            <Maximize2 className="w-3.5 h-3.5 drop-shadow" />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">{d.name}</p>
@@ -316,8 +336,17 @@ const Dashboard = () => {
                                 <div className="space-y-3 max-h-[280px] overflow-y-auto pr-2">
                                     {upcomingBirthdays.map((dev, i) => (
                                         <div key={i} className="group flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-corporate-200 transition-all">
-                                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shrink-0 shadow-sm border border-slate-200 dark:border-slate-700">
-                                                <img src={dev.photo || '/default-avatar.png'} alt="" className="w-full h-full object-cover" />
+                                            <div 
+                                                onClick={() => dev.photo && setSelectedImageDevotee(dev)}
+                                                className={`w-10 h-10 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shrink-0 shadow-sm border border-slate-200 dark:border-slate-700 relative group/img ${dev.photo ? 'cursor-pointer' : ''}`}
+                                                title={dev.photo ? "Click to view original image" : ""}
+                                            >
+                                                <img src={dev.photo || '/default-avatar.png'} alt="" className="w-full h-full object-cover transition-transform group-hover/img:scale-105" />
+                                                {dev.photo && (
+                                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                                        <Maximize2 className="w-3.5 h-3.5 drop-shadow" />
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-[12px] font-bold text-slate-800 dark:text-slate-100 truncate">{dev.name}</p>
@@ -336,6 +365,15 @@ const Dashboard = () => {
                 isOpen={showWhatsApp}
                 onClose={() => setShowWhatsApp(false)}
                 devotee={activeDevotee}
+            />
+
+            {/* Original Profile Picture Modal */}
+            <ImageModal
+                isOpen={!!selectedImageDevotee}
+                onClose={() => setSelectedImageDevotee(null)}
+                imageUrl={selectedImageDevotee?.photo}
+                title={selectedImageDevotee?.name}
+                subtitle={selectedImageDevotee?.initiatedName || 'Devotee'}
             />
         </div>
     );

@@ -102,8 +102,8 @@ The same frontend can be hosted on Vercel with a serverless backend instead of t
 ```
 
 - **API**: single serverless function — `vercel.json` rewrites `/api/(.*)` → `/api`; Express 5 app assembled in `api/app.mjs`, one function in `api/index.mjs`.
-- **Database**: Vercel Postgres (Neon). `api/db.mjs` uses `@vercel/postgres` `createPool()` (Neon WebSocket client); `POSTGRES_DRIVER=local` switches to node-postgres for local development against vanilla Postgres. Schema in `api/schema.mjs` (lowercase identifiers, identity columns — see `docs/DATABASE.md`).
-- **Migration**: `api/scripts/migrate.mjs` one-time copy of the desktop SQLite DB into Postgres.
+- **Database**: PostgreSQL. Neon/Vercel Postgres is the current hosted database; Supabase can be selected with `POSTGRES_DRIVER=pg` and `SUPABASE_DATABASE_URL`, using node-postgres and Supabase's transaction pooler for serverless hosting. Schema in `api/_src/schema.mjs` (lowercase identifiers, identity columns — see `docs/DATABASE.md`).
+- **Migration**: `api/_src/scripts/migrate-neon-to-supabase.mjs` provides a dry-run-first, no-overwrite copy of hosted Neon data to an empty Supabase database. The older SQLite import script wipes target tables and is not for this transfer.
 - **Removed vs desktop**: WhatsApp bot, WebSocket, SSE, cron, and the `requireAuth` gate are not present on the web backend; receipts share via `https://wa.me/<number>?text=...`, and `/api/attendance` + `/api/counseling` (dead frontend calls on the old server) are now real endpoints.
 
 ---

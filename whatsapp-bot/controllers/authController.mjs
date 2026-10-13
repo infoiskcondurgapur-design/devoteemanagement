@@ -1,4 +1,11 @@
 import oauthSheetsService from '../oauth-sheets-service.mjs';
+import {
+    verifyPassword as checkPassword,
+    signToken,
+    toPublicUser,
+    revokeRequestToken
+} from '../services/authService.mjs';
+import { getUserByIdentity, getDevoteeByContact } from '../database.mjs';
 
 const escapeHtml = (value) => String(value ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -83,5 +90,99 @@ export const getGoogleStatus = (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// ─── Username/password login ────────────────────────────────────────────
+export const login = async (req, res) => {
+    try {
+        const { username, password } = req.body || {};
+        if (!username || !password) {
+            return res.status(400).json({ success: false, error: 'Username and password are required' });
+        }
+
+        const user = await getUserByIdentity(String(username).trim());
+        if (!user || !checkPassword(password, user.passwordHash)) {
+            return res.status(401).json({ success: false, error: 'Invalid username or password' });
+        }
+
+        const devotee = await getDevoteeByContact(String(username).trim());
+        const devoteeId = devotee ? String(devotee.id) : null;
+
+        const token = signToken({
+            uid: String(user.id),
+            username: user.username,
+            role: user.role || 'admin',
+            devoteeId
+        });
+
+        res.json({ success: true, token, user: toPublicUser({ ...user, _devoteeId: devoteeId }) });
+    } catch (err) {
+        console.error('[Auth] login error:', err.message);
+        res.status(500).json({ success: false, error: 'Login failed' });
+    }
+};
+
+export const session = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+        const user = await getUserByIdentity(req.user.username).catch(() => null);
+        res.json({ success: true, user: toPublicUser(user || req.user) });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+export const logout = (req, res) => {
+    revokeRequestToken(req);
+    res.json({ success: true });
+};
+
+export const verifyPassword = async (req, res) => {
+    try {
+        const { password } = req.body || {};
+        if (!req.user) return res.status(401).json({ success: false, error: 'Unauthorized' });
+        if (!password) return res.status(400).json({ success: false, error: 'Password is required' });
+        const user = await getUserByIdentity(req.user.username).catch(() => null);
+        const ok = !!user && checkPassword(password, user.passwordHash);
+        if (!ok) return res.status(401).json({ success: false, error: 'Incorrect password' });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+// ─── Dev bypass login (DMS_AUTH_BYPASS=1, local development only) ─────
+const bypassEnabled = () => process.env.DMS_AUTH_BYPASS === '1';
+
+export const bypassStatus = (req, res) => {
+    res.json({ success: true, enabled: bypassEnabled() });
+};
+
+export const bypass = async (req, res) => {
+    try {
+        if (!bypassEnabled()) {
+            return res.status(403).json({ success: false, error: 'Forbidden' });
+        }
+        const username = (process.env.ADMIN_USERNAME || 'admin').trim();
+        const user = await getUserByIdentity(username);
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'Admin user not found' });
+        }
+        const devotee = await getDevoteeByContact(username);
+        const devoteeId = devotee ? String(devotee.id) : null;
+        const token = signToken({
+            uid: String(user.id),
+            username: user.username,
+            role: user.role || 'admin',
+            devoteeId
+        });
+        console.warn('[Auth] Dev bypass login used (DMS_AUTH_BYPASS=1) — no password checked');
+        res.json({ success: true, token, user: toPublicUser({ ...user, _devoteeId: devoteeId }) });
+    } catch (err) {
+        console.error('[Auth] bypass error:', err.message);
+        res.status(500).json({ success: false, error: 'Bypass login failed' });
     }
 };

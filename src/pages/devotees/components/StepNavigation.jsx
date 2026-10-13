@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle2, Loader2 } from 'lucide-react';
 
-const StepNavigation = ({ currentStep, stepsCount, handlePrevStep, handleNextStep, handleSubmit, isSaving }) => {
+const StepNavigation = ({ currentStep, stepsCount, handlePrevStep, handleNextStep, handleSubmit, isSaving, submitLabel = 'Save & Finish' }) => {
     return (
         <div className="flex items-center justify-between pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
             <button
@@ -26,7 +26,7 @@ const StepNavigation = ({ currentStep, stepsCount, handlePrevStep, handleNextSte
                     className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-60"
                 >
                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                    {isSaving ? 'Saving...' : 'Save & Finish'}
+                    {isSaving ? 'Saving...' : submitLabel}
                 </button>
             )}
         </div>

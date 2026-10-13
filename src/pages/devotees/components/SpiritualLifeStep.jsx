@@ -1,11 +1,11 @@
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
-import { COUNSELORS_LIST } from '../../../data/counselors';
-import { SPIRITUAL_MASTERS_LIST } from '../../../data/spiritualMasters';
+import { useReferenceData } from '../../../context/ReferenceDataContext';
 import { CorporateInput, CorporateSelect } from '../../../components/FormControls';
 
 const SpiritualLifeStep = () => {
     const { register, watch, setValue } = useFormContext();
+    const { counselors, spiritualMasters } = useReferenceData();
     const spiritualStatus = watch('spiritualStatus');
     const courses = watch('courses') || [];
     const booksRead = watch('booksRead') || [];
@@ -46,7 +46,7 @@ const SpiritualLifeStep = () => {
                         Mentorship & Initiation
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <CorporateSelect label="Counselor Name" options={COUNSELORS_LIST} {...register('counselor')} />
+                        <CorporateSelect label="Counselor Name" options={counselors} {...register('counselor')} />
                         {(spiritualStatus === 'Sheltered' || spiritualStatus === 'Initiated') && (
                             <CorporateInput
                                 label="Date of Shelter"
@@ -67,7 +67,7 @@ const SpiritualLifeStep = () => {
                         <div className="col-span-1 md:col-span-2">
                             <CorporateSelect
                                 label="Spiritual Master"
-                                options={SPIRITUAL_MASTERS_LIST}
+                                options={spiritualMasters}
                                 {...register('spiritualMaster')}
                                 disabled={spiritualStatus !== 'Initiated'}
                             />

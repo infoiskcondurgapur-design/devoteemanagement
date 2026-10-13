@@ -11,6 +11,39 @@ let mainWindow;
 let backendProcess;
 let autoBackupInterval;
 
+// Reads the admin credentials from the userData folder, creating the config
+// with defaults on first run. The backend's ensureAdmin() syncs these on every
+// boot, so the packaged app always has a known, permanent login.
+const DEFAULT_ADMIN_USERNAME = 'admin';
+const DEFAULT_ADMIN_PASSWORD = 'Mynameis00#';
+
+function getAdminCredentials() {
+    try {
+        const configPath = path.join(app.getPath('userData'), 'admin-config.json');
+        if (!fs.existsSync(configPath)) {
+            fs.mkdirSync(path.dirname(configPath), { recursive: true });
+            fs.writeFileSync(
+                configPath,
+                JSON.stringify(
+                    { username: DEFAULT_ADMIN_USERNAME, password: DEFAULT_ADMIN_PASSWORD },
+                    null,
+                    2
+                ),
+                { mode: 0o600 }
+            );
+            console.log('[Electron] Created admin config at:', configPath);
+        }
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        return {
+            username: config.username || DEFAULT_ADMIN_USERNAME,
+            password: config.password || DEFAULT_ADMIN_PASSWORD
+        };
+    } catch (err) {
+        console.error('[Electron] Failed to load admin config, using defaults:', err.message);
+        return { username: DEFAULT_ADMIN_USERNAME, password: DEFAULT_ADMIN_PASSWORD };
+    }
+}
+
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
@@ -67,8 +100,14 @@ function startBackend() {
     console.log('[Electron] User Data Path:', userDataPath);
 
     // Forking ensures it runs in a separate process but uses the same V8 execution environment capabilities
+    const admin = getAdminCredentials();
     backendProcess = fork(scriptPath, [], {
-        env: { ...process.env, APPDATA_PATH: userDataPath },
+        env: {
+            ...process.env,
+            APPDATA_PATH: userDataPath,
+            ADMIN_USERNAME: admin.username,
+            ADMIN_PASSWORD: admin.password
+        },
         stdio: ['pipe', 'pipe', 'pipe', 'ipc']
     });
 

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import bodyParser from 'body-parser';
+import rateLimit from 'express-rate-limit';
 
 import { uploadImageToCloudinary } from './cloudinary-service.mjs';
 
@@ -18,9 +19,16 @@ import tourRoutes from './routes/tourRoutes.mjs';
 import inventoryRoutes from './routes/inventoryRoutes.mjs';
 import attendanceRoutes from './routes/attendanceRoutes.mjs';
 import counselingRoutes from './routes/counselingRoutes.mjs';
+import changeRequestRoutes from './routes/changeRequestRoutes.mjs';
+import publicRoutes from './routes/publicRoutes.mjs';
+import { requireAuth } from './services/authService.mjs';
 
 export const createApp = () => {
     const app = express();
+
+    if (process.env.DMS_AUTH_BYPASS === '1') {
+        console.warn('[Auth] *** DMS_AUTH_BYPASS=1 — dev bypass login ENABLED (no password required). Never enable in production. ***');
+    }
 
     const localOrigins = [
         'http://localhost:5173',
@@ -58,6 +66,30 @@ export const createApp = () => {
         res.json({ success: true, status: 'healthy' });
     });
 
+    // Strict limiter for the public self-registration endpoint (open shareable form).
+    const publicRegisterLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000,
+        limit: process.env.RATE_LIMIT_PUBLIC_MAX ? parseInt(process.env.RATE_LIMIT_PUBLIC_MAX, 10) : 10,
+        standardHeaders: 'draft-7',
+        legacyHeaders: false,
+        message: { success: false, error: 'Too many registration attempts. Please try again later.' }
+    });
+    app.use(['/api/public', '/public'], publicRegisterLimiter);
+
+    // Auth gate: protect every /api route except the documented public set.
+    app.use((req, res, next) => {
+        if (req.method === 'OPTIONS') return next();
+        // Compare against the path only — the query string must never satisfy a public-path check.
+        const p = (req.originalUrl || req.url || '').split('?')[0];
+        const loginPath = req.method === 'POST' && (p.includes('/api/auth/login') || p.includes('/auth/login'));
+        const googlePath = p.includes('/api/auth/google') || p.includes('/auth/google');
+        const healthPath = p.includes('/system/health');
+        const publicPath = p.includes('/public/register');
+        const bypassPath = p.includes('/api/auth/bypass') || p.includes('/auth/bypass');
+        if (loginPath || googlePath || healthPath || publicPath || bypassPath) return next();
+        return requireAuth(req, res, next);
+    });
+
     app.use(['/api/auth', '/auth'], authRoutes);
     app.use(['/api/devotees', '/devotees'], devoteeRoutes);
     app.use(['/api/events', '/events'], eventRoutes);
@@ -72,6 +104,8 @@ export const createApp = () => {
     app.use(['/api/inventory', '/inventory'], inventoryRoutes);
     app.use(['/api/attendance', '/attendance'], attendanceRoutes);
     app.use(['/api/counseling', '/counseling'], counselingRoutes);
+    app.use(['/api/change-requests', '/change-requests'], changeRequestRoutes);
+    app.use(['/api/public', '/public'], publicRoutes);
 
     app.post(['/api/upload', '/upload'], async (req, res) => {
         try {

@@ -6,12 +6,13 @@ import { useAuth } from '../../context/AuthContext';
 import {
     Edit, Trash, Phone, Mail, MapPin, Calendar, Heart, Award,
     ChevronLeft, QrCode, BookOpen, User, MessageSquare,
-    Activity, CheckCircle2, LayoutDashboard, Fingerprint, Download, Sparkles
+    Activity, CheckCircle2, LayoutDashboard, Fingerprint, Download, Sparkles, FileEdit, Maximize2
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import SadhanaLog from '../../components/SadhanaLog';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import WhatsAppModal from '../../components/WhatsAppModal';
+import ImageModal from '../../components/ImageModal';
 import CounselingSessionLog from '../../components/CounselingSessionLog';
 import JourneyTimeline from '../../components/JourneyTimeline';
 import { useToast } from '../../components/Toast';
@@ -38,14 +39,15 @@ const InfoRow = ({ label, value, icon: Icon }) => (
 const DevoteeProfile = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { devotees, deleteDevotee, getDevoteeById } = useDevotees();
-    const { isAdmin } = useAuth();
+    const { devotees, deleteDevotee, getDevoteeById, updateDevotee } = useDevotees();
+    const { isAdmin, canRequestChanges } = useAuth();
     const toast = useToast();
     const idCardRef = useRef(null);
 
     const [activeSection, setActiveSection] = useState('overview');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showWhatsApp, setShowWhatsApp] = useState(false);
+    const [showImageModal, setShowImageModal] = useState(false);
     const [devotee, setDevotee] = useState(null);
 
     // ✅ Effect 1: Immediately resolve from local context list (instant, no spinner)
@@ -134,9 +136,22 @@ const DevoteeProfile = () => {
             <div className="bg-white dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
                 <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
                     <div className="shrink-0">
-                        <div className="w-32 h-32 rounded-full border-4 border-slate-50 shadow-md overflow-hidden bg-slate-100 dark:bg-slate-800">
+                        <div 
+                            onClick={() => devotee.photo && setShowImageModal(true)}
+                            className={`w-32 h-32 rounded-full border-4 border-slate-50 shadow-md overflow-hidden bg-slate-100 dark:bg-slate-800 relative group ${devotee.photo ? 'cursor-pointer' : ''}`}
+                            title={devotee.photo ? 'Click to view original image' : ''}
+                        >
                             {devotee.photo ? (
-                                <img src={devotee.photo} alt={devotee.name} className="w-full h-full object-cover" />
+                                <>
+                                    <img 
+                                        src={devotee.photo} 
+                                        alt={devotee.name} 
+                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                                    />
+                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                        <Maximize2 size={24} className="drop-shadow" />
+                                    </div>
+                                </>
                             ) : (
                                 <User className="w-full h-full p-6 text-slate-300" />
                             )}
@@ -154,6 +169,9 @@ const DevoteeProfile = () => {
                                 {devotee.name}
                                 {devotee.status === 'Active' && (
                                     <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-xs font-bold border border-green-100">Active</span>
+                                )}
+                                {devotee.status === 'Pending' && (
+                                    <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">Pending Approval</span>
                                 )}
                                 {devotee.spiritualStatus === 'Initiated' && (
                                     <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 text-xs font-bold border border-purple-100">Initiated</span>
@@ -184,22 +202,44 @@ const DevoteeProfile = () => {
                                 <MessageSquare size={16} />
                                 <span className="hidden sm:inline">WhatsApp</span>
                             </button>
-                            {isAdmin && (
-                                <>
+{isAdmin ? (
+                                    <>
+                                        {devotee.status === 'Pending' && (
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        await updateDevotee(id, { status: 'Active' });
+                                                        toast.success(`${devotee.name} approved and activated.`);
+                                                    } catch (err) {
+                                                        toast.error('Approve failed: ' + err.message);
+                                                    }
+                                                }}
+                                                className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-md hover:bg-amber-700 flex items-center gap-2 shadow-sm"
+                                            >
+                                                <CheckCircle2 size={16} /> Approve
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => navigate(`/devotees/${id}/edit`)}
+                                            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-50 dark:bg-slate-900/50 flex items-center gap-2"
+                                        >
+                                            <Edit size={16} /> Edit
+                                        </button>
+                                        <button
+                                            onClick={() => setShowDeleteConfirm(true)}
+                                            className="px-4 py-2 text-sm font-medium text-white bg-blue-900 rounded-md hover:bg-blue-800 flex items-center gap-2 shadow-sm"
+                                        >
+                                            <Trash size={16} /> Delete
+                                        </button>
+                                    </>
+                                ) : canRequestChanges && (
                                     <button
-                                        onClick={() => navigate(`/devotees/${id}/edit`)}
-                                        className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-50 dark:bg-slate-900/50 flex items-center gap-2"
+                                        onClick={() => navigate(`/change-request/${id}`)}
+                                        className="px-4 py-2 text-sm font-medium text-orange-700 bg-orange-50 border border-orange-300 rounded-md hover:bg-orange-100 flex items-center gap-2"
                                     >
-                                        <Edit size={16} /> Edit
+                                        <FileEdit size={16} /> Request Changes
                                     </button>
-                                    <button
-                                        onClick={() => setShowDeleteConfirm(true)}
-                                        className="px-4 py-2 text-sm font-medium text-white bg-blue-900 rounded-md hover:bg-blue-800 flex items-center gap-2 shadow-sm"
-                                    >
-                                        <Trash size={16} /> Delete
-                                    </button>
-                                </>
-                            )}
+                                )}
                         </div>
                     </div>
                 </div>
@@ -378,6 +418,15 @@ const DevoteeProfile = () => {
                 isOpen={showWhatsApp}
                 onClose={() => setShowWhatsApp(false)}
                 devotee={devotee}
+            />
+
+            {/* ✅ Original Profile Picture Modal */}
+            <ImageModal
+                isOpen={showImageModal}
+                onClose={() => setShowImageModal(false)}
+                imageUrl={devotee.photo}
+                title={devotee.name}
+                subtitle={devotee.initiatedName || 'ISKCON Devotee'}
             />
         </div>
     );

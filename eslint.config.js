@@ -9,6 +9,7 @@ export default defineConfig([
     'dist', 'build', 'release', '.wwebjs_cache', 'whatsapp-bot/sessions', 'node_modules',
     '.venv',
     'backups',
+    '.vercel',
     '**/Devotee Management - Copy/**',
     '**/*.mjs',
   ]),
@@ -44,6 +45,18 @@ export default defineConfig([
       // Fire-and-forget error handlers (logging already done at the source) are
       // intentional; empty catch clauses are also used to swallow probe failures.
       'no-empty': ['error', { allowEmptyCatch: true }],
+    },
+  },
+  {
+    // Build tooling config files run under Node next to the Vite/PostCSS/Tailwind CLI.
+    files: ['vite.config.js', 'postcss.config.js', 'tailwind.config.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      globals: globals.node,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
     },
   },
   {

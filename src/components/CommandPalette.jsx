@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Command, LayoutDashboard, Users, Heart, Calendar, ArrowRight, User } from 'lucide-react';
+import { Search, Command, LayoutDashboard, Users, Heart, Calendar, ArrowRight, User, FileEdit, ClipboardList } from 'lucide-react';
 import { useDevotees } from '../context/DevoteeContext';
 import { useAuth } from '../context/AuthContext';
 import clsx from 'clsx';
@@ -12,14 +12,16 @@ const CommandPalette = () => {
     const inputRef = useRef(null);
     const navigate = useNavigate();
     const { devotees } = useDevotees();
-    const { isAdmin } = useAuth();
+    const { isAdmin, canRequestChanges, devoteeId } = useAuth();
 
     // Toggle with Ctrl+K
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
-                setIsOpen(prev => !prev);
+                setIsOpen(true);
+                setQuery('');
+                setActiveIndex(0);
             }
             if (e.key === 'Escape') {
                 setIsOpen(false);
@@ -34,8 +36,6 @@ const CommandPalette = () => {
     useEffect(() => {
         if (isOpen) {
             setTimeout(() => inputRef.current?.focus(), 50);
-            setQuery('');
-            setActiveIndex(0);
         }
     }, [isOpen]);
 
@@ -46,10 +46,19 @@ const CommandPalette = () => {
         { id: 'profile', title: 'My Profile', icon: User, path: '/profile', type: 'Page' },
     ];
 
+    // Quick actions (non-admin)
+    const quickActions = [
+        ...(canRequestChanges && devoteeId ? [{ id: 'request-changes', title: 'Request Changes', icon: FileEdit, path: `/change-request/${devoteeId}`, type: 'Action' }] : []),
+        ...(isAdmin ? [{ id: 'admin-requests', title: 'Change Requests', icon: ClipboardList, path: '/admin/change-requests', type: 'Action' }] : []),
+    ];
+
     // Filter Items
     const filteredItems = [
         // Pages
         ...pages.filter(p => p.title.toLowerCase().includes(query.toLowerCase())),
+
+        // Quick Actions
+        ...quickActions.filter(a => a.title.toLowerCase().includes(query.toLowerCase())),
 
         // Devotees (Admin Only)
         ...(isAdmin ? devotees.filter(d =>
@@ -70,7 +79,7 @@ const CommandPalette = () => {
         if (activeIndex >= filteredItems.length) {
             setActiveIndex(Math.max(0, filteredItems.length - 1));
         }
-    }, [filteredItems.length]);
+    }, [filteredItems.length, activeIndex]);
 
     // Handle Navigation
     const handleSelect = (item) => {

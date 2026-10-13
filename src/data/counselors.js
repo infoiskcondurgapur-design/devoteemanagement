@@ -22,6 +22,7 @@ export const COUNSELORS_LIST = [
     "Kalidi Seveka Devi Dasi",
     "Kamal Lochan Gouranga Das",
     "Karunamoyee Rabati DD",
+    "Lakshirani Dayamoyee Debi Dasi",
     "Lokpati Madhab Das",
     "Madan Chaitannya Das",
     "Mangala Kisori Divi Dasi",

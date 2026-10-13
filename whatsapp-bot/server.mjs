@@ -16,6 +16,8 @@ import whatsappService from './services/whatsappService.mjs';
 import { uploadImageToCloudinary } from './cloudinary-service.mjs';
 import automationService from './services/AutomationService.mjs';
 import { initializeWs } from './services/wsService.mjs';
+import { requireAuth, ensureAdmin } from './services/authService.mjs';
+import { linkUserToDevotee, getUnlinkedDevotees } from './database.mjs';
 
 // Routes
 import devoteeRoutes from './routes/devoteeRoutes.mjs';
@@ -31,7 +33,48 @@ import oauthSheetsService from './oauth-sheets-service.mjs';
 import courseRoutes from './routes/courseRoutes.mjs';
 import tourRoutes from './routes/tourRoutes.mjs';
 import inventoryRoutes from './routes/inventoryRoutes.mjs';
+import changeRequestRoutes from './routes/changeRequestRoutes.mjs';
+import attendanceRoutes from './routes/attendanceRoutes.mjs';
+import counselingRoutes from './routes/counselingRoutes.mjs';
+import publicRoutes from './routes/publicRoutes.mjs';
 import { checkHealth } from './controllers/systemController.mjs';
+
+// Link unlinked devotees to user accounts and send credentials via WhatsApp
+const linkUnlinkedDevotees = async () => {
+    try {
+        const unlinked = await getUnlinkedDevotees();
+        if (unlinked.length === 0) {
+            console.log('[Credentials] All devotees already linked.');
+            return;
+        }
+        console.log(`[Credentials] Linking ${unlinked.length} unlinked devotees...`);
+        let linked = 0;
+        let failed = 0;
+        for (const devotee of unlinked) {
+            try {
+                const result = await linkUserToDevotee(devotee.id, devotee);
+                if (result.success) {
+                    linked++;
+                    try {
+                        const message = `DMS Login Credentials\n\nYour username: ${devotee.contact}\nYour password: ${result.generatedPassword}\n\nLogin at the app. Contact admin if you have questions.`;
+                        await whatsappService.sendMessage(devotee.contact, message);
+                        console.log(`[Credentials] Sent login credentials to ${devotee.name} (${devotee.contact})`);
+                    } catch (msgErr) {
+                        console.warn(`[Credentials] Could not send WhatsApp to ${devotee.contact}:`, msgErr.message);
+                    }
+                } else {
+                    failed++;
+                }
+            } catch (err) {
+                console.error(`[Credentials] Failed for ${devotee.name}:`, err.message);
+                failed++;
+            }
+        }
+        console.log(`[Credentials] Linked ${linked} devotees, ${failed} failed.`);
+    } catch (err) {
+        console.error('[Credentials] Migration failed:', err.message);
+    }
+};
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -75,11 +118,36 @@ const globalLimiter = rateLimit({
 });
 app.use('/api', globalLimiter);
 
+// Strict limiter for the public self-registration endpoint (open shareable form).
+const publicRegisterLimiter = rateLimit({
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    limit: process.env.RATE_LIMIT_PUBLIC_MAX ? parseInt(process.env.RATE_LIMIT_PUBLIC_MAX, 10) : 10,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { success: false, error: 'Too many registration attempts. Please try again later.' }
+});
+app.use('/api/public', publicRegisterLimiter);
+
 app.use(bodyParser.json({ limit: '15mb' }));
 app.use(bodyParser.urlencoded({ limit: '15mb', extended: true }));
 
 // --- Public endpoints ---
 app.get('/api/system/health', checkHealth);
+
+// Auth gate: protect every /api route except the documented public set.
+app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') return next();
+    // Compare against the path only — the query string must never satisfy a public-path check.
+    const p = (req.originalUrl || req.url || '').split('?')[0];
+    const loginPath = req.method === 'POST' && (p.includes('/api/auth/login') || p.includes('/auth/login'));
+    const googlePath = p.includes('/api/auth/google') || p.includes('/auth/google');
+    const healthPath = p.includes('/system/health');
+    const publicPath = p.includes('/public/register');
+    const bypassPath = p.includes('/api/auth/bypass') || p.includes('/auth/bypass');
+    if (loginPath || googlePath || healthPath || publicPath || bypassPath) return next();
+    return requireAuth(req, res, next);
+});
+
 app.use('/api/auth', authRoutes);
 
 // --- API Routes ---
@@ -95,6 +163,10 @@ app.use('/api/backup', backupRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/tours', tourRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/change-requests', changeRequestRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/counseling', counselingRoutes);
+app.use('/api/public', publicRoutes);
 
 // --- Generic Upload API (kept for backward compatibility or simple uploads) ---
 app.post('/api/upload', async (req, res) => {
@@ -113,6 +185,12 @@ const start = async () => {
     try {
         await initDb();
         console.log('[System] Database initialized');
+
+        try {
+            await ensureAdmin();
+        } catch (err) {
+            console.error('[System] ensureAdmin failed:', err.message);
+        }
 
         // Optional services must not prevent the API from starting (e.g. bot can't launch,
         // OAuth not yet configured). The app keeps working for CRUD; features degrade gracefully.
@@ -134,10 +212,18 @@ const start = async () => {
 
         const server = app.listen(port, host, () => {
             console.log(`[System] Server running on http://${host}:${port}`);
+            if (process.env.DMS_AUTH_BYPASS === '1') {
+                console.warn('[Auth] *** DMS_AUTH_BYPASS=1 — dev bypass login ENABLED (no password required). Never enable in production. ***');
+            }
             initializeWs(server);
             if (process.env.DMS_DISABLE_WHATSAPP !== '1') {
                 automationService.initialize();
             }
+        });
+
+        // Credential linking: create user accounts for devotees without one
+        linkUnlinkedDevotees().catch(err => {
+            console.error('[System] Credential linking failed:', err.message);
         });
     } catch (err) {
         console.error('[System] Startup error:', err);

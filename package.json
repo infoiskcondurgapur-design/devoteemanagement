@@ -44,6 +44,18 @@
           "!check_*.mjs",
           "!tests/**"
         ]
+      },
+      {
+        "from": "whatsapp-bot/node_modules",
+        "to": "whatsapp-bot/node_modules",
+        "filter": [
+          "**/*",
+          "!**/*.map",
+          "!**/test{,/**/*}",
+          "!**/tests{,/**/*}",
+          "!**/__tests__{,/**/*}",
+          "!**/node_modules/{*.min.js,*.md,*.txt}"
+        ]
       }
     ]
   },
@@ -67,6 +79,7 @@
     "cors": "^2.8.6",
     "date-fns": "^4.1.0",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.7.1",
     "firebase": "^12.7.0",
     "gapi-script": "^1.2.0",
     "googleapis": "^170.1.0",
