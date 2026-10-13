@@ -778,6 +778,13 @@ export const addDevotee = (data) => {
             }
         });
 
+        // Ensure initiatedName and spiritualName stay synchronized
+        if (!filteredData.initiatedName && filteredData.spiritualName) {
+            filteredData.initiatedName = filteredData.spiritualName;
+        } else if (!filteredData.spiritualName && filteredData.initiatedName) {
+            filteredData.spiritualName = filteredData.initiatedName;
+        }
+
         const checkContact = (data.contact || '').toString().trim();
         const checkName = (data.name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
         const checkExisting = (contact) => {
@@ -822,6 +829,13 @@ export const updateDevotee = (id, data) => {
                 filteredData[col] = val;
             }
         });
+
+        // Ensure initiatedName and spiritualName stay synchronized
+        if (!filteredData.initiatedName && filteredData.spiritualName) {
+            filteredData.initiatedName = filteredData.spiritualName;
+        } else if (!filteredData.spiritualName && filteredData.initiatedName) {
+            filteredData.spiritualName = filteredData.initiatedName;
+        }
 
         const checkContact = (filteredData.contact || '').toString().trim();
         const checkName = (filteredData.name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');

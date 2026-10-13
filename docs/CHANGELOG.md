@@ -2,6 +2,18 @@
 
 ## [2026-10-13]
 
+### Initiated Name Normalization & Continuous Auto-Sync
+- **Initiated Name vs Spiritual Name Unification**:
+  - Resolved discrepancy where devotees with initiation records (such as *Nilakshi Bhattacharjee* / *Nilambari Padmaja Devi Dasi*) had their initiated name stored under `spiritualName` while `initiatedName` was blank, causing `DevoteeProfile.jsx` to render `Initiated Name: --` and a misleading `Uninitiated Devotee` badge.
+  - Updated `DevoteeProfile.jsx`, `DevoteeList.jsx`, `DevoteeForm.jsx`, `SpiritualLifeStep.jsx`, and modal subtitles to gracefully cross-resolve `devotee.initiatedName || devotee.spiritualName`.
+  - Sidebar profile card now correctly renders the initiated name and badge as `Initiated Devotee` when `spiritualStatus === 'Initiated'`, an initiation date is present, or an initiated name is recorded.
+  - Synchronized database layers (`whatsapp-bot/database.mjs` and `api/_src/database.mjs`) on `addDevotee` and `updateDevotee` to auto-populate either field if one is missing.
+  - Normalized existing SQLite and PostgreSQL database records so `initiatedName` and `spiritualName` are populated across all 172 congregation members.
+- **Continuous Background Auto-Sync**:
+  - Added quiet background polling interval (every 10 seconds) in `DevoteeContext.jsx` and `DevoteeList.jsx` that keeps master records and active paginated views in sync without UI flicker or lost pagination/scroll positions.
+  - Enhanced header badge to indicate `Auto Sync Active` / `Live Sync` with an emerald pulse.
+
+
 ### Devotee List Real-Time Synchronization & Pagination Decoupling
 - **Root Cause Resolution**:
   - `DevoteeContext.jsx` previously overwrote the global congregation list (`devotees`) inside `fetchPaginatedDevotees`, replacing all 172 records with only the 25 items of the active page. This broke components depending on the full dataset (`DevoteeMap`, `Reports`, `CounselorDashboard`, `Attendance`).

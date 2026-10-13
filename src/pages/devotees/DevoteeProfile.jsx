@@ -173,7 +173,7 @@ const DevoteeProfile = () => {
                                 {devotee.status === 'Pending' && (
                                     <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">Pending Approval</span>
                                 )}
-                                {devotee.spiritualStatus === 'Initiated' && (
+                                {(devotee.spiritualStatus === 'Initiated' || devotee.initiatedDate1 || devotee.initiatedName || devotee.spiritualName) && (
                                     <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 text-xs font-bold border border-purple-100">Initiated</span>
                                 )}
                             </h1>
@@ -277,8 +277,12 @@ const DevoteeProfile = () => {
                     <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-4">
                         <div className="flex items-center gap-3 mb-4">
                             <div>
-                                <p className="text-sm font-bold text-slate-900">{devotee.initiatedName || 'Uninitiated'}</p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">{devotee.occupation || 'Devotee'}</p>
+                                <p className="text-sm font-bold text-slate-900">
+                                    {devotee.initiatedName || devotee.spiritualName || (devotee.spiritualStatus === 'Initiated' ? 'Initiated Devotee' : (devotee.spiritualStatus || 'Devotee'))}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    {devotee.spiritualStatus === 'Initiated' ? 'Initiated Devotee' : (devotee.spiritualStatus ? `${devotee.spiritualStatus} Devotee` : (devotee.occupation || 'Devotee'))}
+                                </p>
                             </div>
                         </div>
                         <div className="space-y-2">
@@ -305,7 +309,7 @@ const DevoteeProfile = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
                                     <InfoRow icon={User} label="Full Name" value={devotee.name} />
                                     <InfoRow icon={User} label="Gender" value={devotee.gender} />
-                                    <InfoRow icon={User} label="Initiated Name" value={devotee.initiatedName} />
+                                    <InfoRow icon={User} label="Initiated Name" value={devotee.initiatedName || devotee.spiritualName} />
                                     <InfoRow icon={Calendar} label="Date of Birth" value={formatDate(devotee.dob)} />
                                     {/* ✅ Contact row — now clean, no inline prompt/alert */}
                                     <div className="grid grid-cols-12 gap-4 items-center py-3 border-b border-slate-50 hover:bg-slate-50 dark:bg-slate-900/50/50 transition-colors px-2 rounded-lg">
@@ -371,7 +375,7 @@ const DevoteeProfile = () => {
 
                                 <div className="mt-6 px-6 w-full flex-1 flex flex-col items-center">
                                     <h2 className="text-2xl font-black text-slate-900 leading-tight">{devotee.name}</h2>
-                                    <p className="text-sm font-bold text-blue-600 uppercase tracking-widest mt-1 mb-4">{devotee.initiatedName || 'ISKCON DURGAPUR MEMBER'}</p>
+                                    <p className="text-sm font-bold text-blue-600 uppercase tracking-widest mt-1 mb-4">{devotee.initiatedName || devotee.spiritualName || 'ISKCON DURGAPUR MEMBER'}</p>
 
                                     <div className="my-4 p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
                                         <QRCodeCanvas value={`DMS:${devotee.id}`} size={130} />
@@ -426,7 +430,7 @@ const DevoteeProfile = () => {
                 onClose={() => setShowImageModal(false)}
                 imageUrl={devotee.photo}
                 title={devotee.name}
-                subtitle={devotee.initiatedName || 'ISKCON Devotee'}
+                subtitle={devotee.initiatedName || devotee.spiritualName || 'ISKCON Devotee'}
             />
         </div>
     );

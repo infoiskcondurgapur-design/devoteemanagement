@@ -70,6 +70,14 @@ const DevoteeList = () => {
         return () => window.removeEventListener('devotees:refresh', handleLiveRefresh);
     }, [currentPage, pageSize, searchTerm, filters]);
 
+    // Continuous auto-sync interval: quietly refreshes current page every 10s
+    React.useEffect(() => {
+        const autoSyncInterval = setInterval(() => {
+            fetchPaginatedDevotees(currentPage, pageSize, searchTerm, filters);
+        }, 10000);
+        return () => clearInterval(autoSyncInterval);
+    }, [currentPage, pageSize, searchTerm, filters]);
+
     // Measure virtualization container height
     React.useEffect(() => {
         const container = containerRef.current;
@@ -178,9 +186,9 @@ const DevoteeList = () => {
                 <div>
                     <div className="flex items-center gap-3">
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Devotees</h1>
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${isLiveConnected ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${isLiveConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
-                            {isLiveConnected ? 'Live Sync' : 'Synced'}
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${isLiveConnected ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'}`}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            {isLiveConnected ? 'Live Sync' : 'Auto Sync Active'}
                         </span>
                     </div>
                     <p className="text-slate-500 dark:text-slate-400">
@@ -387,8 +395,8 @@ const DevoteeList = () => {
                                                 </div>
                                                 <div>
                                                     <div className="font-semibold text-slate-900 truncate max-w-[150px]">{devotee.name}</div>
-                                                    {devotee.initiatedName && (
-                                                        <div className="text-[10px] text-orange-600 font-medium truncate max-w-[150px]">{devotee.initiatedName}</div>
+                                                    {(devotee.initiatedName || devotee.spiritualName) && (
+                                                        <div className="text-[10px] text-orange-600 font-medium truncate max-w-[150px]">{devotee.initiatedName || devotee.spiritualName}</div>
                                                     )}
                                                 </div>
                                             </div>
@@ -467,7 +475,7 @@ const DevoteeList = () => {
                                 )}
                             </div>
                             <h3 className="font-bold text-slate-900 text-lg mb-1">{devotee.name}</h3>
-                            {devotee.initiatedName && <p className="text-sm text-orange-600 font-medium mb-3">{devotee.initiatedName}</p>}
+                            {(devotee.initiatedName || devotee.spiritualName) && <p className="text-sm text-orange-600 font-medium mb-3">{devotee.initiatedName || devotee.spiritualName}</p>}
                             <div className="text-sm text-slate-500 dark:text-slate-400 mb-6">
                                 <p>{devotee.contact}</p>
                                 <p className="text-xs mt-1">{devotee.gender} • {devotee.counselor}</p>
@@ -590,7 +598,7 @@ const DevoteeList = () => {
                 onClose={() => setSelectedImageDevotee(null)}
                 imageUrl={selectedImageDevotee?.photo}
                 title={selectedImageDevotee?.name}
-                subtitle={selectedImageDevotee?.initiatedName || selectedImageDevotee?.status}
+                subtitle={selectedImageDevotee?.initiatedName || selectedImageDevotee?.spiritualName || selectedImageDevotee?.status}
             />
 
             {/* Batch Action Bar */}

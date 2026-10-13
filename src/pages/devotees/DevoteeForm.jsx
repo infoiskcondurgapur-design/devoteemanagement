@@ -97,6 +97,12 @@ const DevoteeForm = () => {
                     sanitizedDevotee[key] = devoteeToEdit[key] === null ? (defaultValues[key] ?? '') : devoteeToEdit[key];
                 });
 
+                // Ensure initiatedName and spiritualName fallback to each other
+                const resolvedInitiatedName = sanitizedDevotee.initiatedName || sanitizedDevotee.spiritualName || '';
+                const resolvedSpiritualName = sanitizedDevotee.spiritualName || sanitizedDevotee.initiatedName || '';
+                sanitizedDevotee.initiatedName = resolvedInitiatedName;
+                sanitizedDevotee.spiritualName = resolvedSpiritualName;
+
                 reset({ 
                     ...defaultValues, 
                     ...sanitizedDevotee, 

@@ -191,6 +191,12 @@ const toDevoteeRow = (data) => {
             row[col] = val;
         }
     });
+    // Ensure initiatedName and spiritualName stay synchronized
+    if (!row.initiatedName && row.spiritualName) {
+        row.initiatedName = row.spiritualName;
+    } else if (!row.spiritualName && row.initiatedName) {
+        row.spiritualName = row.initiatedName;
+    }
     return row;
 };
 

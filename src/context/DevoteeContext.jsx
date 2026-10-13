@@ -73,14 +73,16 @@ export const DevoteeProvider = ({ children }) => {
                 fetchEvents();
                 checkGoogleSheetsStatus();
                 fetchFilterOptions();
-            }, 15000);
+                fetchDevotees(true);
+                window.dispatchEvent(new CustomEvent('devotees:refresh'));
+            }, 10000);
         };
 
         // Real-Time WebSocket event listener
         const handleSync = (e) => {
             const { type } = e.detail || {};
             if (['DEVOTEE_CREATED', 'DEVOTEE_UPDATED', 'DEVOTEE_DELETED', 'DATA_MUTATED'].includes(type)) {
-                fetchDevotees();
+                fetchDevotees(true);
                 fetchStats();
                 fetchFilterOptions();
                 window.dispatchEvent(new CustomEvent('devotees:refresh'));
@@ -96,6 +98,7 @@ export const DevoteeProvider = ({ children }) => {
             if (document.visibilityState === 'visible' && apiService.authGetToken()) {
                 fetchStats();
                 fetchFilterOptions();
+                fetchDevotees(true);
                 window.dispatchEvent(new CustomEvent('devotees:refresh'));
             }
         };
@@ -125,8 +128,9 @@ export const DevoteeProvider = ({ children }) => {
     }, []);
 
     // Master devotee list query (loads complete congregation up to 2000 for Map, Reports, CounselorDashboard, etc.)
-    const fetchDevotees = async () => {
+    const fetchDevotees = async (quiet = false) => {
         try {
+            if (!quiet) setLoading(true);
             const result = await apiService.get('/api/devotees?limit=2000');
             if (result.success) {
                 const saved = localStorage.getItem('devotees');
@@ -150,10 +154,12 @@ export const DevoteeProvider = ({ children }) => {
             }
         } catch (error) {
             console.error('Failed to fetch devotees from SQL:', error);
-            const saved = localStorage.getItem('devotees');
-            setDevotees(saved ? JSON.parse(saved) : []);
+            if (!quiet) {
+                const saved = localStorage.getItem('devotees');
+                setDevotees(saved ? JSON.parse(saved) : []);
+            }
         } finally {
-            setLoading(false);
+            if (!quiet) setLoading(false);
         }
     };
 
