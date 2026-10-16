@@ -209,6 +209,12 @@ class CloudBackupService {
             const now = new Date().toISOString();
             await updateSetting('last_dropbox_backup_time', now);
             await updateSetting('last_dropbox_backup_status', 'Success');
+
+            // Prune older backups in the background to prevent Dropbox from running out of space
+            this.pruneOldDropboxBackups(10, settings).catch(pruneErr => {
+                console.warn('[Cloud Backup] Dropbox retention pruning note (non-fatal):', pruneErr.message);
+            });
+
             return {
                 success: true,
                 filename,
@@ -222,6 +228,57 @@ class CloudBackupService {
             await updateSetting('last_dropbox_backup_status', `Failed: ${dbxErr.message}`);
             await logIssue('error', 'cloud-backup-dropbox', `Dropbox Sync failed: ${dbxErr.message}`, dbxErr.stack);
             throw dbxErr;
+        }
+    }
+
+    /**
+     * Keep the most recent backups in Dropbox and prune older ones to avoid insufficient space
+     * @param {number} maxKeep - Number of recent snapshots to retain (default 10)
+     * @param {Object} [settings]
+     */
+    async pruneOldDropboxBackups(maxKeep = 10, settings = null) {
+        try {
+            if (!settings) settings = await getSettings();
+            if (!this.isDropboxConfigured(settings)) return;
+            const accessToken = await this.getDropboxAccessToken(settings);
+
+            const listUrl = 'https://api.dropboxapi.com/2/files/list_folder';
+            const listRes = await fetch(listUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ path: '/DMS_Backups' })
+            });
+
+            if (!listRes.ok) return;
+            const listData = await listRes.json();
+            const entries = (listData.entries || [])
+                .filter(item => item['.tag'] === 'file' && item.name.startsWith('devotee_mgmt_backup_'))
+                .sort((a, b) => new Date(b.server_modified || 0) - new Date(a.server_modified || 0));
+
+            if (entries.length > maxKeep) {
+                const toDelete = entries.slice(maxKeep);
+                console.log(`[Cloud Backup] Pruning ${toDelete.length} old Dropbox backup snapshots to preserve space...`);
+                for (const item of toDelete) {
+                    try {
+                        await fetch('https://api.dropboxapi.com/2/files/delete_v2', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ path: item.path_lower })
+                        });
+                        console.log(`[Cloud Backup] Removed old Dropbox backup: ${item.name}`);
+                    } catch (delErr) {
+                        console.warn(`[Cloud Backup] Could not delete old backup ${item.name}:`, delErr.message);
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn('[Cloud Backup] pruneOldDropboxBackups warning:', err.message);
         }
     }
 
@@ -282,6 +339,19 @@ class CloudBackupService {
         const settings = await getSettings();
         const configured = this.isDropboxConfigured(settings);
         const space = configured ? await this.getDropboxSpace(settings) : null;
+        const autoSyncEnabled = settings.dropbox_auto_sync !== 'false';
+        const autoSyncIntervalMinutes = parseInt(settings.dropbox_auto_sync_interval, 10) || 60;
+        const lastBackupTime = settings.last_dropbox_backup_time || null;
+        let nextSyncTime = null;
+        if (autoSyncEnabled && configured) {
+            if (lastBackupTime) {
+                const nextDate = new Date(new Date(lastBackupTime).getTime() + autoSyncIntervalMinutes * 60 * 1000);
+                nextSyncTime = nextDate.toISOString();
+            } else {
+                nextSyncTime = new Date().toISOString();
+            }
+        }
+
         return {
             s3: {
                 configured: this.isS3Configured(),
@@ -296,7 +366,11 @@ class CloudBackupService {
                 hasRefreshToken: !!(settings.dropbox_refresh_token || process.env.DROPBOX_REFRESH_TOKEN),
                 folderPath: '/DMS_Backups/',
                 space,
-                lastBackupTime: settings.last_dropbox_backup_time || null,
+                autoSyncEnabled,
+                autoSyncIntervalMinutes,
+                lastAutoSyncTime: settings.last_dropbox_auto_sync_time || null,
+                nextSyncTime,
+                lastBackupTime,
                 lastBackupStatus: settings.last_dropbox_backup_status || 'Never run'
             }
         };

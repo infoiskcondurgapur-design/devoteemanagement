@@ -2,6 +2,26 @@
 
 ## [2026-10-16]
 
+### Automated Dropbox Disaster Recovery & Space-Safe Auto-Sync
+- **Backend Autonomous Sync Service (`whatsapp-bot/services/DropboxAutoSyncService.mjs` & `server.mjs`)**:
+  - Engineered standalone 24/7 background scheduler monitoring sync schedules every 60 seconds independently of WhatsApp client availability.
+  - Automatically executes compressed Gzip snapshots to Dropbox (`/DMS_Backups/`) whenever the configured interval elapses.
+  - Broadcasts real-time WebSocket notifications (`DATA_MUTATED`) to connected clients upon sync completion.
+- **Intelligent Dropbox Storage Protection & Auto-Pruning (`CloudBackupService.mjs`)**:
+  - Added `pruneOldDropboxBackups`: automatically retains the 10 most recent snapshots and safely removes older archives via Dropbox `delete_v2` to prevent `insufficient_space` errors.
+  - Formatted detailed quota usage metrics and human-readable capacity bars in status responses.
+- **Client-Side Session Synchronization (`src/services/dropboxAutoSync.js` & `src/App.jsx`)**:
+  - Implemented client-side sync heartbeat for cloud serverless (Vercel) environments, triggering background backups while active admin sessions are open.
+  - Added `POST /api/backup/auto-sync-check` and `GET/POST /api/backup/cron-sync` with optional Vercel Cron support (`vercel.json`).
+- **Electron Desktop Continuous Backup (`electron/main.js`)**:
+  - Integrated Dropbox auto-sync check directly into Electron's hourly local auto-backup cycle for dual local + cloud redundancy.
+- **Settings UI Controls & Live Status (`src/pages/Settings.jsx`)**:
+  - Added interactive Auto-Sync toggle switch with real-time status pulses.
+  - Added configurable frequency selector (1 Hour, 6 Hours, 12 Hours, 24 Hours / Daily).
+  - Added live "Next Scheduled Sync" countdown display and automated pruning badge.
+- **Automated Regression Test Suite (`regression.api.test.mjs`)**:
+  - Added test validating auto-sync configuration, status reporting, and public cron endpoint accessibility (23/23 tests passing).
+
 ### WhatsApp Web & Messaging Link Opening Fix
 - **Centralized WhatsApp Utility (`src/services/whatsappLink.js`)**:
   - Implemented `sanitizeWhatsAppNumber` with robust support for 10-digit local Indian numbers (prefixes `91`), 11-digit numbers with leading zero (`0XXXXXXXXXX`), and standard 12-digit international format (`91XXXXXXXXXX`).

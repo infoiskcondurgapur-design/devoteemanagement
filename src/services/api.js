@@ -239,6 +239,14 @@ const apiService = {
 
     async saveDropboxConfig(config) {
         return this.post('/api/backup/dropbox-config', config);
+    },
+
+    async saveDropboxAutoSyncConfig(config) {
+        return this.post('/api/backup/dropbox-auto-sync', config);
+    },
+
+    async checkDropboxAutoSync() {
+        return this.post('/api/backup/auto-sync-check', {});
     }
 };
 

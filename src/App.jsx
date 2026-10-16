@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DevoteeProvider } from './context/DevoteeContext';
 import { SadhanaProvider } from './context/SadhanaContext';
@@ -11,6 +11,7 @@ import { ToastProvider } from './components/Toast';
 import { LanguageProvider } from './context/LanguageContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import CommandPalette from './components/CommandPalette';
+import dropboxAutoSyncManager from './services/dropboxAutoSync';
 
 const Layout = lazy(() => import('./components/layout/Layout'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -73,6 +74,11 @@ const RequireAuth = ({ children }) => {
 };
 
 function App() {
+  useEffect(() => {
+    dropboxAutoSyncManager.start();
+    return () => dropboxAutoSyncManager.stop();
+  }, []);
+
   return (
     <ToastProvider>
       <ThemeProvider>

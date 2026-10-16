@@ -520,3 +520,39 @@ test('bypass login is rejected with 403 when the flag is off', async () => {
     assert.equal(status, 403, 'bypass must never issue tokens without the env flag');
     assert.equal(data.success, false);
 });
+
+// ─── Dropbox Auto-Sync Endpoints ─────────────────────────────────────────
+
+test('dropbox auto-sync configuration and status reporting', async () => {
+    const adminToken = await loginForPublicTests();
+
+    // 1. Configure auto-sync
+    const configRes = await api(baseUrl, '/api/backup/dropbox-auto-sync', {
+        method: 'POST',
+        token: adminToken,
+        body: { enabled: true, intervalMinutes: 120 }
+    });
+    assert.equal(configRes.status, 200);
+    assert.equal(configRes.data.success, true);
+    assert.equal(configRes.data.status.dropbox.autoSyncEnabled, true);
+    assert.equal(configRes.data.status.dropbox.autoSyncIntervalMinutes, 120);
+
+    // 2. Query cloud status
+    const statusRes = await api(baseUrl, '/api/backup/cloud-status', { token: adminToken });
+    assert.equal(statusRes.status, 200);
+    assert.equal(statusRes.data.success, true);
+    assert.equal(statusRes.data.status.dropbox.autoSyncEnabled, true);
+    assert.equal(statusRes.data.status.dropbox.autoSyncIntervalMinutes, 120);
+
+    // 3. Auto-sync check without credentials gracefully reports not configured
+    const checkRes = await api(baseUrl, '/api/backup/auto-sync-check', { method: 'POST', token: adminToken });
+    assert.equal(checkRes.status, 200);
+    assert.equal(checkRes.data.success, true);
+    assert.equal(checkRes.data.synced, false);
+
+    // 4. Cron sync endpoint is accessible through public auth gate and skips when not configured
+    const cronRes = await api(baseUrl, '/api/backup/cron-sync');
+    assert.equal(cronRes.status, 200);
+    assert.equal(cronRes.data.success, true);
+    assert.equal(cronRes.data.skipped, true);
+});

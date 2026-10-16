@@ -341,6 +341,30 @@ const performAutoBackup = async () => {
         fs.writeFileSync(filepath, JSON.stringify(data, null, 2));
 
         console.log(`[Auto-Backup] Backup saved: ${filename}`);
+
+        // Trigger background Dropbox auto-sync check
+        try {
+            const token = await getElectronToken();
+            const syncReq = net.request({
+                method: 'POST',
+                url: `${API_BASE}/api/backup/auto-sync-check`
+            });
+            if (token) syncReq.setHeader('Authorization', `Bearer ${token}`);
+            syncReq.on('response', (res) => {
+                let body = '';
+                res.on('data', (chunk) => { body += chunk; });
+                res.on('end', () => {
+                    try {
+                        const parsed = JSON.parse(body);
+                        if (parsed?.synced) {
+                            console.log('[Auto-Backup] Dropbox auto-sync executed:', parsed.result?.filename);
+                        }
+                    } catch { }
+                });
+            });
+            syncReq.on('error', () => { });
+            syncReq.end();
+        } catch { }
     } catch (err) {
         // Silent failure - don't crash the app if backup fails
         console.error('[Auto-Backup] Failed:', err.message);

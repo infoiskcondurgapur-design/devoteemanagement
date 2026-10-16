@@ -120,6 +120,16 @@ const NameListPanel = ({ listKey, label, icon: Icon, customNames, onAdd, onRemov
     );
 };
 
+function formatNextSync(nextIso) {
+    if (!nextIso) return 'Scheduled soon';
+    const diffMs = new Date(nextIso).getTime() - Date.now();
+    if (diffMs <= 0) return 'Syncing shortly...';
+    const diffMins = Math.round(diffMs / 60000);
+    if (diffMins < 60) return `in ~${diffMins} min${diffMins === 1 ? '' : 's'}`;
+    const diffHours = (diffMins / 60).toFixed(1);
+    return `in ~${diffHours} hrs`;
+}
+
 const Settings = () => {
     const [health, setHealth] = useState('checking');
     const [backupFiles, setBackupFiles] = useState([]);
@@ -137,6 +147,7 @@ const Settings = () => {
     const [dropboxMode, setDropboxMode] = useState('token');
     const [dropboxSaving, setDropboxSaving] = useState(false);
     const [dropboxSyncing, setDropboxSyncing] = useState(false);
+    const [dropboxAutoSyncUpdating, setDropboxAutoSyncUpdating] = useState(false);
     const [whatsappStatus, setWhatsappStatus] = useState('checking');
 
     const [whatsappQr, setWhatsappQr] = useState(null);
@@ -303,6 +314,39 @@ const Settings = () => {
         }
     };
 
+    const handleToggleAutoSync = async (enabled) => {
+        setDropboxAutoSyncUpdating(true);
+        try {
+            const data = await apiService.saveDropboxAutoSyncConfig({ enabled });
+            if (data.success) {
+                toast.success(enabled ? 'Dropbox auto-sync enabled!' : 'Dropbox auto-sync paused');
+                fetchCloudStatus();
+            } else {
+                throw new Error(data.error || 'Failed to update auto-sync');
+            }
+        } catch (err) {
+            toast.error('Failed to change auto-sync: ' + err.message);
+        } finally {
+            setDropboxAutoSyncUpdating(false);
+        }
+    };
+
+    const handleChangeAutoSyncInterval = async (intervalMinutes) => {
+        setDropboxAutoSyncUpdating(true);
+        try {
+            const data = await apiService.saveDropboxAutoSyncConfig({ intervalMinutes: Number(intervalMinutes) });
+            if (data.success) {
+                toast.success('Auto-sync frequency updated!');
+                fetchCloudStatus();
+            } else {
+                throw new Error(data.error || 'Failed to update interval');
+            }
+        } catch (err) {
+            toast.error('Failed to update interval: ' + err.message);
+        } finally {
+            setDropboxAutoSyncUpdating(false);
+        }
+    };
 
     const handleConnectGoogle = async () => {
         setGoogleConnecting(true);
@@ -665,7 +709,7 @@ const Settings = () => {
                                     </button>
                                 </div>
                                 {cloudBackupStatus?.dropbox?.configured ? (
-                                    <div className="mt-1.5 space-y-1">
+                                    <div className="mt-2 space-y-2.5">
                                         <div className="space-y-0.5">
                                             <p className="text-[10px] text-slate-400 dark:text-slate-500">Path: <span className="font-semibold text-slate-600 dark:text-slate-400">{cloudBackupStatus.dropbox.folderPath}</span></p>
                                             {cloudBackupStatus.dropbox.space && (
@@ -692,7 +736,70 @@ const Settings = () => {
                                             <p className="text-[10px] text-slate-400 dark:text-slate-500">Last Sync: <span className="font-semibold text-slate-600 dark:text-slate-400">{cloudBackupStatus.dropbox.lastBackupTime ? new Date(cloudBackupStatus.dropbox.lastBackupTime).toLocaleString() : 'Never'}</span></p>
                                             <p className="text-[10px] text-slate-400 dark:text-slate-500">Status: <span className={clsx("font-bold", cloudBackupStatus.dropbox.lastBackupStatus === 'Success' ? "text-emerald-600" : "text-red-500")}>{cloudBackupStatus.dropbox.lastBackupStatus}</span></p>
                                         </div>
-                                        <div className="pt-1">
+
+                                        {/* Auto-Sync Configuration Box */}
+                                        <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className={clsx("w-2 h-2 rounded-full", cloudBackupStatus.dropbox.autoSyncEnabled ? "bg-emerald-500 animate-pulse" : "bg-slate-400")} />
+                                                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Auto Sync to Dropbox</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    disabled={dropboxAutoSyncUpdating}
+                                                    onClick={() => handleToggleAutoSync(!cloudBackupStatus.dropbox.autoSyncEnabled)}
+                                                    className={clsx(
+                                                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                                        cloudBackupStatus.dropbox.autoSyncEnabled ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700",
+                                                        dropboxAutoSyncUpdating && "opacity-60 cursor-not-allowed"
+                                                    )}
+                                                    role="switch"
+                                                    aria-checked={cloudBackupStatus.dropbox.autoSyncEnabled}
+                                                >
+                                                    <span
+                                                        className={clsx(
+                                                            "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                                                            cloudBackupStatus.dropbox.autoSyncEnabled ? "translate-x-4" : "translate-x-0"
+                                                        )}
+                                                    />
+                                                </button>
+                                            </div>
+
+                                            {cloudBackupStatus.dropbox.autoSyncEnabled ? (
+                                                <div className="space-y-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 text-xs">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Frequency:</span>
+                                                        <select
+                                                            value={cloudBackupStatus.dropbox.autoSyncIntervalMinutes || 60}
+                                                            disabled={dropboxAutoSyncUpdating}
+                                                            onChange={(e) => handleChangeAutoSyncInterval(e.target.value)}
+                                                            className="text-[11px] font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-0.5 text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                                                        >
+                                                            <option value="60">Every 1 Hour (Recommended)</option>
+                                                            <option value="360">Every 6 Hours</option>
+                                                            <option value="720">Every 12 Hours</option>
+                                                            <option value="1440">Every 24 Hours (Daily)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-[10px]">
+                                                        <span className="text-slate-500 dark:text-slate-400">Next Scheduled Sync:</span>
+                                                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                                                            {formatNextSync(cloudBackupStatus.dropbox.nextSyncTime)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-[9px] text-slate-400 dark:text-slate-500 pt-0.5">
+                                                        <span>🛡️ Space Protection:</span>
+                                                        <span>Retains latest 10 snapshots (auto-pruned)</span>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                                                    Auto-sync paused. Turn on to backup automatically in background.
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="pt-1 flex items-center justify-between">
                                             <button
                                                 onClick={handleDropboxSync}
                                                 disabled={dropboxSyncing || cloudBackupStatus?.dropbox?.space?.isFull}

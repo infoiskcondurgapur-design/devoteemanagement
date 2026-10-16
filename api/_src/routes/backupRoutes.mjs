@@ -13,6 +13,10 @@ router.get('/cloud-status', backupController.getCloudBackupStatus);
 router.post('/cloud-sync', backupController.runCloudSyncManual);
 router.post('/dropbox-config', backupController.saveDropboxConfig);
 router.post('/dropbox-sync', backupController.runDropboxSyncManual);
+router.post('/dropbox-auto-sync', backupController.saveDropboxAutoSyncConfig);
+router.post('/auto-sync-check', backupController.checkAndRunAutoSync);
+router.get('/cron-sync', backupController.cronSync);
+router.post('/cron-sync', backupController.cronSync);
 
 export default router;
 

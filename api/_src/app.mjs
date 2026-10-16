@@ -100,7 +100,8 @@ export const createApp = () => {
         const healthPath = p.includes('/system/health');
         const publicPath = p.includes('/public/register');
         const bypassPath = p.includes('/api/auth/bypass') || p.includes('/auth/bypass');
-        if (loginPath || forgotPath || googlePath || healthPath || publicPath || bypassPath) return next();
+        const cronPath = p.includes('/backup/cron-sync') || p.includes('/api/backup/cron-sync');
+        if (loginPath || forgotPath || googlePath || healthPath || publicPath || bypassPath || cronPath) return next();
         return requireAuth(req, res, next);
     });
 

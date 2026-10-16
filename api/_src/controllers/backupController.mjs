@@ -137,3 +137,103 @@ export const runDropboxSyncManual = async (req, res) => {
     }
 };
 
+/**
+ * Configure Dropbox Auto-Sync toggle & interval
+ */
+export const saveDropboxAutoSyncConfig = async (req, res) => {
+    try {
+        const { updateSetting } = await import('../database.mjs');
+        const { enabled, intervalMinutes } = req.body || {};
+
+        if (enabled !== undefined) {
+            await updateSetting('dropbox_auto_sync', enabled ? 'true' : 'false');
+        }
+        if (intervalMinutes !== undefined) {
+            const parsed = parseInt(intervalMinutes, 10);
+            if (!isNaN(parsed) && parsed > 0) {
+                await updateSetting('dropbox_auto_sync_interval', String(parsed));
+            }
+        }
+
+        const report = await cloudBackupService.getStatusReport();
+        res.json({
+            success: true,
+            message: `Dropbox auto-sync ${enabled ? 'enabled' : 'disabled'}`,
+            status: report
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
+ * Check if Dropbox auto-sync is due, and run if needed (used by client-side or scheduled triggers)
+ */
+export const checkAndRunAutoSync = async (req, res) => {
+    try {
+        const { getSettings, updateSetting } = await import('../database.mjs');
+        const settings = await getSettings();
+
+        if (!cloudBackupService.isDropboxConfigured(settings)) {
+            return res.json({ success: true, synced: false, message: 'Dropbox is not configured' });
+        }
+
+        const enabled = settings.dropbox_auto_sync !== 'false';
+        if (!enabled) {
+            return res.json({ success: true, synced: false, message: 'Dropbox auto-sync is disabled' });
+        }
+
+        const intervalMinutes = parseInt(settings.dropbox_auto_sync_interval, 10) || 60;
+        const lastBackup = settings.last_dropbox_backup_time ? new Date(settings.last_dropbox_backup_time).getTime() : 0;
+        const elapsed = Date.now() - lastBackup;
+        const isDue = elapsed >= intervalMinutes * 60 * 1000;
+
+        if (!isDue && lastBackup > 0) {
+            const remainingMins = Math.max(1, Math.round((intervalMinutes * 60 * 1000 - elapsed) / 60000));
+            return res.json({
+                success: true,
+                synced: false,
+                message: `Auto-sync not due yet (~${remainingMins}m remaining)`
+            });
+        }
+
+        console.log('[Dropbox Auto-Sync] Auto-sync triggered via check endpoint...');
+        const result = await cloudBackupService.syncDropboxOnly(false);
+        const timestamp = new Date().toISOString();
+        await updateSetting('last_dropbox_auto_sync_time', timestamp);
+
+        return res.json({
+            success: true,
+            synced: true,
+            result,
+            message: `Dropbox auto-sync completed successfully (${result.sizeFormatted})`
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
+ * Endpoint for cron triggers (e.g. Vercel Cron or local scheduler)
+ */
+export const cronSync = async (req, res) => {
+    try {
+        const cronSecret = process.env.CRON_SECRET;
+        if (cronSecret && req.headers['authorization'] !== `Bearer ${cronSecret}`) {
+            return res.status(401).json({ success: false, error: 'Unauthorized cron request' });
+        }
+        const { getSettings, updateSetting } = await import('../database.mjs');
+        const settings = await getSettings();
+        if (!cloudBackupService.isDropboxConfigured(settings) || settings.dropbox_auto_sync === 'false') {
+            return res.json({ success: true, skipped: true, reason: 'Not configured or disabled' });
+        }
+
+        const result = await cloudBackupService.syncDropboxOnly(false);
+        await updateSetting('last_dropbox_auto_sync_time', new Date().toISOString());
+        return res.json({ success: true, synced: true, result });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+

@@ -18,6 +18,7 @@ import { initDb } from './database.mjs';
 import whatsappService from './services/whatsappService.mjs';
 import { uploadImageToCloudinary } from './cloudinary-service.mjs';
 import automationService from './services/AutomationService.mjs';
+import dropboxAutoSyncService from './services/DropboxAutoSyncService.mjs';
 import { initializeWs } from './services/wsService.mjs';
 import { requireAuth, ensureAdmin } from './services/authService.mjs';
 import { linkUserToDevotee, getUnlinkedDevotees } from './database.mjs';
@@ -173,7 +174,8 @@ app.use((req, res, next) => {
     const healthPath = p.includes('/system/health');
     const publicPath = p.includes('/public/register');
     const bypassPath = p.includes('/api/auth/bypass') || p.includes('/auth/bypass');
-    if (loginPath || forgotPath || googlePath || healthPath || publicPath || bypassPath) return next();
+    const cronPath = p.includes('/api/backup/cron-sync') || p.includes('/backup/cron-sync');
+    if (loginPath || forgotPath || googlePath || healthPath || publicPath || bypassPath || cronPath) return next();
     return requireAuth(req, res, next);
 });
 
@@ -266,6 +268,7 @@ const start = async () => {
                 console.warn('[Auth] *** DMS_AUTH_BYPASS=1 — dev bypass login ENABLED (no password required). Never enable in production. ***');
             }
             initializeWs(server);
+            dropboxAutoSyncService.start();
             if (process.env.DMS_DISABLE_WHATSAPP !== '1') {
                 automationService.initialize();
             }

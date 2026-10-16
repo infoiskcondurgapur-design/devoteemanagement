@@ -316,6 +316,19 @@ Pending rows are excluded from `GET /api/devotees/stats`, weekly/birthday/annive
 - **Purpose**: Trigger an immediate on-demand backup upload directly to Dropbox (`/DMS_Backups/`).
 - **Response (200)**: `{ success: true, result: { filename: "devotee_mgmt_backup_....json", path: "/DMS_Backups/devotee_mgmt_backup_....json", size: 12345, timestamp: "2026-10-15T12:00:00Z" } }`
 
+#### `POST /api/backup/dropbox-auto-sync`
+- **Purpose**: Configure automated Dropbox background sync state and interval.
+- **Body**: `{ enabled?: boolean, intervalMinutes?: number }`
+- **Response (200)**: `{ success: true, message: "Dropbox auto-sync enabled", status: { ... } }`
+
+#### `POST /api/backup/auto-sync-check`
+- **Purpose**: Verify if the scheduled sync interval has elapsed since the last backup, and automatically trigger sync if due.
+- **Response (200)**: `{ success: true, synced: boolean, message: string, result?: object }`
+
+#### `GET /api/backup/cron-sync` (or `POST`)
+- **Purpose**: Webhook endpoint for automated serverless cron jobs (e.g., Vercel Cron) to execute background disaster recovery backups. Bypasses standard bearer auth gate (optionally secured via `Bearer <CRON_SECRET>` header).
+- **Response (200)**: `{ success: true, synced: true, result: { ... } }` or `{ success: true, skipped: true }`
+
 #### `POST /api/backup/cloud-sync`
 - **Purpose**: Trigger multi-cloud sync across all configured cloud providers (S3 and Dropbox).
 - **Response (200)**: `{ success: true, results: { s3: { ... }, dropbox: { ... } } }`
