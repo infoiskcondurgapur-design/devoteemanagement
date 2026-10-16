@@ -173,6 +173,82 @@ export const listPublicUsers = async () => {
     return (rows || []).map(toPublicUser);
 };
 
+// ─── Password Reset via OTP ──────────────────────────────────────────────
+const resetRequests = new Map();
+
+const pruneExpiredResets = () => {
+    const now = Date.now();
+    for (const [id, req] of resetRequests) {
+        if (req.expiresAt < now) resetRequests.delete(id);
+    }
+};
+
+export const createPasswordResetRequest = (user, targetPhone = null) => {
+    pruneExpiredResets();
+    // Invalidate any older requests for this user
+    for (const [id, req] of resetRequests) {
+        if (req.userId === user.id) resetRequests.delete(id);
+    }
+
+    const code = String(crypto.randomInt(100000, 1000000));
+    const requestId = crypto.randomUUID();
+    const codeHash = crypto.createHmac('sha256', getSecret()).update(code).digest('hex');
+
+    resetRequests.set(requestId, {
+        userId: user.id,
+        username: user.username,
+        targetPhone,
+        codeHash,
+        expiresAt: Date.now() + (10 * 60 * 1000), // 10 minutes
+        attempts: 0
+    });
+
+    return { requestId, code };
+};
+
+export const verifyAndResetPassword = async (requestId, code, newPassword) => {
+    pruneExpiredResets();
+    if (!requestId || typeof requestId !== 'string') {
+        return { success: false, error: 'Invalid or missing reset request.' };
+    }
+
+    const session = resetRequests.get(requestId);
+    if (!session || session.expiresAt < Date.now()) {
+        if (session) resetRequests.delete(requestId);
+        return { success: false, error: 'Verification code has expired. Please request a new one.' };
+    }
+
+    if (session.attempts >= 5) {
+        resetRequests.delete(requestId);
+        return { success: false, error: 'Too many incorrect attempts. Please request a new code.' };
+    }
+
+    const calculated = crypto.createHmac('sha256', getSecret()).update(String(code || '').trim()).digest('hex');
+    const a = Buffer.from(calculated, 'hex');
+    const b = Buffer.from(session.codeHash, 'hex');
+    const matches = a.length === b.length && crypto.timingSafeEqual(a, b);
+
+    if (!matches) {
+        session.attempts += 1;
+        return { success: false, error: 'Incorrect verification code. Please try again.' };
+    }
+
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 6) {
+        return { success: false, error: 'New password must be at least 6 characters long.' };
+    }
+
+    const newHash = hashPassword(newPassword.trim());
+    await updateUserPassword(session.userId, newHash);
+    resetRequests.delete(requestId);
+
+    return {
+        success: true,
+        userId: session.userId,
+        username: session.username,
+        targetPhone: session.targetPhone
+    };
+};
+
 export default {
     hashPassword,
     verifyPassword,
@@ -184,5 +260,7 @@ export default {
     requireAdmin,
     toPublicUser,
     ensureAdmin,
-    listPublicUsers
+    listPublicUsers,
+    createPasswordResetRequest,
+    verifyAndResetPassword
 };

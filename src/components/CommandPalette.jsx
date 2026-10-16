@@ -42,6 +42,8 @@ const CommandPalette = () => {
     // Define Actions/Pages
     const pages = [
         { id: 'home', title: 'Go to Dashboard', icon: LayoutDashboard, path: '/', type: 'Page' },
+        { id: 'devotees', title: 'Go to Devotees', icon: Users, path: '/devotees', type: 'Page' },
+        { id: 'bulk-devotees', title: 'Bulk Upload Devotees', icon: Users, path: '/devotees/bulk-upload', type: 'Page' },
         { id: 'seva', title: 'Go to Events', icon: Calendar, path: '/seva', type: 'Page' },
         { id: 'profile', title: 'My Profile', icon: User, path: '/profile', type: 'Page' },
     ];

@@ -2,8 +2,9 @@ import * as db from '../database.mjs';
 
 export const getAllTours = async (req, res) => {
     try {
-        const { upcoming } = req.query;
-        const tours = await db.getTours(upcoming === 'true');
+        const { upcoming, contact, phone } = req.query;
+        const mobile = contact || phone || '';
+        const tours = await db.getTours(upcoming === 'true', mobile);
         res.json({ success: true, data: tours });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });

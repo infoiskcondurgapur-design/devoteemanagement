@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { runAsync, allAsync, getAsync, withTransaction, getPool } from './db.mjs';
 import { INIT_DDL, SETTINGS_SEEDS } from './schema.mjs';
 
@@ -72,12 +73,26 @@ export const getUserByIdentity = async (identity) => {
     return getAsync('SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1', [identity, identity]);
 };
 
+export const getUserById = async (id) => {
+    return getAsync('SELECT * FROM users WHERE id = ? LIMIT 1', [id]);
+};
+
 export const getUsers = async () => {
     return allAsync('SELECT id, username, email, role, fullName, createdAt FROM users ORDER BY id ASC');
 };
 
 export const updateUserPassword = async (id, passwordHash) => {
     const res = await runAsync('UPDATE users SET passwordHash = ? WHERE id = ?', [passwordHash, id]);
+    return { success: true, changes: res.changes };
+};
+
+export const updateUserRole = async (id, role) => {
+    const res = await runAsync('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+    return { success: true, changes: res.changes };
+};
+
+export const deleteUser = async (id) => {
+    const res = await runAsync('DELETE FROM users WHERE id = ?', [id]);
     return { success: true, changes: res.changes };
 };
 
@@ -139,9 +154,9 @@ export const getDevotees = async (limit = 50, offset = 0, search = '', filters =
     const params = [];
 
     if (search) {
-        clauses.push("(name LIKE ? OR spiritualName LIKE ? OR contact LIKE ? OR initiatedName LIKE ?)");
+        clauses.push("(name LIKE ? OR spiritualName LIKE ? OR contact LIKE ? OR whatsapp LIKE ? OR initiatedName LIKE ?)");
         const searchParam = `%${search}%`;
-        params.push(searchParam, searchParam, searchParam, searchParam);
+        params.push(searchParam, searchParam, searchParam, searchParam, searchParam);
     }
 
     if (filters.status) { clauses.push("status = ?"); params.push(filters.status); }
@@ -149,6 +164,11 @@ export const getDevotees = async (limit = 50, offset = 0, search = '', filters =
     if (filters.spiritualStatus) { clauses.push("spiritualStatus = ?"); params.push(filters.spiritualStatus); }
     if (filters.counselor) { clauses.push("counselor = ?"); params.push(filters.counselor); }
     if (filters.district) { clauses.push("district = ?"); params.push(filters.district); }
+    if (filters.contact) {
+        clauses.push("(contact LIKE ? OR whatsapp LIKE ?)");
+        const contactParam = `%${filters.contact}%`;
+        params.push(contactParam, contactParam);
+    }
 
     const whereClause = clauses.length > 0 ? " WHERE " + clauses.join(" AND ") : "";
     query += whereClause;
@@ -229,6 +249,99 @@ export const addDevotee = async (data) => {
         values
     );
     return { id: data.id };
+};
+
+export const addDevoteesBulk = async (devoteesList, options = {}) => {
+    if (!Array.isArray(devoteesList) || devoteesList.length === 0) {
+        return { success: true, total: 0, added: 0, updated: 0, skipped: 0, errors: [] };
+    }
+
+    const updateDuplicates = !!options.updateDuplicates;
+
+    // Fetch existing devotees to perform fast in-memory duplicate checks
+    const existingRows = await allAsync("SELECT id, name, contact FROM devotees");
+
+    const existingByContactAndName = new Map();
+    const existingByContact = new Map();
+
+    (existingRows || []).forEach(row => {
+        const c = (row.contact || '').toString().trim();
+        const n = (row.name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+        if (c && n) existingByContactAndName.set(`${c}::${n}`, row.id);
+        if (c && !existingByContact.has(c)) existingByContact.set(c, row.id);
+    });
+
+    return withTransaction(async (tx) => {
+        let added = 0;
+        let updated = 0;
+        const skipped = [];
+        const errors = [];
+
+        for (let idx = 0; idx < devoteesList.length; idx++) {
+            const raw = devoteesList[idx];
+            const rowNum = idx + 1;
+
+            if (!raw || typeof raw !== 'object') {
+                errors.push({ row: rowNum, error: 'Empty or invalid record' });
+                continue;
+            }
+
+            const name = (raw.name || '').toString().trim();
+            if (!name) {
+                errors.push({ row: rowNum, error: 'Name is required' });
+                continue;
+            }
+
+            const contact = (raw.contact || '').toString().trim();
+            const normName = name.toLowerCase().replace(/\s+/g, ' ');
+            const comboKey = contact ? `${contact}::${normName}` : null;
+
+            let existingId = comboKey ? existingByContactAndName.get(comboKey) : null;
+            if (!existingId && contact && updateDuplicates) {
+                existingId = existingByContact.get(contact) || null;
+            }
+
+            const filteredData = toDevoteeRow(raw);
+            if (!filteredData.status) filteredData.status = 'Active';
+            if (!filteredData.createdAt) filteredData.createdAt = new Date().toISOString();
+
+            if (existingId) {
+                if (updateDuplicates) {
+                    delete filteredData.id;
+                    const setClause = Object.keys(filteredData).map(k => `"${k.toLowerCase()}" = ?`).join(', ');
+                    const vals = [...Object.values(filteredData), existingId];
+                    await tx.run(`UPDATE devotees SET ${setClause} WHERE id = ?`, vals);
+                    updated++;
+                } else {
+                    skipped.push({ row: rowNum, name, contact, reason: 'Duplicate devotee already exists' });
+                }
+            } else {
+                const newId = raw.id || crypto.randomUUID();
+                filteredData.id = newId;
+                filteredData.name = name;
+
+                const cols = Object.keys(filteredData).map(k => `"${k.toLowerCase()}"`).join(', ');
+                const placeholders = Object.keys(filteredData).map(() => '?').join(', ');
+                const vals = Object.values(filteredData);
+
+                await tx.run(`INSERT INTO devotees (${cols}) VALUES (${placeholders})`, vals);
+                added++;
+
+                if (comboKey) existingByContactAndName.set(comboKey, newId);
+                if (contact) existingByContact.set(contact, newId);
+            }
+        }
+
+        return {
+            success: true,
+            total: devoteesList.length,
+            added,
+            updated,
+            skipped: skipped.length,
+            skippedDetails: skipped,
+            errors
+        };
+    });
 };
 
 export const updateDevotee = async (id, data) => {
@@ -876,7 +989,24 @@ export const createTour = async (data) => {
     return { id: res.lastID };
 };
 
-export const getTours = async (upcomingOnly = false) => {
+export const getTours = async (upcomingOnly = false, contact = '') => {
+    const cleanContact = String(contact || '').trim();
+    if (cleanContact) {
+        const likePattern = `%${cleanContact}%`;
+        const q = upcomingOnly
+            ? `SELECT DISTINCT t.* FROM tours t
+               LEFT JOIN tour_enrollments te ON te.tourId = t.id
+               LEFT JOIN devotees d ON te.devoteeId = d.id
+               WHERE (d.contact LIKE ? OR d.whatsapp LIKE ? OR te.guestContact LIKE ?)
+                 AND t.status != 'Completed'
+               ORDER BY t.startDate ASC`
+            : `SELECT DISTINCT t.* FROM tours t
+               LEFT JOIN tour_enrollments te ON te.tourId = t.id
+               LEFT JOIN devotees d ON te.devoteeId = d.id
+               WHERE (d.contact LIKE ? OR d.whatsapp LIKE ? OR te.guestContact LIKE ?)
+               ORDER BY t.startDate DESC`;
+        return allAsync(q, [likePattern, likePattern, likePattern]);
+    }
     const q = upcomingOnly
         ? "SELECT * FROM tours WHERE status != 'Completed' ORDER BY startDate ASC"
         : 'SELECT * FROM tours ORDER BY startDate DESC';

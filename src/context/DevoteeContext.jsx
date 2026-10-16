@@ -189,6 +189,7 @@ export const DevoteeProvider = ({ children }) => {
             if (filters.spiritualStatus) url += `&spiritualStatus=${encodeURIComponent(filters.spiritualStatus)}`;
             if (filters.counselor) url += `&counselor=${encodeURIComponent(filters.counselor)}`;
             if (filters.district) url += `&district=${encodeURIComponent(filters.district)}`;
+            if (filters.contact) url += `&contact=${encodeURIComponent(filters.contact)}`;
 
             const result = await apiService.get(url);
             if (result.success) {
@@ -335,6 +336,24 @@ export const DevoteeProvider = ({ children }) => {
             return newDevotee;
         } catch (error) {
             console.error('Error adding devotee:', error);
+            setSaveStatus('error');
+            throw error;
+        }
+    };
+
+    const bulkAddDevotees = async (devoteesList, options = {}) => {
+        setSaveStatus('saving');
+        try {
+            const result = await apiService.bulkAddDevotees(devoteesList, options);
+            if (!result.success) throw new Error(result.error || 'Failed to bulk import devotees');
+            await fetchDevotees(true);
+            fetchStats();
+            fetchFilterOptions();
+            setSaveStatus('saved');
+            window.dispatchEvent(new CustomEvent('devotees:refresh'));
+            return result;
+        } catch (error) {
+            console.error('Error in bulkAddDevotees:', error);
             setSaveStatus('error');
             throw error;
         }
@@ -514,6 +533,7 @@ export const DevoteeProvider = ({ children }) => {
         isLiveConnected,
         fetchDevotees,
         addDevotee,
+        bulkAddDevotees,
         updateDevotee,
         deleteDevotee,
         importData,

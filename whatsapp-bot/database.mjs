@@ -542,6 +542,16 @@ export const getUserByIdentity = (identity) => {
     });
 };
 
+export const getUserById = (id) => {
+    return new Promise((resolve, reject) => {
+        db.get(`SELECT * FROM users WHERE id = ? LIMIT 1`,
+            [id], (err, row) => {
+                if (err) reject(err);
+                else resolve(row || null);
+            });
+    });
+};
+
 export const getUsers = () => {
     return new Promise((resolve, reject) => {
         db.all(`SELECT id, username, email, role, fullName, createdAt FROM users ORDER BY id ASC`, [], (err, rows) => {
@@ -554,6 +564,24 @@ export const getUsers = () => {
 export const updateUserPassword = (id, passwordHash) => {
     return new Promise((resolve, reject) => {
         db.run(`UPDATE users SET passwordHash = ? WHERE id = ?`, [passwordHash, id], function (err) {
+            if (err) reject(err);
+            else resolve({ success: true, changes: this.changes });
+        });
+    });
+};
+
+export const updateUserRole = (id, role) => {
+    return new Promise((resolve, reject) => {
+        db.run(`UPDATE users SET role = ? WHERE id = ?`, [role, id], function (err) {
+            if (err) reject(err);
+            else resolve({ success: true, changes: this.changes });
+        });
+    });
+};
+
+export const deleteUser = (id) => {
+    return new Promise((resolve, reject) => {
+        db.run(`DELETE FROM users WHERE id = ?`, [id], function (err) {
             if (err) reject(err);
             else resolve({ success: true, changes: this.changes });
         });
@@ -703,9 +731,9 @@ export const getDevotees = (limit = 50, offset = 0, search = '', filters = {}) =
         const params = [];
 
         if (search) {
-            clauses.push("(name LIKE ? OR spiritualName LIKE ? OR contact LIKE ? OR initiatedName LIKE ?)");
+            clauses.push("(name LIKE ? OR spiritualName LIKE ? OR contact LIKE ? OR whatsapp LIKE ? OR initiatedName LIKE ?)");
             const searchParam = `%${search}%`;
-            params.push(searchParam, searchParam, searchParam, searchParam);
+            params.push(searchParam, searchParam, searchParam, searchParam, searchParam);
         }
 
         // Apply filters in SQLite
@@ -728,6 +756,11 @@ export const getDevotees = (limit = 50, offset = 0, search = '', filters = {}) =
         if (filters.district) {
             clauses.push("district = ?");
             params.push(filters.district);
+        }
+        if (filters.contact) {
+            clauses.push("(contact LIKE ? OR whatsapp LIKE ?)");
+            const contactParam = `%${filters.contact}%`;
+            params.push(contactParam, contactParam);
         }
 
         const whereClause = clauses.length > 0 ? " WHERE " + clauses.join(" AND ") : "";
@@ -816,6 +849,130 @@ export const addDevotee = (data) => {
                 }
             });
         }).catch(reject);
+    });
+};
+
+export const addDevoteesBulk = (devoteesList, options = {}) => {
+    return new Promise((resolve, reject) => {
+        if (!Array.isArray(devoteesList) || devoteesList.length === 0) {
+            return resolve({ success: true, total: 0, added: 0, updated: 0, skipped: 0, errors: [] });
+        }
+
+        const updateDuplicates = !!options.updateDuplicates;
+
+        // Fetch existing devotees to perform fast in-memory duplicate checks
+        db.all("SELECT id, name, contact FROM devotees", [], (err, existingRows) => {
+            if (err) return reject(err);
+
+            const existingByContactAndName = new Map();
+            const existingByContact = new Map();
+
+            (existingRows || []).forEach(row => {
+                const c = (row.contact || '').toString().trim();
+                const n = (row.name || '').toString().trim().toLowerCase().replace(/\s+/g, ' ');
+                if (c && n) existingByContactAndName.set(`${c}::${n}`, row.id);
+                if (c && !existingByContact.has(c)) existingByContact.set(c, row.id);
+            });
+
+            db.serialize(() => {
+                db.run("BEGIN TRANSACTION");
+
+                let added = 0;
+                let updated = 0;
+                const skipped = [];
+                const errors = [];
+
+                try {
+                    for (let idx = 0; idx < devoteesList.length; idx++) {
+                        const raw = devoteesList[idx];
+                        const rowNum = idx + 1;
+
+                        if (!raw || typeof raw !== 'object') {
+                            errors.push({ row: rowNum, error: 'Empty or invalid record' });
+                            continue;
+                        }
+
+                        const name = (raw.name || '').toString().trim();
+                        if (!name) {
+                            errors.push({ row: rowNum, error: 'Name is required' });
+                            continue;
+                        }
+
+                        const contact = (raw.contact || '').toString().trim();
+                        const normName = name.toLowerCase().replace(/\s+/g, ' ');
+                        const comboKey = contact ? `${contact}::${normName}` : null;
+
+                        let existingId = comboKey ? existingByContactAndName.get(comboKey) : null;
+                        if (!existingId && contact && updateDuplicates) {
+                            existingId = existingByContact.get(contact) || null;
+                        }
+
+                        const filteredData = {};
+                        DEVOTEE_COLUMNS.forEach(col => {
+                            if (raw[col] !== undefined && col !== 'id') {
+                                let val = raw[col];
+                                if (Array.isArray(val)) val = JSON.stringify(val);
+                                filteredData[col] = val;
+                            }
+                        });
+
+                        // Synchronize spiritualName and initiatedName
+                        if (!filteredData.initiatedName && filteredData.spiritualName) {
+                            filteredData.initiatedName = filteredData.spiritualName;
+                        } else if (!filteredData.spiritualName && filteredData.initiatedName) {
+                            filteredData.spiritualName = filteredData.initiatedName;
+                        }
+
+                        if (!filteredData.status) filteredData.status = 'Active';
+                        if (!filteredData.createdAt) filteredData.createdAt = new Date().toISOString();
+
+                        if (existingId) {
+                            if (updateDuplicates) {
+                                const setCols = Object.keys(filteredData).map(col => `${col} = ?`).join(', ');
+                                const vals = [...Object.values(filteredData), existingId];
+                                db.run(`UPDATE devotees SET ${setCols} WHERE id = ?`, vals);
+                                updated++;
+                            } else {
+                                skipped.push({ row: rowNum, name, contact, reason: 'Duplicate devotee already exists' });
+                            }
+                        } else {
+                            const newId = raw.id || crypto.randomUUID();
+                            filteredData.id = newId;
+                            filteredData.name = name;
+
+                            const cols = Object.keys(filteredData).join(', ');
+                            const placeholders = Object.keys(filteredData).map(() => '?').join(', ');
+                            const vals = Object.values(filteredData);
+
+                            db.run(`INSERT INTO devotees (${cols}) VALUES (${placeholders})`, vals);
+                            added++;
+
+                            if (comboKey) existingByContactAndName.set(comboKey, newId);
+                            if (contact) existingByContact.set(contact, newId);
+                        }
+                    }
+
+                    db.run("COMMIT", (commitErr) => {
+                        if (commitErr) {
+                            db.run("ROLLBACK");
+                            return reject(commitErr);
+                        }
+                        resolve({
+                            success: true,
+                            total: devoteesList.length,
+                            added,
+                            updated,
+                            skipped: skipped.length,
+                            skippedDetails: skipped,
+                            errors
+                        });
+                    });
+                } catch (txErr) {
+                    db.run("ROLLBACK");
+                    reject(txErr);
+                }
+            });
+        });
     });
 };
 
@@ -1553,9 +1710,27 @@ export const createTour = (data) => new Promise((resolve, reject) => {
         function (err) { if (err) reject(err); else resolve({ id: this.lastID }); });
 });
 
-export const getTours = (upcomingOnly = false) => new Promise((resolve, reject) => {
-    const q = upcomingOnly ? `SELECT * FROM tours WHERE status != 'Completed' ORDER BY startDate ASC` : `SELECT * FROM tours ORDER BY startDate DESC`;
-    db.all(q, [], (err, rows) => { if (err) reject(err); else resolve(rows || []); });
+export const getTours = (upcomingOnly = false, contact = '') => new Promise((resolve, reject) => {
+    const cleanContact = String(contact || '').trim();
+    if (cleanContact) {
+        const likePattern = `%${cleanContact}%`;
+        const q = upcomingOnly
+            ? `SELECT DISTINCT t.* FROM tours t
+               LEFT JOIN tour_enrollments te ON te.tourId = t.id
+               LEFT JOIN devotees d ON te.devoteeId = d.id
+               WHERE (d.contact LIKE ? OR d.whatsapp LIKE ? OR te.guestContact LIKE ?)
+                 AND t.status != 'Completed'
+               ORDER BY t.startDate ASC`
+            : `SELECT DISTINCT t.* FROM tours t
+               LEFT JOIN tour_enrollments te ON te.tourId = t.id
+               LEFT JOIN devotees d ON te.devoteeId = d.id
+               WHERE (d.contact LIKE ? OR d.whatsapp LIKE ? OR te.guestContact LIKE ?)
+               ORDER BY t.startDate DESC`;
+        db.all(q, [likePattern, likePattern, likePattern], (err, rows) => { if (err) reject(err); else resolve(rows || []); });
+    } else {
+        const q = upcomingOnly ? `SELECT * FROM tours WHERE status != 'Completed' ORDER BY startDate ASC` : `SELECT * FROM tours ORDER BY startDate DESC`;
+        db.all(q, [], (err, rows) => { if (err) reject(err); else resolve(rows || []); });
+    }
 });
 
 export const getTourById = (id) => new Promise((resolve, reject) => {

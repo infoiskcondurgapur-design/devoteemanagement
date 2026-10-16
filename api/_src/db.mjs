@@ -5,15 +5,31 @@ import { CAMEL_CASE_KEYS, NUMERIC_COLUMNS } from './schema.mjs';
 // POSTGRES_DRIVER=pg and SUPABASE_DATABASE_URL to use node-postgres with
 // Supabase (use its transaction pooler URL for serverless deployments).
 // Pools are created lazily so API modules can be imported without credentials.
+const sanitizeConnectionString = (raw) => {
+    if (!raw) return raw;
+    try {
+        new URL(raw);
+        return raw;
+    } catch {
+        const match = raw.match(/^(postgres(?:ql)?:\/\/)([^:]+):(.*)@([^@/:]+)(?::(\d+))?(\/.*)?$/);
+        if (match) {
+            const [_, proto, user, pass, host, port, rest] = match;
+            return proto + user + ':' + encodeURIComponent(decodeURIComponent(pass)) + '@' + host + (port ? ':' + port : '') + (rest || '');
+        }
+        return raw;
+    }
+};
+
 let _pool = null;
 export const getPool = async () => {
     if (_pool) return _pool;
     if (process.env.POSTGRES_DRIVER === 'pg' || process.env.POSTGRES_DRIVER === 'local') {
         const { default: pg } = await import('pg');
-        const connectionString = process.env.SUPABASE_DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.STORAGE_URL;
-        if (!connectionString) {
+        const rawConnectionString = process.env.SUPABASE_DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.STORAGE_URL;
+        if (!rawConnectionString) {
             throw new Error('Database connection failed: set SUPABASE_DATABASE_URL (or POSTGRES_URL / DATABASE_URL).');
         }
+        const connectionString = sanitizeConnectionString(rawConnectionString);
         _pool = new pg.Pool({
             connectionString,
             // Keep the per-serverless-instance pool small; Supabase's pooler

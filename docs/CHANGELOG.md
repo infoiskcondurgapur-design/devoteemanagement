@@ -1,5 +1,173 @@
 # CHANGELOG
 
+## [2026-10-16]
+
+### WhatsApp Web & Messaging Link Opening Fix
+- **Centralized WhatsApp Utility (`src/services/whatsappLink.js`)**:
+  - Implemented `sanitizeWhatsAppNumber` with robust support for 10-digit local Indian numbers (prefixes `91`), 11-digit numbers with leading zero (`0XXXXXXXXXX`), and standard 12-digit international format (`91XXXXXXXXXX`).
+  - Added `getWhatsAppWebUrl` targeting direct WhatsApp Web (`https://web.whatsapp.com/send?phone=...&text=...`).
+  - Added `getWhatsAppAppUrl` targeting WhatsApp deep link (`https://wa.me/...`).
+  - Implemented `openWhatsApp` with multi-layer fallback: Electron desktop native browser delegation via `shell.openExternal`, browser `window.open`, and dynamic DOM anchor `.click()` fallback if popups are blocked.
+- **Electron Desktop External URL Delegation (`electron/main.js`)**:
+  - Added `mainWindow.webContents.setWindowOpenHandler` intercepting `http`, `https`, `mailto`, and `tel` external links to open inside the user's default system browser (Chrome/Edge/Firefox) instead of silently failing or opening in broken Electron embedded frames.
+- **WhatsApp Modal Enhancement (`src/components/WhatsAppModal.jsx`)**:
+  - Replaced ambiguous `wa.me` default with direct **"Open WhatsApp Web"** (`web.whatsapp.com`) and **"WhatsApp App"** (`wa.me`) action buttons.
+  - Added phone validation status indicator and manual phone number entry fallback when devotee contact is missing or incomplete.
+  - Added "Copy Message Text" quick button for manual pasting.
+  - Added permanent direct fallback hyperlinks in modal footer for guaranteed click-through even under strict browser popup blockers.
+- **Communication Center Integration (`src/pages/Communication.jsx`)**:
+  - Refactored `openWhatsAppLink` to use centralized `openWhatsApp(number, message, 'web')`.
+  - Updated broadcast message link generation to use clean phone sanitization and direct `web.whatsapp.com` URL format.
+
+### Bulk Devotee Details Upload (Excel & CSV)
+- **Dedicated Bulk Upload Interface (`src/pages/devotees/BulkDevoteeUpload.jsx`)**:
+  - Implemented interactive drag-and-drop and file browser for Microsoft Excel (`.xlsx`, `.xls`) and `.csv` files.
+  - Built sample template downloader (`.xlsx` and `.csv`) pre-populated with realistic ISKCON devotee records, column guides, and correct data types.
+  - Added intelligent header alias mapper automatically resolving spreadsheet variations (`Mobile No`, `Contact No`, `Spiritual Name`, `Counselor`, `Rounds`, `Diksha Guru`, `DOB`, etc.).
+  - Added multi-tab interactive data preview (`All`, `Ready to Import`, `Duplicates`, `Errors`) with instant validation and row-level issue callouts.
+  - Included configurable duplicate handling toggle ("Update existing devotees if contact & name match" vs skip duplicates) and fallback defaults for Counselor and Spiritual Status.
+  - Added visual progress bar and comprehensive completion summary card with breakdown of added, updated, skipped, and error rows.
+- **Devotee List & Navigation Integration (`DevoteeList.jsx`, `App.jsx`, `CommandPalette.jsx`)**:
+  - Added a prominent **"Bulk Upload"** action button in the Devotee List header toolbar (`/devotees/bulk-upload`).
+  - Registered `/devotees/bulk-upload` route in `App.jsx` under the authenticated Layout.
+  - Added "Bulk Upload Devotees" to the global Command Palette (`Ctrl+K`).
+- **Backend Bulk Processing Endpoints & Transactions (`database.mjs`, `devoteeController.mjs`, `devoteeRoutes.mjs`)**:
+  - Implemented `POST /api/devotees/bulk` in both desktop (`whatsapp-bot/`) SQLite and serverless (`api/_src/`) PostgreSQL backends.
+  - Added `addDevoteesBulk`: pre-indexes existing records for fast in-memory duplicate detection, executes within an isolated database transaction, and handles upserts and duplicate skips.
+  - Integrated real-time WebSocket events (`DEVOTEE_CREATED` & `DATA_MUTATED`) so devotee lists and statistics across all open browser sessions refresh automatically upon bulk import.
+- **Frontend API Service & Context (`api.js`, `DevoteeContext.jsx`)**:
+  - Added `apiService.bulkAddDevotees(devotees, options)`.
+  - Added `bulkAddDevotees` in `DevoteeContext` which automatically refreshes global devotee counts, counselor filters, and stats upon import completion.
+- **Automated Regression Test Suite (`regression.api.test.mjs`)**:
+  - Added automated test verifying bulk insertion, duplicate detection/skipping, and upsert modification.
+
+## [2026-10-15]
+
+### SSL/TLS Certificate, HSTS Enforcement & HTTPS Server Support
+- **Vercel Cloud Edge HTTPS & HSTS Hardening (`vercel.json`)**:
+  - Enforced `Strict-Transport-Security` (HSTS: `max-age=63072000; includeSubDomains; preload`) to mandate end-to-end encrypted HTTPS connections for all browser clients.
+  - Added security headers: `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, and `Referrer-Policy: strict-origin-when-cross-origin`.
+- **Caddy Docker Stack Automated TLS (`Caddyfile`)**:
+  - Hardened Caddy reverse-proxy configuration with an explicit `Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"` header on automated Let's Encrypt / ZeroSSL TLS certificates.
+- **Express Serverless App Helmet HSTS (`api/_src/app.mjs`)**:
+  - Configured `helmet.hsts` with 1-year max-age, subdomain inclusion, and preload readiness for cloud API responses.
+- **Standalone Server Native HTTPS & Redirect Middleware (`whatsapp-bot/server.mjs`)**:
+  - Configured native `https.createServer(...)` support reading custom certificate paths (`SSL_KEY_PATH`, `SSL_CERT_PATH`, `SSL_CA_PATH`) with automatic graceful fallback to HTTP.
+  - Added HTTP-to-HTTPS redirect middleware activated when `FORCE_HTTPS=1`.
+- **Environment Documentation (`.env.example`, `whatsapp-bot/.env.example`)**:
+  - Documented SSL certificate path variables and HTTPS force flags.
+- **SSL/TLS Setup Guide (`docs/SSL_TLS_SETUP.md`)**:
+  - Created a comprehensive setup manual covering Vercel Edge SSL, Caddy Docker auto-provisioning, Certbot/Let's Encrypt on Linux VPS, Cloudflare Proxy, and SSL Labs rating verification.
+
+### Mobile Number Filter — Tours & Pilgrimage Management
+- **Participant List Mobile Filter (`TourDetails.jsx`)**:
+  - Added a dedicated **Mobile Number** filter input (with phone icon and quick clear button) to the Participant List toolbar.
+  - Filters participants by partial digit match against devotee `contact`, `whatsapp`, or walk-in `guestContact`.
+  - Also enhanced general participant search so typing a mobile number directly into the search bar automatically matches contact numbers.
+  - Added an active filter counter and "Clear" button to easily reset all participant filters.
+- **Tour List Mobile Filter (`TourList.jsx`)**:
+  - Added a dedicated **"Filter by mobile no..."** input to the main Tours overview toolbar.
+  - Integrates with debounced API queries (`?contact=<mobile>`) to filter and display only tours where a participant with that mobile number is enrolled.
+  - Added one-click "Clear" button for resetting active filters.
+- **Add Participant Lookup by Mobile (`AddParticipantForm.jsx`)**:
+  - Enhanced devotee dropdown search to match `contact` and `whatsapp` numbers in addition to devotee names.
+  - Updated input placeholder to *"Search devotee by name or mobile no..."*.
+- **Backend API Query Parameter Support (`tourController.mjs` & `database.mjs`)**:
+  - Supported `?contact=` and `?phone=` query parameters on `GET /api/tours` across both SQLite and PostgreSQL backends to filter tours by enrolled devotee or guest contact.
+
+### Codebase Cleanup & Dead Code Removal
+- **Purged Unused & Scratch Files**:
+  - Removed obsolete dummy mock datasets (`src/data/mockDevotees.js`, `src/data/mockDonations.js`).
+  - Purged ad-hoc scratch scripts (`test-auth.mjs`, `test-google-auth.mjs`, `check_db.mjs`, `test_api.mjs`, `check_duplicates.py`, `check_sukanta.py`, `remove_duplicates.py`).
+  - Deleted 0-byte ghost databases (`devotee_mgmt.db` in project root and `devotee_manager.db` in `whatsapp-bot/`).
+  - Cleared accumulated debug log and dump files (`build*.log`, `build_*.txt`, `dev_*.log`, `*dump.txt`, `api_response.*`, `duplicate_report.txt`, `error_summary*.txt`, `lint_output.txt`, `whatsapp-qr.png`).
+- **Cleaned Code & Optimized Bundle**:
+  - In `src/App.jsx`: converted `TourList` from synchronous import to `React.lazy`, reducing the initial main bundle chunk by ~8 kB, removed stale refresh comments, and formatted provider nesting hierarchy.
+  - In `src/components/layout/Header.jsx`: removed unused Lucide icon imports (`Settings`, `User`), fixed redundant/duplicate Tailwind CSS classes, and cleaned syntax.
+  - Verified 0 ESLint errors and all 21/21 backend regression tests passing.
+
+### Dropbox Disaster Recovery & Direct Cloud Sync
+- **Dropbox In-App Configuration Modal (`Settings.jsx`)**:
+  - Added an interactive **"Connect / Configure Dropbox"** modal in the Disaster Recovery card on the Settings page.
+  - Supports both **Quick Setup** (pasting a Dropbox Personal Access Token) and **Permanent Setup** (App Key, App Secret, and Refresh Token).
+  - Includes direct links and step-by-step guidance for creating an app on the Dropbox Developer Console with `files.content.write` scope.
+  - Added Disconnect / Clear credentials capability directly from the UI.
+- **Dedicated Dropbox Sync Action (`Settings.jsx` & `apiService.js`)**:
+  - Added a dedicated **"Sync Dropbox Now"** action button in Settings, allowing administrators to push backup snapshots to `/DMS_Backups/` without requiring AWS S3 configuration.
+  - Real-time status indicators showing Connected / Not Configured, Last Sync timestamp, and live Success/Failure badge.
+- **Backend Dropbox Endpoints & Database Persistence (`CloudBackupService.mjs`, `backupController.mjs`, `backupRoutes.mjs`)**:
+  - Enhanced `CloudBackupService` in both desktop (`whatsapp-bot/`) and serverless (`api/_src/`) platforms to load Dropbox credentials dynamically from the database `settings` table in addition to environment variables.
+  - Added `POST /api/backup/dropbox-config` for saving/clearing Dropbox credentials in the database.
+  - Added `POST /api/backup/dropbox-sync` for dedicated single-provider on-demand uploads with file size, destination path (`/DMS_Backups/...`), and timestamp reporting.
+
+
+### Mobile Number Filter — Devotee List
+- **Filter by Phone/Mobile (`DevoteeList.jsx`)**:
+  - Added a **Mobile Number** filter input field (with phone icon) in the Filters panel of the Devotee List page.
+  - Supports partial-match search — typing any digits filters devotees whose `contact` or `whatsapp` number contains the entered string.
+  - Filter is sent server-side as `?contact=<number>` query param (already supported by backend via `getDevotees()` SQL `LIKE` clause).
+  - Filter count badge on the Filters button increments to reflect the active mobile filter.
+  - Clears correctly via the "Clear All" button alongside all other active filters.
+  - Works in both local fallback mode (client-side filtering on `contact` and `whatsapp` fields) and server-side paginated mode.
+
+
+### System-Wide Behavior Audits & Core Rectifications
+- **Database Connection URI Safety (`api/_src/db.mjs`)**:
+  - Implemented automatic URI parsing and password percent-encoding sanitizer (`sanitizeConnectionString`) for `SUPABASE_DATABASE_URL` / `POSTGRES_URL` to protect against special characters (`#`, `&`, `@`) causing `ERR_INVALID_URL` runtime crashes.
+- **Electron Auto-Backup Spam & Auth Resolution (`electron/main.js`)**:
+  - Resolved runaway 5-second interval loop; corrected auto-backup interval to a sane 1 hour with a 30-second initial boot delay.
+  - Implemented token authentication via `getElectronToken()` using admin config, eliminating recurring `[Auto-Backup] Failed: Unauthorized` console errors and enabling authenticated manual backups and restore.
+  - Added dedicated `/api/restore` routing to `systemController.restore` across desktop and serverless backends.
+- **Real Database User Management Subsystem (`/api/users` & `UserManagement.jsx`)**:
+  - Replaced legacy disconnected `localStorage` dummy user storage with live database user management.
+  - Added `userController.mjs` and `userRoutes.mjs` across both `whatsapp-bot/` and `api/_src/` providing `GET /api/users`, `POST /api/users`, `PUT /api/users/:id/role`, and `DELETE /api/users/:id`.
+  - Added database functions `updateUserRole` and `deleteUser` in both SQLite and PostgreSQL database layers.
+  - Revamped `UserManagement.jsx` with real user listing, responsive text search, role filtering, inline role assignment dropdown, and administrator password resets linked to real database IDs.
+- **Dynamic Identity & Role Display Parity (`Profile.jsx`, `Header.jsx`, `Sidebar.jsx`)**:
+  - Standardized user identity resolution across the entire frontend (`fullName || displayName || name || username`), fixing blanks where devotees or administrators were missing display names.
+  - Replaced hardcoded "Admin" / "Manager" / "Local Administrator" labels with dynamic capitalized role badges.
+
+### Reset Password & Account Security Controls
+- **Self-Service Password Reset in Profile (`Profile.jsx`)**:
+  - Added a dedicated "Reset / Change Password" card in the Devotee/User Profile page.
+  - Validates current password, checks minimum 6-character length for new password, ensures matching confirmation, and provides interactive visibility toggle eye icons.
+  - Directly updates database credentials via `POST /api/auth/change-password`.
+- **Administrative User Password Reset (`UserManagement.jsx`)**:
+  - Added a `KeyRound` action button for each user row in the User Management table.
+  - Added an interactive "Reset User Password" modal allowing administrators to set a custom password or auto-generate a secure random 12-character password.
+  - Dispatches `POST /api/auth/admin-reset-password` and automatically attempts to send a WhatsApp confirmation message to the devotee if the WhatsApp bot is connected.
+- **Authenticated Password Management Backend (`authController.mjs` & `database.mjs`)**:
+  - Added `POST /api/auth/change-password` and `POST /api/auth/admin-reset-password` endpoints on both desktop (`whatsapp-bot/`) and web (`api/_src/`) platforms.
+  - Added `getUserById` and robust password hash update queries across SQLite and PostgreSQL databases.
+
+### Forgot Password & Self-Service Credential Recovery
+- **Interactive Multi-Step Password Recovery UI (`LoginPage.jsx`)**:
+  - Added a "Forgot Password?" trigger on the sign-in screen allowing users to easily recover their accounts.
+  - Multi-step flow:
+    1. **Identity Input**: Accepts username, registered email, or contact/WhatsApp phone number with automatic phone number normalization (supports 10-digit, 12-digit, and `+91` formats).
+    2. **Verification & Reset**: Prompts for a 6-digit verification code, new password (with confirmation and visibility toggles), and provides a 60-second countdown for code resends.
+    3. **Success State**: Confirms password update with a clean success card and a direct shortcut back to sign in with pre-filled identity.
+- **Secure OTP Verification Backend (`authService.mjs` & `authController.mjs`)**:
+  - Implemented `POST /api/auth/forgot-password` and `POST /api/auth/reset-password` endpoints on both desktop (`whatsapp-bot/`) and web (`api/_src/`) backends.
+  - Generates cryptographically secure 6-digit OTP codes with 10-minute expiry and max 5 failed attempt brute-force protection.
+  - Hashes OTP codes in memory with HMAC-SHA256 using the instance `AUTH_SECRET`.
+  - Sends verification codes directly to the user's registered WhatsApp number via `whatsappService` when connected.
+  - In development mode (`DMS_AUTH_BYPASS=1`), surfaces the generated code in both server console and UI helper banner for frictionless testing.
+  - Updated the public auth gate whitelist in `whatsapp-bot/server.mjs` and `api/_src/app.mjs` so unauthenticated users can access password recovery without existing session tokens.
+
+## [2026-10-14]
+
+### Devotee Mobile Number Filter & Search Parity
+- **Filter Panel Mobile Number Input**:
+  - Added a dedicated mobile / phone number input with a `Phone` icon inside the expandable Filter Panel in `src/pages/devotees/DevoteeList.jsx`.
+  - Responsive 6-column grid accommodates the new input alongside Status, Gender, Spiritual Status, Counselor, and District filters.
+  - Updates filter badge count and is reset when clicking "Clear All".
+- **Multi-Field Phone Filtering**:
+  - Filter queries match against both primary contact (`contact`) and WhatsApp number (`whatsapp`).
+  - Added `filters.contact` backend support with parameterized queries in both local SQLite backend (`whatsapp-bot/database.mjs`, `whatsapp-bot/controllers/devoteeController.mjs`) and hosted PostgreSQL backend (`api/_src/database.mjs`, `api/_src/controllers/devoteeController.mjs`).
+  - Updated universal text search in both backends to include `whatsapp` matching alongside `name`, `initiatedName`, `contact`, and `dob`.
+  - Added client-side fallback filtering in `DevoteeContext.jsx` and `DevoteeList.jsx` for offline mode and seamless live state caching.
+
 ## [2026-10-13]
 
 ### Initiated Name Normalization & Continuous Auto-Sync

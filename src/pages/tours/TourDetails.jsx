@@ -6,7 +6,7 @@ import {
     Plus, Trash2, Edit, CheckCircle, X, Search,
     ArrowLeft, MoreVertical, IndianRupee, Plane,
     History, Check, ExternalLink, PersonStanding,
-    MessageSquare, Download, Filter as FilterIcon, Printer
+    MessageSquare, Download, Filter as FilterIcon, Printer, Phone
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
@@ -24,6 +24,7 @@ const TourDetails = () => {
     const [loading, setLoading] = useState(true);
     const [enrollments, setEnrollments] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [mobileFilter, setMobileFilter] = useState('');
 
     // Modals
     const [showEnrollModal, setShowEnrollModal] = useState(false);
@@ -155,14 +156,28 @@ const TourDetails = () => {
 
     const filteredEnrollments = useMemo(() => {
         return enrollments.filter(e => {
-            const searchLower = searchTerm.toLowerCase();
+            const searchLower = searchTerm.toLowerCase().trim();
+            const contactStr = String(
+                (e.devoteeId && !e.devoteeId.startsWith('GUEST_')) 
+                    ? (e.whatsapp || e.contact || '') 
+                    : (e.guestContact || '')
+            ).trim();
+
             const matchesSearch = !searchTerm ||
                 (e.devoteeName && e.devoteeName.toLowerCase().includes(searchLower)) ||
                 (e.initiatedName && e.initiatedName.toLowerCase().includes(searchLower)) ||
                 (e.guestName && e.guestName.toLowerCase().includes(searchLower)) ||
-                (e.devoteeId && e.devoteeId.toString().toLowerCase().includes(searchLower) && !e.devoteeId.toString().startsWith('GUEST_'));
+                (e.devoteeId && e.devoteeId.toString().toLowerCase().includes(searchLower) && !e.devoteeId.toString().startsWith('GUEST_')) ||
+                (contactStr && contactStr.toLowerCase().includes(searchLower));
 
             if (!matchesSearch) return false;
+
+            if (mobileFilter) {
+                const cleanFilter = mobileFilter.replace(/\D/g, '');
+                const cleanContact = contactStr.replace(/\D/g, '');
+                if (!cleanContact.includes(cleanFilter)) return false;
+            }
+
             if (statusFilter !== 'All' && e.status !== statusFilter) return false;
             if (paymentFilter !== 'All') {
                 if (paymentFilter === 'Paid' && e.paymentStatus !== 'Completed') return false;
@@ -171,7 +186,16 @@ const TourDetails = () => {
             }
             return true;
         });
-    }, [enrollments, searchTerm, statusFilter, paymentFilter]);
+    }, [enrollments, searchTerm, mobileFilter, statusFilter, paymentFilter]);
+
+    const hasActiveFilters = !!(searchTerm || mobileFilter || statusFilter !== 'All' || paymentFilter !== 'All');
+
+    const handleClearFilters = () => {
+        setSearchTerm('');
+        setMobileFilter('');
+        setStatusFilter('All');
+        setPaymentFilter('All');
+    };
 
     const activeEnrollments = useMemo(() =>
         filteredEnrollments.filter(e => e.status !== 'Cancelled'),
@@ -319,9 +343,31 @@ const TourDetails = () => {
                                 placeholder="Filter participants..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all w-56"
+                                className="pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all w-48"
                             />
                         </div>
+
+                        {/* Mobile Number Filter */}
+                        <div className="relative">
+                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={14} />
+                            <input
+                                type="text"
+                                placeholder="Mobile No..."
+                                value={mobileFilter}
+                                onChange={(e) => setMobileFilter(e.target.value)}
+                                className="pl-8 pr-7 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all w-36"
+                            />
+                            {mobileFilter && (
+                                <button
+                                    onClick={() => setMobileFilter('')}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                    title="Clear mobile filter"
+                                >
+                                    <X size={14} />
+                                </button>
+                            )}
+                        </div>
+
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
@@ -342,6 +388,16 @@ const TourDetails = () => {
                             <option value="Partial">Partial Pay</option>
                             <option value="Nil">Unpaid / Nil</option>
                         </select>
+
+                        {hasActiveFilters && (
+                            <button
+                                onClick={handleClearFilters}
+                                className="text-xs font-bold text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-950/30 px-3 py-2 rounded-xl border border-orange-200 dark:border-orange-900/50 transition-colors"
+                            >
+                                Clear
+                            </button>
+                        )}
+
                         {isAdmin && activeEnrollments.length > 0 && (
                             <button
                                 onClick={handleExportExcel}

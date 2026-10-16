@@ -96,11 +96,11 @@ const Sidebar = ({ isOpen, toggle }) => {
                 {/* Small User Info */}
                 <div className="mt-4 px-3 flex items-center gap-3 pt-4 border-t border-corporate-600/20 dark:border-slate-800/80">
                     <div className="w-8 h-8 rounded-lg bg-corporate-600 dark:bg-slate-800 border border-corporate-500/30 dark:border-slate-700 flex items-center justify-center text-[10px] font-black text-white">
-                        {currentUser?.name?.charAt(0) || 'U'}
+                        {(currentUser?.fullName || currentUser?.displayName || currentUser?.name || currentUser?.username || 'U').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold truncate text-white">{currentUser?.name || 'User'}</p>
-                        <p className="text-[10px] text-blue-200/50 truncate capitalize font-bold">admin</p>
+                        <p className="text-xs font-bold truncate text-white">{currentUser?.fullName || currentUser?.displayName || currentUser?.name || currentUser?.username || 'User'}</p>
+                        <p className="text-[10px] text-blue-200/50 truncate capitalize font-bold">{currentUser?.role || 'Viewer'}</p>
                     </div>
                 </div>
             </div>

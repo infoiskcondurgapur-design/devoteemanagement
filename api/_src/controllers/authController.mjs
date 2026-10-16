@@ -1,11 +1,14 @@
 import oauthSheetsService from '../oauth-sheets-service.mjs';
 import {
+    hashPassword,
     verifyPassword as checkPassword,
     signToken,
     toPublicUser,
-    revokeRequestToken
+    revokeRequestToken,
+    createPasswordResetRequest,
+    verifyAndResetPassword
 } from '../services/authService.mjs';
-import { getUserByIdentity } from '../database.mjs';
+import { getUserByIdentity, getUserById, getDevoteeByContact, updateUserPassword } from '../database.mjs';
 
 // Simple in-memory login throttling (best-effort on serverless; each cold
 // instance keeps its own counter). 20 attempts / 15 min per identity+IP.
@@ -203,3 +206,188 @@ export const bypass = async (req, res) => {
         res.status(500).json({ success: false, error: 'Bypass login failed' });
     }
 };
+
+// ─── Forgot / Reset Password ──────────────────────────────────────────
+const maskPhone = (phone) => {
+    if (!phone || typeof phone !== 'string') return '';
+    const clean = phone.replace(/\D/g, '');
+    if (clean.length <= 4) return '****';
+    return clean.slice(0, 2) + '******' + clean.slice(-4);
+};
+
+const findUserAndContact = async (identity) => {
+    const raw = String(identity || '').trim();
+    if (!raw) return { user: null, devotee: null, targetPhone: null };
+
+    // 1. Direct match on users table (username or email)
+    let user = await getUserByIdentity(raw).catch(() => null);
+
+    // 2. Normalization if numeric/phone
+    const digits = raw.replace(/\D/g, '');
+    if (!user && digits) {
+        user = await getUserByIdentity(digits).catch(() => null);
+        if (!user && digits.length === 10) {
+            user = await getUserByIdentity('91' + digits).catch(() => null);
+        }
+        if (!user && digits.length === 12 && digits.startsWith('91')) {
+            user = await getUserByIdentity(digits.slice(2)).catch(() => null);
+        }
+    }
+
+    // 3. Devotee lookup if user not found directly
+    let devotee = null;
+    if (!user) {
+        devotee = await getDevoteeByContact(raw).catch(() => null);
+        if (!devotee && digits) {
+            devotee = await getDevoteeByContact(digits).catch(() => null);
+            if (!devotee && digits.length === 10) {
+                devotee = await getDevoteeByContact('91' + digits).catch(() => null);
+            }
+            if (!devotee && digits.length === 12 && digits.startsWith('91')) {
+                devotee = await getDevoteeByContact(digits.slice(2)).catch(() => null);
+            }
+        }
+        if (devotee && devotee.contact) {
+            user = await getUserByIdentity(devotee.contact).catch(() => null);
+        }
+    } else {
+        devotee = await getDevoteeByContact(user.username).catch(() => null);
+    }
+
+    let targetPhone = null;
+    if (user) {
+        const uDigits = String(user.username).replace(/\D/g, '');
+        if (uDigits.length >= 10) {
+            targetPhone = uDigits;
+        } else if (devotee && (devotee.whatsapp || devotee.contact)) {
+            targetPhone = String(devotee.whatsapp || devotee.contact).replace(/\D/g, '');
+        } else if (user.role === 'admin' && process.env.ADMIN_PHONE) {
+            targetPhone = String(process.env.ADMIN_PHONE).replace(/\D/g, '');
+        }
+    }
+
+    return { user, devotee, targetPhone };
+};
+
+export const forgotPassword = async (req, res) => {
+    try {
+        const { identity } = req.body || {};
+        if (!identity || !String(identity).trim()) {
+            return res.status(400).json({ success: false, error: 'Please enter your username, email, or phone number.' });
+        }
+
+        const { user, targetPhone } = await findUserAndContact(identity);
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'No account found matching this username, email, or phone number.' });
+        }
+
+        const { requestId, code } = createPasswordResetRequest(user, targetPhone);
+        const isBypass = process.env.DMS_AUTH_BYPASS === '1' || process.env.NODE_ENV !== 'production';
+
+        if (isBypass) {
+            console.log(`[Auth] Password reset OTP for ${user.username} is: ${code}`);
+            return res.json({
+                success: true,
+                requestId,
+                method: 'dev',
+                devCode: code,
+                maskedContact: targetPhone ? maskPhone(targetPhone) : null,
+                message: `Verification code generated: ${code}`
+            });
+        }
+
+        return res.status(503).json({
+            success: false,
+            error: 'Automated SMS/WhatsApp reset is not configured on this web deployment. Please contact your temple administrator.'
+        });
+    } catch (err) {
+        console.error('[Auth] forgotPassword error:', err.message);
+        res.status(500).json({ success: false, error: 'Failed to process password reset request.' });
+    }
+};
+
+export const resetPassword = async (req, res) => {
+    try {
+        const { requestId, code, newPassword } = req.body || {};
+        if (!requestId || !code || !newPassword) {
+            return res.status(400).json({ success: false, error: 'Verification code and new password are required.' });
+        }
+
+        const result = await verifyAndResetPassword(requestId, code, newPassword);
+        if (!result.success) {
+            return res.status(400).json({ success: false, error: result.error });
+        }
+
+        res.json({
+            success: true,
+            message: 'Password has been reset successfully! You can now log in with your new password.'
+        });
+    } catch (err) {
+        console.error('[Auth] resetPassword error:', err.message);
+        res.status(500).json({ success: false, error: 'Password reset failed.' });
+    }
+};
+
+export const changePassword = async (req, res) => {
+    try {
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+        const { currentPassword, newPassword } = req.body || {};
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ success: false, error: 'Current password and new password are required' });
+        }
+        if (String(newPassword).trim().length < 6) {
+            return res.status(400).json({ success: false, error: 'New password must be at least 6 characters long' });
+        }
+
+        const user = (await getUserById(req.user.id).catch(() => null)) ||
+                     (await getUserByIdentity(req.user.username).catch(() => null));
+
+        if (!user || !checkPassword(currentPassword, user.passwordHash || user.passwordhash)) {
+            return res.status(401).json({ success: false, error: 'Current password is incorrect' });
+        }
+
+        const newHash = hashPassword(String(newPassword).trim());
+        await updateUserPassword(user.id, newHash);
+
+        res.json({ success: true, message: 'Password has been updated successfully.' });
+    } catch (err) {
+        console.error('[Auth] changePassword error:', err.message);
+        res.status(500).json({ success: false, error: 'Failed to update password' });
+    }
+};
+
+export const adminResetUserPassword = async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, error: 'Forbidden: Admin access required' });
+        }
+        const { userId, newPassword } = req.body || {};
+        if (!userId || !newPassword) {
+            return res.status(400).json({ success: false, error: 'User ID and new password are required' });
+        }
+        if (String(newPassword).trim().length < 6) {
+            return res.status(400).json({ success: false, error: 'New password must be at least 6 characters long' });
+        }
+
+        const user = (await getUserById(userId).catch(() => null)) ||
+                     (await getUserByIdentity(userId).catch(() => null));
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+
+        const newHash = hashPassword(String(newPassword).trim());
+        await updateUserPassword(user.id, newHash);
+
+        res.json({
+            success: true,
+            message: `Password for ${user.fullName || user.fullname || user.username} has been reset successfully.`
+        });
+    } catch (err) {
+        console.error('[Auth] adminResetUserPassword error:', err.message);
+        res.status(500).json({ success: false, error: 'Failed to reset user password' });
+    }
+};
+
+

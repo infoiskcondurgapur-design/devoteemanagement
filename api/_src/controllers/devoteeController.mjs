@@ -1,6 +1,6 @@
 import {
     getDevotees, getDevoteeStats, getDevoteeByPhone, getDevoteeById,
-    addDevotee, updateDevotee, deleteDevotee, getFilterOptions
+    addDevotee, addDevoteesBulk, updateDevotee, deleteDevotee, getFilterOptions
 } from '../database.mjs';
 import { uploadImageToCloudinary } from '../cloudinary-service.mjs';
 
@@ -15,7 +15,8 @@ export const getAllDevotees = async (req, res) => {
             gender: req.query.gender || '',
             counselor: req.query.counselor || '',
             spiritualStatus: req.query.spiritualStatus || '',
-            district: req.query.district || ''
+            district: req.query.district || '',
+            contact: req.query.contact || req.query.phone || ''
         };
 
         const result = await getDevotees(limit, offset, search, filters);
@@ -73,6 +74,21 @@ export const create = async (req, res) => {
         const result = await addDevotee(devoteeBody);
         res.json({ success: true, ...result });
     } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+export const bulkCreate = async (req, res) => {
+    try {
+        const list = Array.isArray(req.body) ? req.body : (req.body?.devotees || []);
+        const options = { updateDuplicates: !!req.body?.updateDuplicates };
+        if (!list || list.length === 0) {
+            return res.status(400).json({ success: false, error: 'No devotees provided in request body' });
+        }
+        const result = await addDevoteesBulk(list, options);
+        res.json({ success: true, ...result });
+    } catch (error) {
+        console.error('[DevoteeController] bulkCreate error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 };

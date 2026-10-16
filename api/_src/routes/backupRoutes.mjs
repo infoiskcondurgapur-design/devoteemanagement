@@ -11,5 +11,8 @@ router.post('/google-sheets-oauth', backupController.handleGoogleBackup);
 router.post('/google-sheets', backupController.handleServiceAccountBackup);
 router.get('/cloud-status', backupController.getCloudBackupStatus);
 router.post('/cloud-sync', backupController.runCloudSyncManual);
+router.post('/dropbox-config', backupController.saveDropboxConfig);
+router.post('/dropbox-sync', backupController.runDropboxSyncManual);
 
 export default router;
+

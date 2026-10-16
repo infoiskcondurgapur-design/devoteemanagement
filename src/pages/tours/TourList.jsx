@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react'; // Module Refresh: 2026-04-12
+import React, { useState, useEffect, useCallback } from 'react';
 import { formatDateRange } from '../../lib/dateUtils';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Calendar, Users, Plus, Search, Filter, MoreVertical, CreditCard, Compass, ChevronRight, Plane } from 'lucide-react';
+import { MapPin, Calendar, Users, Plus, Search, Filter, MoreVertical, CreditCard, Compass, ChevronRight, Plane, Phone, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import apiService from '../../services/api';
@@ -15,11 +15,13 @@ const TourList = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'completed'
     const [searchTerm, setSearchTerm] = useState('');
+    const [mobileFilter, setMobileFilter] = useState('');
 
-    const fetchTours = useCallback(async () => {
+    const fetchTours = useCallback(async (contactQuery = '') => {
         try {
             setLoading(true);
-            const response = await apiService.get('/api/tours');
+            const query = contactQuery ? `?contact=${encodeURIComponent(contactQuery)}` : '';
+            const response = await apiService.get(`/api/tours${query}`);
             if (response.success) {
                 setTours(response.data);
             } else {
@@ -33,12 +35,16 @@ const TourList = () => {
     }, [toast]);
 
     useEffect(() => {
-        fetchTours();
-    }, [fetchTours]);
+        const timer = setTimeout(() => {
+            fetchTours(mobileFilter);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [fetchTours, mobileFilter]);
 
     const filteredTours = tours.filter(tour => {
-        const matchesSearch = tour.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             (tour.destination && tour.destination.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchesSearch = !searchTerm ||
+            tour.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            (tour.destination && tour.destination.toLowerCase().includes(searchTerm.toLowerCase()));
         
         if (activeTab === 'upcoming') {
             return matchesSearch && tour.status !== 'Completed';
@@ -109,15 +115,46 @@ const TourList = () => {
                     </button>
                 </div>
 
-                <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Search tours or destinations..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:bg-white dark:bg-slate-900 focus:ring-2 focus:ring-orange-500 outline-none transition-all"
-                    />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 max-w-xl">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Search tours or destinations..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:bg-white dark:bg-slate-900 focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                        />
+                    </div>
+
+                    <div className="relative w-full sm:w-64">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Filter by mobile no..."
+                            value={mobileFilter}
+                            onChange={(e) => setMobileFilter(e.target.value)}
+                            className="w-full pl-9 pr-7 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:bg-white dark:bg-slate-900 focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                        />
+                        {mobileFilter && (
+                            <button
+                                onClick={() => setMobileFilter('')}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                title="Clear mobile filter"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
+                    </div>
+
+                    {(searchTerm || mobileFilter) && (
+                        <button
+                            onClick={() => { setSearchTerm(''); setMobileFilter(''); }}
+                            className="text-xs font-bold text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-950/30 px-3 py-2.5 rounded-xl border border-orange-200 dark:border-orange-900/50 transition-colors shrink-0"
+                        >
+                            Clear
+                        </button>
+                    )}
                 </div>
             </div>
 

@@ -147,3 +147,52 @@ export const runCloudSyncManual = async (req, res) => {
     }
 };
 
+/**
+ * Save Dropbox configuration (Access Token or Refresh Token + App Key/Secret)
+ */
+export const saveDropboxConfig = async (req, res) => {
+    try {
+        const { updateSetting } = await import('../database.mjs');
+        const { accessToken, refreshToken, appKey, appSecret, clear } = req.body || {};
+        if (clear) {
+            await updateSetting('dropbox_access_token', '');
+            await updateSetting('dropbox_refresh_token', '');
+            await updateSetting('dropbox_app_key', '');
+            await updateSetting('dropbox_app_secret', '');
+            const report = await cloudBackupService.getStatusReport();
+            return res.json({ success: true, message: 'Dropbox credentials cleared', status: report });
+        }
+
+        if (accessToken !== undefined) {
+            await updateSetting('dropbox_access_token', (accessToken || '').trim());
+        }
+        if (refreshToken !== undefined) {
+            await updateSetting('dropbox_refresh_token', (refreshToken || '').trim());
+        }
+        if (appKey !== undefined) {
+            await updateSetting('dropbox_app_key', (appKey || '').trim());
+        }
+        if (appSecret !== undefined) {
+            await updateSetting('dropbox_app_secret', (appSecret || '').trim());
+        }
+
+        const report = await cloudBackupService.getStatusReport();
+        res.json({ success: true, message: 'Dropbox settings saved successfully', status: report });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
+ * Specifically run Dropbox backup sync
+ */
+export const runDropboxSyncManual = async (req, res) => {
+    try {
+        const result = await cloudBackupService.syncDropboxOnly(true);
+        res.json({ success: true, result });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+

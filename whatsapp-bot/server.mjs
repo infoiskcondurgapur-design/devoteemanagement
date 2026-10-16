@@ -1,4 +1,7 @@
 import express from 'express';
+import http from 'http';
+import https from 'https';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -37,7 +40,8 @@ import changeRequestRoutes from './routes/changeRequestRoutes.mjs';
 import attendanceRoutes from './routes/attendanceRoutes.mjs';
 import counselingRoutes from './routes/counselingRoutes.mjs';
 import publicRoutes from './routes/publicRoutes.mjs';
-import { checkHealth } from './controllers/systemController.mjs';
+import userRoutes from './routes/userRoutes.mjs';
+import { checkHealth, restore } from './controllers/systemController.mjs';
 
 // Link unlinked devotees to user accounts and send credentials via WhatsApp
 const linkUnlinkedDevotees = async () => {
@@ -101,9 +105,30 @@ app.use(cors({
     }
 }));
 
-// Security headers (CSP disabled: inline scripts are needed by the OAuth callback/popup pages)
-app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+// Security headers with HSTS (Strict-Transport-Security)
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+    }
+}));
 app.set('trust proxy', 1);
+
+// Enforce HTTPS redirect if FORCE_HTTPS=1 or behind proxy in production
+app.use((req, res, next) => {
+    if (process.env.FORCE_HTTPS === '1') {
+        const proto = req.headers['x-forwarded-proto'] || (req.socket.encrypted ? 'https' : 'http');
+        const hostHeader = req.headers.host;
+        const isLocal = hostHeader && (hostHeader.startsWith('localhost') || hostHeader.startsWith('127.0.0.1'));
+        if (proto === 'http' && !isLocal) {
+            return res.redirect(301, `https://${hostHeader}${req.originalUrl}`);
+        }
+    }
+    next();
+});
 
 // Global rate limit (generous for local paginated loads, still blocks drive-by abuse).
 // Windows/limits are env-tunable so operators can relax them on busy local installs
@@ -140,11 +165,15 @@ app.use((req, res, next) => {
     // Compare against the path only — the query string must never satisfy a public-path check.
     const p = (req.originalUrl || req.url || '').split('?')[0];
     const loginPath = req.method === 'POST' && (p.includes('/api/auth/login') || p.includes('/auth/login'));
+    const forgotPath = req.method === 'POST' && (
+        p.includes('/api/auth/forgot-password') || p.includes('/auth/forgot-password') ||
+        p.includes('/api/auth/reset-password') || p.includes('/auth/reset-password')
+    );
     const googlePath = p.includes('/api/auth/google') || p.includes('/auth/google');
     const healthPath = p.includes('/system/health');
     const publicPath = p.includes('/public/register');
     const bypassPath = p.includes('/api/auth/bypass') || p.includes('/auth/bypass');
-    if (loginPath || googlePath || healthPath || publicPath || bypassPath) return next();
+    if (loginPath || forgotPath || googlePath || healthPath || publicPath || bypassPath) return next();
     return requireAuth(req, res, next);
 });
 
@@ -167,6 +196,8 @@ app.use('/api/change-requests', changeRequestRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/counseling', counselingRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/users', userRoutes);
+app.post('/api/restore', restore);
 
 // --- Generic Upload API (kept for backward compatibility or simple uploads) ---
 app.post('/api/upload', async (req, res) => {
@@ -210,8 +241,27 @@ const start = async () => {
             console.warn('[System] Google Sheets OAuth init skipped:', err.message);
         }
 
-        const server = app.listen(port, host, () => {
-            console.log(`[System] Server running on http://${host}:${port}`);
+        let server;
+        const sslKeyPath = process.env.SSL_KEY_PATH;
+        const sslCertPath = process.env.SSL_CERT_PATH;
+        const hasSsl = Boolean(sslKeyPath && sslCertPath && fs.existsSync(sslKeyPath) && fs.existsSync(sslCertPath));
+
+        if (hasSsl) {
+            const sslOptions = {
+                key: fs.readFileSync(sslKeyPath),
+                cert: fs.readFileSync(sslCertPath),
+                ...(process.env.SSL_CA_PATH && fs.existsSync(process.env.SSL_CA_PATH)
+                    ? { ca: fs.readFileSync(process.env.SSL_CA_PATH) }
+                    : {})
+            };
+            server = https.createServer(sslOptions, app);
+        } else {
+            server = http.createServer(app);
+        }
+
+        server.listen(port, host, () => {
+            const proto = hasSsl ? 'https' : 'http';
+            console.log(`[System] Server running on ${proto}://${host}:${port}${hasSsl ? ' (SSL/TLS Encrypted)' : ''}`);
             if (process.env.DMS_AUTH_BYPASS === '1') {
                 console.warn('[Auth] *** DMS_AUTH_BYPASS=1 — dev bypass login ENABLED (no password required). Never enable in production. ***');
             }

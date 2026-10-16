@@ -304,6 +304,67 @@ test('duplicate guard rejects a second devotee with same contact + name', async 
     assert.match(renamed.data.error || '', /already exists/);
 });
 
+test('bulk devotee upload creates, deduplicates, and updates devotees', async () => {
+    const bulkPayload = [
+        {
+            name: 'Bulk Devotee Alpha',
+            contact: '9111111111',
+            spiritualName: 'Alpha Das',
+            gender: 'Male',
+            spiritualStatus: 'Initiated',
+            counselor: 'HG Test Counselor'
+        },
+        {
+            name: 'Bulk Devotee Beta',
+            contact: '9222222222',
+            spiritualName: 'Beta Devi Dasi',
+            gender: 'Female',
+            spiritualStatus: 'Sheltered',
+            counselor: 'HG Test Counselor'
+        }
+    ];
+
+    // Initial bulk insert
+    const res1 = await api(baseUrl, '/api/devotees/bulk', {
+        method: 'POST',
+        token,
+        body: { devotees: bulkPayload, updateDuplicates: false }
+    });
+    assert.equal(res1.status, 200);
+    assert.equal(res1.data.success, true);
+    assert.equal(res1.data.added, 2);
+    assert.equal(res1.data.updated, 0);
+    assert.equal(res1.data.skipped, 0);
+
+    // Re-run with updateDuplicates: false (should skip duplicates)
+    const res2 = await api(baseUrl, '/api/devotees/bulk', {
+        method: 'POST',
+        token,
+        body: { devotees: bulkPayload, updateDuplicates: false }
+    });
+    assert.equal(res2.status, 200);
+    assert.equal(res2.data.added, 0);
+    assert.equal(res2.data.skipped, 2);
+
+    // Re-run with updateDuplicates: true and modified field
+    const modifiedPayload = [
+        {
+            name: 'Bulk Devotee Alpha',
+            contact: '9111111111',
+            spiritualName: 'Alpha Das (Updated)',
+            gender: 'Male',
+            spiritualStatus: 'Initiated'
+        }
+    ];
+    const res3 = await api(baseUrl, '/api/devotees/bulk', {
+        method: 'POST',
+        token,
+        body: { devotees: modifiedPayload, updateDuplicates: true }
+    });
+    assert.equal(res3.status, 200);
+    assert.equal(res3.data.updated, 1);
+});
+
 test('logout invalidates the issued token', async () => {
     const { status } = await api(baseUrl, '/api/auth/logout', { method: 'POST', token });
     assert.equal(status, 200);

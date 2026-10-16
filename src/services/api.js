@@ -100,6 +100,10 @@ const apiService = {
         return this.post('/api/upload', { image: base64 });
     },
 
+    async bulkAddDevotees(devotees, options = {}) {
+        return this.post('/api/devotees/bulk', { devotees, ...options });
+    },
+
     // ─── Auth helpers ───────────────────────────────────────────────
     authSetToken(token) { setToken(token); },
     authClearToken() { setToken(null); },
@@ -137,6 +141,32 @@ const apiService = {
         return data;
     },
 
+    async authForgotPassword(identity) {
+        const res = await fetch(getApiUrl('/api/auth/forgot-password'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ identity })
+        });
+        return await res.json();
+    },
+
+    async authResetPassword(requestId, code, newPassword) {
+        const res = await fetch(getApiUrl('/api/auth/reset-password'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requestId, code, newPassword })
+        });
+        return await res.json();
+    },
+
+    async authChangePassword(currentPassword, newPassword) {
+        return this.post('/api/auth/change-password', { currentPassword, newPassword });
+    },
+
+    async authAdminResetPassword(userId, newPassword) {
+        return this.post('/api/auth/admin-reset-password', { userId, newPassword });
+    },
+
     async authLogout() {
         try {
             await fetch(getApiUrl('/api/auth/logout'), {
@@ -160,6 +190,23 @@ const apiService = {
         return data;
     },
 
+    // ─── User Management Helpers ─────────────────────────────────────
+    async getUsers() {
+        return this.get('/api/users');
+    },
+
+    async createUser(userData) {
+        return this.post('/api/users', userData);
+    },
+
+    async updateUserRole(id, role) {
+        return this.put(`/api/users/${id}/role`, { role });
+    },
+
+    async deleteUser(id) {
+        return this.delete(`/api/users/${id}`);
+    },
+
     // ─── WhatsApp Bot Helpers ─────────────────────────────────────────
     async getWhatsAppStatus() {
         return this.get('/api/whatsapp/status');
@@ -175,7 +222,25 @@ const apiService = {
 
     async logoutWhatsApp() {
         return this.post('/api/whatsapp/logout', {});
+    },
+
+    // ─── Cloud & Dropbox Backup Helpers ────────────────────────────────
+    async getCloudBackupStatus() {
+        return this.get('/api/backup/cloud-status');
+    },
+
+    async runCloudSync() {
+        return this.post('/api/backup/cloud-sync', {});
+    },
+
+    async runDropboxSync() {
+        return this.post('/api/backup/dropbox-sync', {});
+    },
+
+    async saveDropboxConfig(config) {
+        return this.post('/api/backup/dropbox-config', config);
     }
 };
 
 export default apiService;
+

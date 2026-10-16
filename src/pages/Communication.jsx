@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Mail, MessageSquare, Send, Search, User, Phone, RefreshCw, Megaphone, Heart, Sparkles, Copy, Check } from 'lucide-react';
+import { MessageSquare, Send, Search, User, Phone, RefreshCw, Megaphone, Heart, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 import { useDevotees } from '../context/DevoteeContext';
 import { useToast } from '../components/Toast';
 import apiService from '../services/api';
+import { openWhatsApp, sanitizeWhatsAppNumber } from '../services/whatsappLink';
 
 const NavButton = ({ active, onClick, icon: Icon, label, badge }) => (
     <button
@@ -30,15 +31,13 @@ const NavButton = ({ active, onClick, icon: Icon, label, badge }) => (
     </button>
 );
 
-const sanitizeNumber = (number) => {
-    let num = String(number || '').replace(/\D/g, '');
-    if (num.length === 10) num = '91' + num;
-    return num;
-};
-
 const openWhatsAppLink = (number, message) => {
-    const num = sanitizeNumber(number);
-    window.open(`https://wa.me/${num}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+    try {
+        openWhatsApp(number, message, 'web');
+    } catch {
+        const num = sanitizeWhatsAppNumber(number);
+        window.open(`https://web.whatsapp.com/send?phone=${num}&text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+    }
 };
 
 const Communication = () => {
@@ -88,7 +87,7 @@ const Communication = () => {
         setIsBroadcasting(true);
         try {
             const messages = buildMessages(messageTemplate);
-            const text = messages.map(m => `${m.devotee.name} (${m.devotee.whatsapp || m.devotee.contact || 'no number'}):\n${m.message}\n${'https://wa.me/' + sanitizeNumber(m.devotee.whatsapp || m.devotee.contact)}\n\n`).join('---\n');
+            const text = messages.map(m => `${m.devotee.name} (${m.devotee.whatsapp || m.devotee.contact || 'no number'}):\n${m.message}\n${'https://web.whatsapp.com/send?phone=' + sanitizeWhatsAppNumber(m.devotee.whatsapp || m.devotee.contact) + '&text=' + encodeURIComponent(m.message)}\n\n`).join('---\n');
             await navigator.clipboard.writeText(text);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);

@@ -12,8 +12,12 @@
 All endpoints under `/api` (except the public set below) require a bearer token: `Authorization: Bearer <jwt>`.
 
 - **Login**: `POST /api/auth/login` with `{ username, password }` → `{ success, token, user }`. Users: the seeded `admin` (credentials from `ADMIN_USERNAME`/`ADMIN_PASSWORD` env) and devotee accounts (username = contact number, role `viewer`).
+- **Forgot Password**: `POST /api/auth/forgot-password` with `{ identity }` (username, email, or phone) → sends 6-digit OTP to registered WhatsApp number (or returns `devCode` if dev bypass is active) and returns `{ success, requestId, method, maskedContact }`.
+- **Reset Password (OTP)**: `POST /api/auth/reset-password` with `{ requestId, code, newPassword }` → verifies OTP, updates passwordHash in database, and returns `{ success, message }`.
+- **Change Password (Logged-in User)**: `POST /api/auth/change-password` with `{ currentPassword, newPassword }` → verifies `currentPassword`, updates caller's `passwordHash`, and returns `{ success, message }`.
+- **Admin Reset Password**: `POST /api/auth/admin-reset-password` (Admin only) with `{ userId, newPassword }` → resets target user's password directly, optionally sends WhatsApp notification, and returns `{ success, message }`.
 - **Session**: `GET /api/auth/session`, **Logout**: `POST /api/auth/logout` (revokes the presented token server-side), **Password check**: `POST /api/auth/verify-password`.
-- **Public (no token)**: `/api/system/health`, `POST /api/auth/login`, `GET|POST /api/auth/bypass`, `/api/auth/google/*`, `POST /api/public/register`.
+- **Public (no token)**: `/api/system/health`, `POST /api/auth/login`, `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`, `GET|POST /api/auth/bypass`, `/api/auth/google/*`, `POST /api/public/register`.
 - **Gate rule**: the auth gate matches against the URL **path only** (query strings are stripped first so `?x=/auth/login` cannot satisfy a public-path check).
 
 ### Dev bypass login (development only)
@@ -62,6 +66,30 @@ For local development when credentials are unknown:
   {
     "success": true,
     "id": "uuid-1"
+  }
+  ```
+
+#### `POST /api/devotees/bulk`
+- **Purpose**: Bulk import multiple devotee records from Excel/CSV uploads with automatic deduplication.
+- **Request Body**:
+  ```json
+  {
+    "devotees": [
+      { "name": "Radheshyam Das", "contact": "9876543210", "gender": "Male", "spiritualStatus": "Initiated" }
+    ],
+    "updateDuplicates": false
+  }
+  ```
+- **Response (200)**:
+  ```json
+  {
+    "success": true,
+    "total": 1,
+    "added": 1,
+    "updated": 0,
+    "skipped": 0,
+    "skippedDetails": [],
+    "errors": []
   }
   ```
 
@@ -232,6 +260,68 @@ Anonymous endpoints for the shareable self-registration form (`#/register`). Ava
 Pending rows are excluded from `GET /api/devotees/stats`, weekly/birthday/anniversary queries, and credential-linking sweeps.
 
 ---
+
+### 10. User Management Endpoints (`/api/users`)
+*All user management endpoints require `role: admin` bearer token.*
+
+#### `GET /api/users`
+- **Purpose**: Fetch all registered user accounts from the database.
+- **Response (200)**:
+  ```json
+  {
+    "success": true,
+    "data": [
+      { "id": "1", "username": "admin", "email": "admin@iskcon.org", "role": "admin", "fullName": "Super Admin", "createdAt": "2026-01-01" }
+    ]
+  }
+  ```
+
+#### `POST /api/users`
+- **Purpose**: Create a new user account directly in the database.
+- **Body**: `{ username, fullName, email, password, role }`
+- **Response (200)**: `{ success: true, user: { id, username, email, role, fullName } }`
+
+#### `PUT /api/users/:id/role`
+- **Purpose**: Update an existing user's role (`admin`, `counselor`, `viewer`).
+- **Body**: `{ role }`
+- **Response (200)**: `{ success: true, message: "Role updated successfully" }`
+
+#### `DELETE /api/users/:id`
+- **Purpose**: Delete a user account from the system (prevents self-deletion).
+- **Response (200)**: `{ success: true, message: "User deleted successfully" }`
+
+---
+
+### 11. Cloud Backup & Disaster Recovery Endpoints (`/api/backup`)
+
+#### `GET /api/backup/cloud-status`
+- **Purpose**: Get current configuration and last execution status for AWS S3 and Dropbox.
+- **Response (200)**:
+  ```json
+  {
+    "success": true,
+    "status": {
+      "s3": { "configured": false, "bucket": null, "lastBackupTime": null, "lastBackupStatus": "Never run" },
+      "dropbox": { "configured": true, "folderPath": "/DMS_Backups/", "lastBackupTime": "2026-10-15T12:00:00Z", "lastBackupStatus": "Success" }
+    }
+  }
+  ```
+
+#### `POST /api/backup/dropbox-config`
+- **Purpose**: Save or clear Dropbox disaster recovery credentials (stored securely in database `settings` table).
+- **Body**: `{ accessToken?: string, refreshToken?: string, appKey?: string, appSecret?: string, clear?: boolean }`
+- **Response (200)**: `{ success: true, message: "Dropbox settings saved successfully", status: { ... } }`
+
+#### `POST /api/backup/dropbox-sync`
+- **Purpose**: Trigger an immediate on-demand backup upload directly to Dropbox (`/DMS_Backups/`).
+- **Response (200)**: `{ success: true, result: { filename: "devotee_mgmt_backup_....json", path: "/DMS_Backups/devotee_mgmt_backup_....json", size: 12345, timestamp: "2026-10-15T12:00:00Z" } }`
+
+#### `POST /api/backup/cloud-sync`
+- **Purpose**: Trigger multi-cloud sync across all configured cloud providers (S3 and Dropbox).
+- **Response (200)**: `{ success: true, results: { s3: { ... }, dropbox: { ... } } }`
+
+---
+
 
 ## Status Codes
 - **200 — Success**: The action executed successfully.

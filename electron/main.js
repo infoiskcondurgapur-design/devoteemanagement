@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, net, dialog } from 'electron';
+import { app, BrowserWindow, Menu, net, dialog, shell } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { fork } from 'child_process';
@@ -54,6 +54,15 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js')
         },
         icon: path.join(__dirname, '../public/favicon.ico')
+    });
+
+    // Intercept window.open calls and open in the default system browser (Chrome/Edge/Firefox)
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        if (url.startsWith('https:') || url.startsWith('http:') || url.startsWith('mailto:') || url.startsWith('tel:')) {
+            shell.openExternal(url);
+            return { action: 'deny' };
+        }
+        return { action: 'allow' };
     });
 
     // In development, wait for Vite to serve
@@ -120,9 +129,51 @@ function startBackend() {
 }
 
 
-const fetchBackupData = () => {
+let _electronToken = null;
+
+async function getElectronToken() {
+    if (_electronToken) return _electronToken;
+    try {
+        const admin = getAdminCredentials();
+        const request = net.request({
+            method: 'POST',
+            protocol: 'http:',
+            hostname: 'localhost',
+            port: 3001,
+            path: '/api/auth/login'
+        });
+        request.setHeader('Content-Type', 'application/json');
+        const token = await new Promise((resolve, reject) => {
+            request.on('response', (response) => {
+                let data = '';
+                response.on('data', (chunk) => data += chunk);
+                response.on('end', () => {
+                    try {
+                        const json = JSON.parse(data);
+                        if (json.success && json.token) resolve(json.token);
+                        else reject(new Error(json.error || 'Failed to authenticate'));
+                    } catch (e) { reject(e); }
+                });
+            });
+            request.on('error', (err) => reject(err));
+            request.write(JSON.stringify({ username: admin.username, password: admin.password }));
+            request.end();
+        });
+        _electronToken = token;
+        return token;
+    } catch (err) {
+        console.warn('[Electron] Could not get admin token for backup:', err.message);
+        return null;
+    }
+}
+
+const fetchBackupData = async () => {
+    const token = await getElectronToken();
     return new Promise((resolve, reject) => {
         const request = net.request('http://localhost:3001/api/backup');
+        if (token) {
+            request.setHeader('Authorization', `Bearer ${token}`);
+        }
         request.on('response', (response) => {
             let data = '';
             response.on('data', (chunk) => data += chunk);
@@ -130,7 +181,10 @@ const fetchBackupData = () => {
                 try {
                     const json = JSON.parse(data);
                     if (json.success) resolve(json.data);
-                    else reject(new Error(json.error || 'Unknown error'));
+                    else {
+                        if (response.statusCode === 401) _electronToken = null;
+                        reject(new Error(json.error || 'Unknown error'));
+                    }
                 } catch (e) { reject(e); }
             });
         });
@@ -156,6 +210,7 @@ const handleBackup = async (format) => {
                 dialog.showMessageBox({ message: 'Backup saved successfully!', type: 'info' });
             }
         } else if (format === 'csv') {
+            const token = await getElectronToken();
             // Use the new CSV export service
             const request = net.request({
                 method: 'POST',
@@ -164,6 +219,9 @@ const handleBackup = async (format) => {
                 port: 3001,
                 path: '/api/backup/csv'
             });
+            if (token) {
+                request.setHeader('Authorization', `Bearer ${token}`);
+            }
 
             const csvData = await new Promise((resolve, reject) => {
                 request.on('response', (response) => {
@@ -289,14 +347,16 @@ const performAutoBackup = async () => {
     }
 };
 
+const AUTO_BACKUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
 const startAutoBackup = () => {
-    console.log('[Auto-Backup] Starting auto-backup service (every 5 seconds)');
+    console.log('[Auto-Backup] Starting auto-backup service (every 1 hour)');
 
-    // Perform initial backup after 5 seconds
-    setTimeout(performAutoBackup, 5000);
+    // Perform initial backup after 30 seconds
+    setTimeout(performAutoBackup, 30000);
 
-    // Then continue every 5 seconds
-    autoBackupInterval = setInterval(performAutoBackup, 5000);
+    // Then continue every 1 hour
+    autoBackupInterval = setInterval(performAutoBackup, AUTO_BACKUP_INTERVAL_MS);
 };
 
 const stopAutoBackup = () => {
@@ -339,6 +399,7 @@ const handleRestore = async () => {
         // Read backup file
         const backupData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
+        const token = await getElectronToken();
         // Send restore request to backend
         const request = net.request({
             method: 'POST',
@@ -349,6 +410,9 @@ const handleRestore = async () => {
         });
 
         request.setHeader('Content-Type', 'application/json');
+        if (token) {
+            request.setHeader('Authorization', `Bearer ${token}`);
+        }
 
         const response = await new Promise((resolve, reject) => {
             request.on('response', (response) => {

@@ -1,20 +1,61 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Shield, Camera, Save, Maximize2 } from 'lucide-react';
+import { useToast } from '../components/Toast';
+import apiService from '../services/api';
+import { User, Mail, Shield, Camera, Save, Maximize2, KeyRound, Eye, EyeOff, Lock, CheckCircle2 } from 'lucide-react';
 import ImageModal from '../components/ImageModal';
 
 const Profile = () => {
     const { currentUser } = useAuth();
+    const toast = useToast();
     const [isEditing, setIsEditing] = useState(false);
     const [showImageModal, setShowImageModal] = useState(false);
     const [formData, setFormData] = useState({
-        name: currentUser?.name || '',
+        name: currentUser?.fullName || currentUser?.displayName || currentUser?.name || currentUser?.username || '',
         email: currentUser?.email || '',
         photo: currentUser?.photo || ''
     });
 
+    // Password reset / change state
+    const [pwdData, setPwdData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    const [showCurPwd, setShowCurPwd] = useState(false);
+    const [showNewPwd, setShowNewPwd] = useState(false);
+    const [showConfPwd, setShowConfPwd] = useState(false);
+    const [pwdBusy, setPwdBusy] = useState(false);
+
     const handleSave = () => {
         setIsEditing(false);
+    };
+
+    const handlePasswordChange = async (e) => {
+        e.preventDefault();
+        if (!pwdData.currentPassword) {
+            toast.error('Please enter your current password');
+            return;
+        }
+        if (!pwdData.newPassword || pwdData.newPassword.length < 6) {
+            toast.error('New password must be at least 6 characters long');
+            return;
+        }
+        if (pwdData.newPassword !== pwdData.confirmPassword) {
+            toast.error('New passwords do not match');
+            return;
+        }
+
+        setPwdBusy(true);
+        try {
+            const res = await apiService.authChangePassword(pwdData.currentPassword, pwdData.newPassword);
+            if (res.success) {
+                toast.success('Password updated successfully!');
+                setPwdData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+            } else {
+                toast.error(res.error || 'Failed to update password');
+            }
+        } catch (err) {
+            toast.error(err.message || 'Error updating password');
+        } finally {
+            setPwdBusy(false);
+        }
     };
 
     const handlePhotoChange = (e) => {
@@ -28,9 +69,12 @@ const Profile = () => {
         }
     };
 
+    const displayName = currentUser?.fullName || currentUser?.displayName || currentUser?.name || currentUser?.username || 'Devotee';
+    const roleName = currentUser?.role ? (currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)) : 'User';
+
     return (
         <div className="p-8">
-            <h1 className="text-2xl font-bold text-slate-900 mb-6">Admin Profile</h1>
+            <h1 className="text-2xl font-bold text-slate-900 mb-6">User Profile</h1>
 
             <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden max-w-2xl">
                 <div className="h-32 bg-gradient-to-r from-orange-400 to-red-500"></div>
@@ -73,9 +117,9 @@ const Profile = () => {
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     />
                                 ) : (
-                                    <h2 className="text-2xl font-bold text-slate-900">{currentUser?.name}</h2>
+                                    <h2 className="text-2xl font-bold text-slate-900">{displayName}</h2>
                                 )}
-                                <p className="text-slate-500 dark:text-slate-400">{currentUser?.email}</p>
+                                <p className="text-slate-500 dark:text-slate-400">{currentUser?.email || currentUser?.username}</p>
                             </div>
                             <button
                                 onClick={isEditing ? handleSave : () => setIsEditing(true)}
@@ -103,7 +147,7 @@ const Profile = () => {
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     />
                                 ) : (
-                                    <p className="text-slate-900 font-medium">{currentUser?.email}</p>
+                                    <p className="text-slate-900 font-medium">{currentUser?.email || '—'}</p>
                                 )}
                             </div>
                             <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
@@ -111,7 +155,7 @@ const Profile = () => {
                                     <Shield className="w-5 h-5 text-slate-400 dark:text-slate-500" />
                                     <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Role</span>
                                 </div>
-                                <p className="text-slate-900 font-medium">Local Administrator</p>
+                                <p className="text-slate-900 font-medium">{roleName} Account</p>
                             </div>
                         </div>
 
@@ -119,6 +163,109 @@ const Profile = () => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Reset / Change Password Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden max-w-2xl mt-8">
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-orange-50 dark:bg-orange-950/40 text-orange-600 rounded-lg">
+                            <KeyRound className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h2 className="font-bold text-slate-900 dark:text-slate-100 text-base">Reset / Change Password</h2>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Ensure your account is using a secure password</p>
+                        </div>
+                    </div>
+                </div>
+
+                <form onSubmit={handlePasswordChange} className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                            Current Password
+                        </label>
+                        <div className="relative">
+                            <input
+                                type={showCurPwd ? 'text' : 'password'}
+                                value={pwdData.currentPassword}
+                                onChange={e => setPwdData({ ...pwdData, currentPassword: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-orange-500 outline-none pr-10"
+                                placeholder="Enter your current password"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowCurPwd(!showCurPwd)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                tabIndex={-1}
+                            >
+                                {showCurPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                New Password
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type={showNewPwd ? 'text' : 'password'}
+                                    value={pwdData.newPassword}
+                                    onChange={e => setPwdData({ ...pwdData, newPassword: e.target.value })}
+                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-orange-500 outline-none pr-10"
+                                    placeholder="At least 6 characters"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowNewPwd(!showNewPwd)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                    tabIndex={-1}
+                                >
+                                    {showNewPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                Confirm New Password
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type={showConfPwd ? 'text' : 'password'}
+                                    value={pwdData.confirmPassword}
+                                    onChange={e => setPwdData({ ...pwdData, confirmPassword: e.target.value })}
+                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-orange-500 outline-none pr-10"
+                                    placeholder="Repeat new password"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfPwd(!showConfPwd)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                    tabIndex={-1}
+                                >
+                                    {showConfPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-2 flex justify-end">
+                        <button
+                            type="submit"
+                            disabled={pwdBusy}
+                            className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 disabled:opacity-60 text-white rounded-lg font-semibold text-sm shadow-sm transition-colors flex items-center gap-2"
+                        >
+                            {pwdBusy ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                            ) : (
+                                <KeyRound className="w-4 h-4" />
+                            )}
+                            {pwdBusy ? 'Updating...' : 'Update Password'}
+                        </button>
+                    </div>
+                </form>
             </div>
 
             <div className="mt-8 p-6 bg-blue-50 border border-blue-100 rounded-2xl max-w-2xl">

@@ -3,8 +3,9 @@ import * as db from '../database.mjs';
 export const getAllTours = async (req, res) => {
     try {
         console.log('[TourController] Fetching all tours...');
-        const { upcoming } = req.query;
-        const tours = await db.getTours(upcoming === 'true');
+        const { upcoming, contact, phone } = req.query;
+        const mobile = contact || phone || '';
+        const tours = await db.getTours(upcoming === 'true', mobile);
         console.log(`[TourController] Found ${tours.length} tours`);
         res.json({ success: true, data: tours });
     } catch (error) {

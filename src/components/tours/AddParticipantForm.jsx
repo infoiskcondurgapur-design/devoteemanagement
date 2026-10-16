@@ -48,10 +48,13 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
     }, [isWalkin, formData.devoteeId, tour?.enrollments]);
 
     const filteredDevotees = useMemo(() => {
-        const q = devoteeSearch.toLowerCase();
+        const q = devoteeSearch.toLowerCase().trim();
         if (!q) return devotees.slice(0, 20);
         return devotees.filter(d =>
-            d.name?.toLowerCase().includes(q) || d.initiatedName?.toLowerCase().includes(q)
+            d.name?.toLowerCase().includes(q) || 
+            d.initiatedName?.toLowerCase().includes(q) ||
+            d.contact?.includes(q) ||
+            d.whatsapp?.includes(q)
         ).slice(0, 20);
     }, [devotees, devoteeSearch]);
 
@@ -331,7 +334,7 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
                                     value={devoteeSearch}
                                     onChange={e => { setDevoteeSearch(e.target.value); setShowDropdown(true); setFormData(f => ({ ...f, devoteeId: '', devoteeName: '' })); }}
                                     onFocus={() => setShowDropdown(true)}
-                                    placeholder="Search devotee by name..."
+                                    placeholder="Search devotee by name or mobile no..."
                                     className="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm"
                                 />
                             </div>

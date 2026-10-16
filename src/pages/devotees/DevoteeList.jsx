@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, Filter, Eye, Edit, Trash, LayoutGrid, List, MessageSquare, X, ChevronLeft, ChevronRight, Layout, UserCheck, Maximize2, RefreshCw } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Trash, LayoutGrid, List, MessageSquare, X, ChevronLeft, ChevronRight, Layout, UserCheck, Maximize2, RefreshCw, Phone, Upload } from 'lucide-react';
 import { useDevotees } from '../../context/DevoteeContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '../../components/Toast';
@@ -38,6 +38,7 @@ const DevoteeList = () => {
         counselor: '',
         spiritualStatus: '',
         district: '',
+        contact: '',
     });
     const hasActiveFilters = Object.values(filters).some(Boolean);
 
@@ -98,15 +99,37 @@ const DevoteeList = () => {
 
     // Safely memoize active paginated devotees
     const safeDevotees = useMemo(() => {
-        if (Array.isArray(contextPaginatedDevotees) && contextPaginatedDevotees.length > 0) {
+        if (Array.isArray(contextPaginatedDevotees) && (contextPaginatedDevotees.length > 0 || hasActiveFilters || searchTerm || totalCount === 0)) {
             return contextPaginatedDevotees;
         }
         if (Array.isArray(devotees) && devotees.length > 0) {
+            let filtered = devotees;
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                filtered = filtered.filter(d => 
+                    (d.name && d.name.toLowerCase().includes(term)) ||
+                    (d.contact && d.contact.toLowerCase().includes(term)) ||
+                    (d.whatsapp && d.whatsapp.toLowerCase().includes(term)) ||
+                    (d.dob && d.dob.toLowerCase().includes(term))
+                );
+            }
+            if (filters.status) filtered = filtered.filter(d => d.status === filters.status);
+            if (filters.gender) filtered = filtered.filter(d => d.gender === filters.gender);
+            if (filters.spiritualStatus) filtered = filtered.filter(d => d.spiritualStatus === filters.spiritualStatus);
+            if (filters.counselor) filtered = filtered.filter(d => d.counselor === filters.counselor);
+            if (filters.district) filtered = filtered.filter(d => d.district === filters.district);
+            if (filters.contact) {
+                const cTerm = filters.contact.trim().toLowerCase();
+                filtered = filtered.filter(d => 
+                    (d.contact && String(d.contact).toLowerCase().includes(cTerm)) ||
+                    (d.whatsapp && String(d.whatsapp).toLowerCase().includes(cTerm))
+                );
+            }
             const start = (currentPage - 1) * pageSize;
-            return devotees.slice(start, start + pageSize);
+            return filtered.slice(start, start + pageSize);
         }
         return [];
-    }, [contextPaginatedDevotees, devotees, currentPage, pageSize]);
+    }, [contextPaginatedDevotees, devotees, currentPage, pageSize, searchTerm, filters, hasActiveFilters, totalCount]);
 
     // Virtualized table rows calculation
     const rowHeight = 72; // Avg row height in pixels
@@ -138,7 +161,7 @@ const DevoteeList = () => {
     const paginatedDevotees = safeDevotees;
 
     const clearFilters = () => {
-        setFilters({ status: '', gender: '', counselor: '', spiritualStatus: '', district: '' });
+        setFilters({ status: '', gender: '', counselor: '', spiritualStatus: '', district: '', contact: '' });
         setCurrentPage(1);
     };
 
@@ -208,6 +231,14 @@ const DevoteeList = () => {
                     >
                         <RefreshCw className="w-5 h-5" />
                     </button>
+                    <Link 
+                        to="/devotees/bulk-upload"
+                        className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm font-medium"
+                        title="Bulk Upload Devotees from Excel or CSV"
+                    >
+                        <Upload className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                        <span>Bulk Upload</span>
+                    </Link>
                     <Link to="/devotees/new" className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-xl hover:bg-orange-700 transition-colors shadow-lg shadow-orange-900/20">
                         <Plus className="w-5 h-5" />
                         <span>Add Devotee</span>
@@ -304,7 +335,17 @@ const DevoteeList = () => {
                             </button>
                         )}
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                        <div className="relative">
+                            <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                            <input
+                                type="text"
+                                placeholder="Mobile number..."
+                                value={filters.contact}
+                                onChange={e => { setFilters(f => ({ ...f, contact: e.target.value })); setCurrentPage(1); }}
+                                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                            />
+                        </div>
                         <select value={filters.status} onChange={e => { setFilters(f => ({ ...f, status: e.target.value })); setCurrentPage(1); }} className={selectClass}>
                             <option value="">All Status</option>
                             <option value="Pending">Pending</option>

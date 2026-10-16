@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
     RefreshCw, Loader2, CheckCircle2, RotateCcw,
-    Monitor, Download, HardDrive, Archive, Cloud, Plus, Trash2, User, GraduationCap, MessageSquare
+    Monitor, Download, HardDrive, Archive, Cloud, Plus, Trash2, User, GraduationCap, MessageSquare,
+    Settings as SettingsIcon, ExternalLink, X
 } from 'lucide-react';
+
 import clsx from 'clsx';
 import { useToast } from '../components/Toast';
 import apiService from '../services/api';
@@ -127,7 +129,16 @@ const Settings = () => {
     const [googleBackingUp, setGoogleBackingUp] = useState(false);
     const [cloudBackupStatus, setCloudBackupStatus] = useState(null);
     const [cloudSyncing, setCloudSyncing] = useState(false);
+    const [showDropboxModal, setShowDropboxModal] = useState(false);
+    const [dropboxToken, setDropboxToken] = useState('');
+    const [dropboxRefreshToken, setDropboxRefreshToken] = useState('');
+    const [dropboxAppKey, setDropboxAppKey] = useState('');
+    const [dropboxAppSecret, setDropboxAppSecret] = useState('');
+    const [dropboxMode, setDropboxMode] = useState('token');
+    const [dropboxSaving, setDropboxSaving] = useState(false);
+    const [dropboxSyncing, setDropboxSyncing] = useState(false);
     const [whatsappStatus, setWhatsappStatus] = useState('checking');
+
     const [whatsappQr, setWhatsappQr] = useState(null);
     const [whatsappLoading, setWhatsappLoading] = useState(false);
     const toast = useToast();
@@ -229,6 +240,69 @@ const Settings = () => {
             setCloudSyncing(false);
         }
     };
+
+    const handleDropboxSync = async () => {
+        setDropboxSyncing(true);
+        try {
+            const data = await apiService.runDropboxSync();
+            if (data.success) {
+                toast.success(`Dropbox sync successful! Saved to ${data.result?.path || '/DMS_Backups'}`);
+                fetchCloudStatus();
+            } else {
+                throw new Error(data.error || 'Sync failed');
+            }
+        } catch (err) {
+            toast.error('Dropbox sync failed: ' + err.message);
+            fetchCloudStatus();
+        } finally {
+            setDropboxSyncing(false);
+        }
+    };
+
+    const handleSaveDropboxConfig = async (e) => {
+        if (e) e.preventDefault();
+        setDropboxSaving(true);
+        try {
+            const payload = dropboxMode === 'token'
+                ? { accessToken: dropboxToken.trim() }
+                : {
+                    refreshToken: dropboxRefreshToken.trim(),
+                    appKey: dropboxAppKey.trim(),
+                    appSecret: dropboxAppSecret.trim()
+                };
+            const data = await apiService.saveDropboxConfig(payload);
+            if (data.success) {
+                toast.success('Dropbox settings saved successfully!');
+                setShowDropboxModal(false);
+                fetchCloudStatus();
+            } else {
+                throw new Error(data.error || 'Failed to save settings');
+            }
+        } catch (err) {
+            toast.error('Failed to save Dropbox settings: ' + err.message);
+        } finally {
+            setDropboxSaving(false);
+        }
+    };
+
+    const handleClearDropboxConfig = async () => {
+        if (!window.confirm('Are you sure you want to disconnect Dropbox?')) return;
+        try {
+            const data = await apiService.saveDropboxConfig({ clear: true });
+            if (data.success) {
+                toast.info('Dropbox credentials removed');
+                setDropboxToken('');
+                setDropboxRefreshToken('');
+                setDropboxAppKey('');
+                setDropboxAppSecret('');
+                setShowDropboxModal(false);
+                fetchCloudStatus();
+            }
+        } catch (err) {
+            toast.error('Failed to clear Dropbox config: ' + err.message);
+        }
+    };
+
 
     const handleConnectGoogle = async () => {
         setGoogleConnecting(true);
@@ -550,12 +624,13 @@ const Settings = () => {
                     <SectionCard>
                         <SectionHeader icon={Cloud} title="Disaster Recovery" subtitle="AWS S3 & Dropbox Sync" />
                         <div className="p-5 space-y-4">
+                            {/* AWS S3 */}
                             <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
                                 <div className="flex items-center justify-between">
                                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300">AWS S3 Storage</span>
                                     <span className={clsx(
                                         "text-xs font-bold px-2 py-0.5 rounded-full",
-                                        cloudBackupStatus?.s3?.configured ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                                        cloudBackupStatus?.s3?.configured ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
                                     )}>
                                         {cloudBackupStatus?.s3?.configured ? "Configured" : "Credentials Missing"}
                                     </span>
@@ -569,28 +644,76 @@ const Settings = () => {
                                 )}
                             </div>
 
+                            {/* Dropbox Storage */}
                             <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Dropbox Storage</span>
-                                    <span className={clsx(
-                                        "text-xs font-bold px-2 py-0.5 rounded-full",
-                                        cloudBackupStatus?.dropbox?.configured ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
-                                    )}>
-                                        {cloudBackupStatus?.dropbox?.configured ? "Configured" : "Credentials Missing"}
-                                    </span>
-                                </div>
-                                {cloudBackupStatus?.dropbox?.configured && (
-                                    <div className="mt-1.5 space-y-0.5">
-                                        <p className="text-[10px] text-slate-400 dark:text-slate-500">Path: <span className="font-semibold text-slate-600 dark:text-slate-400">{cloudBackupStatus.dropbox.folderPath}</span></p>
-                                        <p className="text-[10px] text-slate-400 dark:text-slate-500">Last Sync: <span className="font-semibold text-slate-600 dark:text-slate-400">{cloudBackupStatus.dropbox.lastBackupTime ? new Date(cloudBackupStatus.dropbox.lastBackupTime).toLocaleString() : 'Never'}</span></p>
-                                        <p className="text-[10px] text-slate-400 dark:text-slate-500">Status: <span className={clsx("font-bold", cloudBackupStatus.dropbox.lastBackupStatus === 'Success' ? "text-emerald-600" : "text-red-500")}>{cloudBackupStatus.dropbox.lastBackupStatus}</span></p>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Dropbox Storage</span>
+                                        <span className={clsx(
+                                            "text-xs font-bold px-2 py-0.5 rounded-full",
+                                            cloudBackupStatus?.dropbox?.configured ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                                        )}>
+                                            {cloudBackupStatus?.dropbox?.configured ? "Configured" : "Not Linked"}
+                                        </span>
                                     </div>
+                                    <button
+                                        onClick={() => setShowDropboxModal(true)}
+                                        className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-semibold flex items-center gap-1 hover:underline"
+                                    >
+                                        <SettingsIcon size={12} />
+                                        {cloudBackupStatus?.dropbox?.configured ? "Configure" : "Connect"}
+                                    </button>
+                                </div>
+                                {cloudBackupStatus?.dropbox?.configured ? (
+                                    <div className="mt-1.5 space-y-1">
+                                        <div className="space-y-0.5">
+                                            <p className="text-[10px] text-slate-400 dark:text-slate-500">Path: <span className="font-semibold text-slate-600 dark:text-slate-400">{cloudBackupStatus.dropbox.folderPath}</span></p>
+                                            {cloudBackupStatus.dropbox.space && (
+                                                <div className="py-1">
+                                                    <div className="flex items-center justify-between text-[10px]">
+                                                        <span className="text-slate-400 dark:text-slate-500">Dropbox Space:</span>
+                                                        <span className={clsx("font-bold", cloudBackupStatus.dropbox.space.isFull ? "text-red-500" : "text-slate-600 dark:text-slate-300")}>
+                                                            {cloudBackupStatus.dropbox.space.usedFormatted} / {cloudBackupStatus.dropbox.space.allocatedFormatted} ({cloudBackupStatus.dropbox.space.percentUsed}%)
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mt-1">
+                                                        <div
+                                                            className={clsx("h-full transition-all", cloudBackupStatus.dropbox.space.isFull ? "bg-red-500" : cloudBackupStatus.dropbox.space.percentUsed > 85 ? "bg-amber-500" : "bg-blue-500")}
+                                                            style={{ width: `${Math.min(100, cloudBackupStatus.dropbox.space.percentUsed)}%` }}
+                                                        />
+                                                    </div>
+                                                    {cloudBackupStatus.dropbox.space.isFull && (
+                                                        <p className="text-[10px] text-red-500 font-medium mt-1">
+                                                            ⚠️ Storage full! Delete files or empty Trash on dropbox.com to sync.
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+                                            <p className="text-[10px] text-slate-400 dark:text-slate-500">Last Sync: <span className="font-semibold text-slate-600 dark:text-slate-400">{cloudBackupStatus.dropbox.lastBackupTime ? new Date(cloudBackupStatus.dropbox.lastBackupTime).toLocaleString() : 'Never'}</span></p>
+                                            <p className="text-[10px] text-slate-400 dark:text-slate-500">Status: <span className={clsx("font-bold", cloudBackupStatus.dropbox.lastBackupStatus === 'Success' ? "text-emerald-600" : "text-red-500")}>{cloudBackupStatus.dropbox.lastBackupStatus}</span></p>
+                                        </div>
+                                        <div className="pt-1">
+                                            <button
+                                                onClick={handleDropboxSync}
+                                                disabled={dropboxSyncing || cloudBackupStatus?.dropbox?.space?.isFull}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 disabled:opacity-60 transition-colors shadow-sm"
+                                            >
+                                                {dropboxSyncing ? <Loader2 size={12} className="animate-spin" /> : <Cloud size={12} />}
+                                                {dropboxSyncing ? 'Syncing to Dropbox...' : 'Sync Dropbox Now'}
+                                            </button>
+                                        </div>
+
+                                    </div>
+                                ) : (
+                                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 leading-snug">
+                                        Upload automated snapshots to Dropbox <code>/DMS_Backups/</code> folder.
+                                    </p>
                                 )}
                             </div>
 
                             <div className="flex items-center justify-between pt-1">
                                 <p className="text-[11px] text-slate-400 dark:text-slate-500 max-w-[180px] leading-snug">
-                                    Trigger a manual sync of the current data to S3 &amp; Dropbox.
+                                    Trigger a multi-cloud disaster recovery sync.
                                 </p>
                                 <button
                                     onClick={handleCloudSync}
@@ -598,13 +721,164 @@ const Settings = () => {
                                     className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold hover:bg-blue-100 disabled:opacity-60 transition-colors"
                                 >
                                     {cloudSyncing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-                                    {cloudSyncing ? 'Syncing...' : 'Sync to Cloud'}
+                                    {cloudSyncing ? 'Syncing...' : 'Sync All Clouds'}
                                 </button>
                             </div>
                         </div>
                     </SectionCard>
                 </div>
             </div>
+
+            {/* Dropbox Configuration Modal */}
+            {showDropboxModal && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                            <div className="flex items-center gap-2.5">
+                                <div className="p-2 bg-blue-50 dark:bg-blue-950/50 rounded-xl text-blue-600 dark:text-blue-400">
+                                    <Cloud className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-900 dark:text-white text-base">Dropbox Disaster Recovery</h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">Configure cloud backup storage</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowDropboxModal(false)}
+                                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Mode Selector */}
+                        <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold">
+                            <button
+                                type="button"
+                                onClick={() => setDropboxMode('token')}
+                                className={clsx(
+                                    "flex-1 py-1.5 rounded-lg transition-all",
+                                    dropboxMode === 'token' ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                                )}
+                            >
+                                Access Token (Quick)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setDropboxMode('oauth')}
+                                className={clsx(
+                                    "flex-1 py-1.5 rounded-lg transition-all",
+                                    dropboxMode === 'oauth' ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                                )}
+                            >
+                                App Key &amp; Refresh Token (Permanent)
+                            </button>
+                        </div>
+
+                        {/* Instructions */}
+                        <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-xl text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                            <p className="font-semibold text-blue-700 dark:text-blue-300 flex items-center justify-between">
+                                <span>How to get credentials:</span>
+                                <a
+                                    href="https://www.dropbox.com/developers/apps"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                    Open Dropbox Apps <ExternalLink size={11} />
+                                </a>
+                            </p>
+                            <ol className="list-decimal pl-4 space-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                                <li>Create an App with <strong>Scoped access</strong> &amp; <strong>Full Dropbox</strong>.</li>
+                                <li>Under <strong>Permissions</strong>, check <code>files.content.write</code>.</li>
+                                {dropboxMode === 'token' ? (
+                                    <li>Under <strong>Settings</strong>, click <strong>Generate access token</strong> and paste below.</li>
+                                ) : (
+                                    <li>Copy <strong>App Key</strong> &amp; <strong>App Secret</strong>, and generate a Refresh Token.</li>
+                                )}
+                            </ol>
+                        </div>
+
+                        {dropboxMode === 'token' ? (
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                    Dropbox Access Token
+                                </label>
+                                <input
+                                    type="password"
+                                    placeholder="sl.u.AF9..."
+                                    value={dropboxToken}
+                                    onChange={(e) => setDropboxToken(e.target.value)}
+                                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                        ) : (
+                            <div className="space-y-2.5">
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">App Key</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Dropbox App Key"
+                                        value={dropboxAppKey}
+                                        onChange={(e) => setDropboxAppKey(e.target.value)}
+                                        className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">App Secret</label>
+                                    <input
+                                        type="password"
+                                        placeholder="Dropbox App Secret"
+                                        value={dropboxAppSecret}
+                                        onChange={(e) => setDropboxAppSecret(e.target.value)}
+                                        className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Refresh Token</label>
+                                    <input
+                                        type="password"
+                                        placeholder="Dropbox Refresh Token"
+                                        value={dropboxRefreshToken}
+                                        onChange={(e) => setDropboxRefreshToken(e.target.value)}
+                                        className="w-full mt-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+                            {cloudBackupStatus?.dropbox?.configured ? (
+                                <button
+                                    type="button"
+                                    onClick={handleClearDropboxConfig}
+                                    className="text-xs text-red-600 hover:text-red-700 font-semibold px-2 py-1"
+                                >
+                                    Disconnect
+                                </button>
+                            ) : <span />}
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDropboxModal(false)}
+                                    className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSaveDropboxConfig}
+                                    disabled={dropboxSaving || (dropboxMode === 'token' ? !dropboxToken.trim() : (!dropboxAppKey.trim() || !dropboxAppSecret.trim() || !dropboxRefreshToken.trim()))}
+                                    className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold disabled:opacity-50 transition-colors shadow-sm flex items-center gap-1.5"
+                                >
+                                    {dropboxSaving ? <Loader2 size={13} className="animate-spin" /> : null}
+                                    Save &amp; Connect
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

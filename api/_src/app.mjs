@@ -21,6 +21,8 @@ import attendanceRoutes from './routes/attendanceRoutes.mjs';
 import counselingRoutes from './routes/counselingRoutes.mjs';
 import changeRequestRoutes from './routes/changeRequestRoutes.mjs';
 import publicRoutes from './routes/publicRoutes.mjs';
+import userRoutes from './routes/userRoutes.mjs';
+import { restore } from './controllers/systemController.mjs';
 import { requireAuth } from './services/authService.mjs';
 
 export const createApp = () => {
@@ -48,7 +50,15 @@ export const createApp = () => {
         }
     }));
 
-    app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+    app.use(helmet({
+        contentSecurityPolicy: false,
+        crossOriginEmbedderPolicy: false,
+        hsts: {
+            maxAge: 31536000,
+            includeSubDomains: true,
+            preload: true
+        }
+    }));
     app.set('trust proxy', 1);
 
     app.use(bodyParser.json({ limit: '15mb' }));
@@ -82,11 +92,15 @@ export const createApp = () => {
         // Compare against the path only — the query string must never satisfy a public-path check.
         const p = (req.originalUrl || req.url || '').split('?')[0];
         const loginPath = req.method === 'POST' && (p.includes('/api/auth/login') || p.includes('/auth/login'));
+        const forgotPath = req.method === 'POST' && (
+            p.includes('/api/auth/forgot-password') || p.includes('/auth/forgot-password') ||
+            p.includes('/api/auth/reset-password') || p.includes('/auth/reset-password')
+        );
         const googlePath = p.includes('/api/auth/google') || p.includes('/auth/google');
         const healthPath = p.includes('/system/health');
         const publicPath = p.includes('/public/register');
         const bypassPath = p.includes('/api/auth/bypass') || p.includes('/auth/bypass');
-        if (loginPath || googlePath || healthPath || publicPath || bypassPath) return next();
+        if (loginPath || forgotPath || googlePath || healthPath || publicPath || bypassPath) return next();
         return requireAuth(req, res, next);
     });
 
@@ -106,6 +120,8 @@ export const createApp = () => {
     app.use(['/api/counseling', '/counseling'], counselingRoutes);
     app.use(['/api/change-requests', '/change-requests'], changeRequestRoutes);
     app.use(['/api/public', '/public'], publicRoutes);
+    app.use(['/api/users', '/users'], userRoutes);
+    app.post(['/api/restore', '/restore'], restore);
 
     app.post(['/api/upload', '/upload'], async (req, res) => {
         try {
