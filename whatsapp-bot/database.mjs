@@ -675,7 +675,10 @@ export const runDataRepair = () => new Promise((resolve, reject) => {
         // 1. Clean whitespace from devotee names
         db.run("UPDATE devotees SET name = TRIM(name), initiatedName = TRIM(initiatedName)");
         
-        // 2. Fix contact numbers (basic normalization)
+        // 2. Clear legacy placeholder photo URLs
+        db.run("UPDATE devotees SET photo = '' WHERE photo LIKE '%photo-1633332755192-727a05c4013d%'");
+        
+        // 3. Fix contact numbers (basic normalization)
         db.all("SELECT id, contact FROM devotees WHERE contact IS NOT NULL AND contact != ''", [], (err, rows) => {
             if (rows) {
                 rows.forEach(row => {
@@ -730,10 +733,16 @@ export const getDevotees = (limit = 50, offset = 0, search = '', filters = {}) =
         const clauses = [];
         const params = [];
 
-        if (search) {
-            clauses.push("(name LIKE ? OR spiritualName LIKE ? OR contact LIKE ? OR whatsapp LIKE ? OR initiatedName LIKE ?)");
-            const searchParam = `%${search}%`;
-            params.push(searchParam, searchParam, searchParam, searchParam, searchParam);
+        const cleanSearch = String(search || '').trim();
+        if (cleanSearch) {
+            const tokens = cleanSearch.toLowerCase().split(/\s+/).filter(Boolean);
+            if (tokens.length > 0) {
+                tokens.forEach(tok => {
+                    const tokenParam = `%${tok}%`;
+                    clauses.push("(LOWER(name) LIKE ? OR LOWER(COALESCE(spiritualName, '')) LIKE ? OR LOWER(COALESCE(initiatedName, '')) LIKE ? OR contact LIKE ? OR whatsapp LIKE ? OR LOWER(COALESCE(email, '')) LIKE ?)");
+                    params.push(tokenParam, tokenParam, tokenParam, tokenParam, tokenParam, tokenParam);
+                });
+            }
         }
 
         // Apply filters in SQLite
@@ -767,8 +776,16 @@ export const getDevotees = (limit = 50, offset = 0, search = '', filters = {}) =
         query += whereClause;
         countQuery += whereClause;
 
-        query += " ORDER BY createdAt DESC LIMIT ? OFFSET ?";
-        const queryParams = [...params, limit, offset];
+        let queryParams;
+        if (cleanSearch) {
+            const prefixParam = `${cleanSearch}%`;
+            const wordParam = `% ${cleanSearch}%`;
+            query += " ORDER BY CASE WHEN LOWER(name) LIKE LOWER(?) THEN 1 WHEN LOWER(COALESCE(initiatedName, '')) LIKE LOWER(?) THEN 2 WHEN LOWER(name) LIKE LOWER(?) THEN 3 ELSE 4 END, name ASC, createdAt DESC LIMIT ? OFFSET ?";
+            queryParams = [...params, prefixParam, prefixParam, wordParam, limit, offset];
+        } else {
+            query += " ORDER BY createdAt DESC LIMIT ? OFFSET ?";
+            queryParams = [...params, limit, offset];
+        }
 
         db.get(countQuery, params, (err, countResult) => {
             if (err) return reject(err);
@@ -845,7 +862,7 @@ export const addDevotee = (data) => {
                     console.error('[DB] Add Devotee Error:', err);
                     reject(err);
                 } else {
-                    resolve({ id: data.id });
+                    resolve({ id: data.id || this.lastID });
                 }
             });
         }).catch(reject);
@@ -1357,7 +1374,8 @@ export const getDevoteeByPhone = (phone) => new Promise((resolve, reject) => {
 });
 
 export const getDevoteeById = (id) => new Promise((resolve, reject) => {
-    db.get('SELECT * FROM devotees WHERE id = ?', [id], (err, row) => {
+    const strId = String(id);
+    db.get('SELECT * FROM devotees WHERE id = ? OR CAST(id AS TEXT) = ?', [strId, strId], (err, row) => {
         if (err) reject(err);
         else resolve(row || null);
     });
@@ -1606,9 +1624,11 @@ export const enrollDevotee = (data) => new Promise((resolve, reject) => {
 
 export const getCourseEnrollments = (courseId) => new Promise((resolve, reject) => {
     db.all(`SELECT ce.*, d.name as devoteeName, d.spiritualName, d.initiatedName, d.contact, d.photo, d.whatsapp,
-            (SELECT COUNT(*) FROM course_attendance ca WHERE ca.courseId = ce.courseId AND ca.devoteeId = ce.devoteeId) as attendedSessions
+            (SELECT COUNT(*) FROM course_attendance ca WHERE ca.courseId = ce.courseId AND ca.devoteeId = ce.devoteeId) as attendedSessions,
+            (SELECT COALESCE(SUM(CASE WHEN cp.amount < 0 THEN -cp.amount ELSE 0 END), 0) FROM course_payments cp WHERE cp.enrollmentId = ce.id) as totalRefunded,
+            (SELECT COALESCE(SUM(CASE WHEN cp.amount > 0 THEN cp.amount ELSE 0 END), 0) FROM course_payments cp WHERE cp.enrollmentId = ce.id) as totalReceived
             FROM course_enrollments ce
-            JOIN devotees d ON ce.devoteeId = d.id
+            LEFT JOIN devotees d ON (ce.devoteeId = d.id OR CAST(ce.devoteeId AS TEXT) = CAST(d.id AS TEXT))
             WHERE ce.courseId = ?`, [courseId], (err, rows) => { if (err) reject(err); else resolve(rows || []); });
 });
 
@@ -1683,12 +1703,13 @@ export const addCoursePayment = (data) => new Promise((resolve, reject) => {
                 const paymentId = this.lastID;
 
                 // Update enrollment totals
-                db.get(`SELECT ce.totalPaid, c.fees FROM course_enrollments ce JOIN courses c ON ce.courseId = c.id WHERE ce.id = ?`, [data.enrollmentId], (err, row) => {
+                db.get(`SELECT ce.totalPaid, ce.status, c.fees FROM course_enrollments ce JOIN courses c ON ce.courseId = c.id WHERE ce.id = ?`, [data.enrollmentId], (err, row) => {
                     if (err || !row) { db.run("ROLLBACK"); return reject(err || new Error("Enrollment not found")); }
-                    const newTotal = Number(row.totalPaid) + Number(data.amount);
+                    const newTotal = Math.max(0, Number(row.totalPaid || 0) + Number(data.amount));
                     let paymentStatus = 'Partial';
-                    if (newTotal >= row.fees) paymentStatus = 'Completed';
-                    if (newTotal <= 0) paymentStatus = 'Due';
+                    if (newTotal >= Number(row.fees)) paymentStatus = 'Completed';
+                    if (newTotal <= 0) paymentStatus = (row.status === 'Cancelled' || row.status === 'Dropped' || Number(data.amount) < 0) ? 'Refunded' : 'Due';
+                    if (Number(data.amount) < 0 && newTotal > 0) paymentStatus = 'Partial Refund';
 
                     db.run(`UPDATE course_enrollments SET totalPaid = ?, paymentStatus = ? WHERE id = ?`, [newTotal, paymentStatus, data.enrollmentId], function (err) {
                         if (err) { db.run("ROLLBACK"); reject(err); }
@@ -1768,9 +1789,11 @@ export const enrollInTour = (data) => new Promise((resolve, reject) => {
 });
 
 export const getTourEnrollments = (tourId) => new Promise((resolve, reject) => {
-    db.all(`SELECT te.*, d.name as devoteeName, d.spiritualName, d.initiatedName, d.contact, d.photo, d.whatsapp
+    db.all(`SELECT te.*, d.name as devoteeName, d.spiritualName, d.initiatedName, d.contact, d.photo, d.whatsapp,
+            (SELECT COALESCE(SUM(CASE WHEN tp.amount < 0 THEN -tp.amount ELSE 0 END), 0) FROM tour_payments tp WHERE tp.enrollmentId = te.id) as totalRefunded,
+            (SELECT COALESCE(SUM(CASE WHEN tp.amount > 0 THEN tp.amount ELSE 0 END), 0) FROM tour_payments tp WHERE tp.enrollmentId = te.id) as totalReceived
             FROM tour_enrollments te
-            LEFT JOIN devotees d ON te.devoteeId = d.id
+            LEFT JOIN devotees d ON (te.devoteeId = d.id OR CAST(te.devoteeId AS TEXT) = CAST(d.id AS TEXT))
             WHERE te.tourId = ?`, [tourId], (err, rows) => { if (err) reject(err); else resolve(rows || []); });
 });
 
@@ -1803,12 +1826,13 @@ export const addTourPayment = (data) => new Promise((resolve, reject) => {
                 if (err) { db.run("ROLLBACK"); return reject(err); }
                 const paymentId = this.lastID;
 
-                db.get(`SELECT te.totalPaid, t.fees FROM tour_enrollments te JOIN tours t ON te.tourId = t.id WHERE te.id = ?`, [data.enrollmentId], (err, row) => {
+                db.get(`SELECT te.totalPaid, te.status, t.fees FROM tour_enrollments te JOIN tours t ON te.tourId = t.id WHERE te.id = ?`, [data.enrollmentId], (err, row) => {
                     if (err || !row) { db.run("ROLLBACK"); return reject(err || new Error("Tour Enrollment not found")); }
-                    const newTotal = Number(row.totalPaid) + Number(data.amount);
+                    const newTotal = Math.max(0, Number(row.totalPaid || 0) + Number(data.amount));
                     let paymentStatus = 'Partial';
-                    if (newTotal >= row.fees) paymentStatus = 'Completed';
-                    if (newTotal <= 0) paymentStatus = 'Due';
+                    if (newTotal >= Number(row.fees)) paymentStatus = 'Completed';
+                    if (newTotal <= 0) paymentStatus = (row.status === 'Cancelled' || Number(data.amount) < 0) ? 'Refunded' : 'Due';
+                    if (Number(data.amount) < 0 && newTotal > 0) paymentStatus = 'Partial Refund';
 
                     db.run(`UPDATE tour_enrollments SET totalPaid = ?, paymentStatus = ? WHERE id = ?`, [newTotal, paymentStatus, data.enrollmentId], function (err) {
                         if (err) { db.run("ROLLBACK"); reject(err); }

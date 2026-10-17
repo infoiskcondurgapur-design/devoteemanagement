@@ -1,6 +1,145 @@
 # CHANGELOG
 
+## [2026-10-17]
+
+### Smart Case-Insensitive, Multi-Token & Any-Word Search
+- **Client Search Engine Upgrade (`src/lib/searchUtils.js`)**:
+  - **Tokenized Matching**: Search queries with multiple words, reversed word order, or middle names (e.g. `das sadananda`, `sadananda das`, `mukherjee koushik`) now match devotees regardless of word position.
+  - **Any-Word & Substring Matching**: Typing any word, partial letters, or nickname in brackets (e.g. `gour`, `sajal`, `sada`, `deb`, `dasi`) from anywhere in the devotee's legal name, initiated name, spiritual name, phone, or email successfully matches.
+  - **Multi-Token Highlighting (`HighlightText`)**: Highlights every matched search token simultaneously across the full name or initiated name.
+- **Backend SQL Query Enhancement (`whatsapp-bot/database.mjs` & `api/_src/database.mjs`)**:
+  - Replaced strict full-string pattern matching with multi-token query generation (`(token1 matches) AND (token2 matches)`).
+  - Matches across `name`, `initiatedName`, `spiritualName`, `contact`, `whatsapp`, and `email` using parameterized queries for SQLite and PostgreSQL.
+- **Unified Component Adoption**:
+  - Updated `CounselorDashboard.jsx`, `DonationForm.jsx`, `Attendance.jsx`, `CourseDetails.jsx`, and `TourDetails.jsx` to leverage the new flexible search matching.
+- **Verification**:
+  - 12 comprehensive search unit tests created and passing (`test/search_devotees.test.mjs`).
+  - All 23 backend regression tests passing (`npm run test:regression`).
+  - Production build passing (`npm run build`).
+
+### Removal of Unwanted Default Photo Placeholder
+- **Removed Hardcoded Stock Photo Fallback (`src/context/DevoteeContext.jsx`)**:
+  - Removed `'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&h=400&fit=crop'` which was being assigned whenever a devotee was entered manually without a photo.
+  - New devotees created manually or via forms now default cleanly to `''` (no image), letting the UI use its standard clean avatar placeholders (`/default-avatar.png` or initials/icons).
+  - Added `cleanPhotoUrl` utility in `DevoteeContext.jsx` to dynamically strip this legacy photo URL from in-memory state and `localStorage`.
+- **Database Self-Healing & Cleanup (`whatsapp-bot/database.mjs` & `api/_src/database.mjs`)**:
+  - Added self-healing database routine in `runDataRepair` and `initDb` to automatically clear the legacy placeholder photo from existing devotee records.
+  - Cleared legacy placeholder photo occurrences from the local SQLite database.
+
 ## [2026-10-16]
+
+### Comprehensive Cancel & Refund Management for Tours and Courses
+- **Unified Cancel & Refund Workflow (`src/components/CancelRefundModal.jsx`)**:
+  - Created a reusable, dark-mode ready modal for Tours and Courses managing the complete cancellation & refund lifecycle.
+  - Three distinct refund choices with live financial computation:
+    - **Full Refund**: Instantly refunds 100% of the remaining paid balance.
+    - **Partial Refund**: Number input bounded between ₹1 and remaining balance, displaying dynamic deduction / cancellation fee calculation.
+    - **No Refund**: Confirms cancellation while retaining the entire balance with temple accounts under non-refundable policies.
+  - Channel selection: Cash, UPI / PhonePe / GPay, Bank Transfer / NEFT, or Cheque.
+  - Note and reason logging persisted into payment and transaction records.
+- **Tour Section Enhancements (`src/pages/tours/TourDetails.jsx`)**:
+  - Intercepted participant status dropdown changes to `'Cancelled'` to launch `CancelRefundModal` before updating records.
+  - Added dedicated `<RotateCcw />` Cancel & Refund row action for active tour participants.
+  - Upgraded Cancelled Participants table with real-time financial tracking: Net Balance, Total Received, Total Refunded, and status badges (`Refunded`, `Partial Refund`).
+  - Added "Refund" action button in cancelled table to process remaining refunds for partially refunded or unrefunded cancelled bookings at any future time.
+  - Added specialized Yatra Cancellation & Refund WhatsApp receipts with detailed breakdown of fees, amount paid, amount refunded, balance retained, and contact assistance.
+- **Course Section Enhancements (`src/pages/courses/CourseDetails.jsx`)**:
+  - Added `'Cancelled'` status option alongside `'Participated'`, `'Completed'`, and `'Dropped'`.
+  - Added `<RotateCcw />` action button on course participant rows for 1-click cancellation and refund processing.
+  - Integrated `<MessageSquare />` WhatsApp action button on all course participant rows and mounted `<WhatsAppModal>`.
+  - Structured dedicated **Cancelled & Dropped Participants** section below the active table with net fee tracking, refund history, and WhatsApp receipt options.
+  - Updated course dashboard statistics (Active Enrolled, Total Collected, Total Due) to calculate strictly across active enrollments.
+- **Database Parity (`whatsapp-bot/database.mjs` & `api/_src/database.mjs`)**:
+  - Updated `addCoursePayment` and `addTourPayment` to support negative refund transactions (`amount: -refundAmount`).
+  - Implemented `Math.max(0, ...)` safe bounds preventing negative enrollment totals.
+  - Automatic `paymentStatus` calculation (`'Refunded'`, `'Partial Refund'`, `'Due'`, `'Completed'`).
+  - Added `totalRefunded` and `totalReceived` SQL subqueries into `getTourEnrollments` and `getCourseEnrollments` for both SQLite and PostgreSQL.
+- **Unblockable WhatsApp Web Launching (`src/services/whatsappLink.js`)**:
+  - Direct dispatch to `https://web.whatsapp.com/send` avoids prompting for Microsoft Store app installations.
+  - Added clickable fallback link inside toast notifications (`Opening WhatsApp Web for ... Click if not opened`), ensuring popups can always be opened even under strict browser popup blocker settings.
+- **Verification**:
+  - Passed all 23 backend regression tests (`npm run test:regression`).
+  - Passed 5 automated DOM integration tests (`test/dom_tour_whatsapp.test.mjs`).
+  - Passed all database refund tests (`test/refund_backend.test.mjs`).
+  - Clean production build with Vite (`npm run build`).
+- **Root Cause Resolution**:
+  - Previously, clicking WhatsApp buttons in the Tour section (`TourDetails.jsx` and `AddParticipantForm.jsx`) invoked raw `window.open("https://wa.me/...")`. In desktop browsers, `wa.me` links often fail or prompt for nonexistent Microsoft Store apps instead of opening WhatsApp Web.
+  - In `AddParticipantForm.jsx`, an asynchronous receipt image rendering via `htmlToImage.toPng()` was awaited *before* invoking `window.open()`, causing browsers to block the window as an unprompted popup after the user gesture expired.
+  - In Electron desktop builds, raw `window.open()` was not bound to `shell.openExternal()`.
+  - SQLite and PostgreSQL queries in `getTourEnrollments` used strict ID equality against devotees, which failed when numeric IDs mismatched string IDs and cleared contact/phone numbers.
+- **Universal Multi-Mode WhatsApp Link Integration (`src/services/whatsappLink.js`)**:
+  - Unified all WhatsApp launches through `openWhatsApp(targetPhone, message, mode)`.
+  - Supports automatic routing: WhatsApp Web (`https://web.whatsapp.com/send`), WhatsApp App (`https://wa.me/` / `whatsapp://`), and Electron desktop shell integration.
+- **Enhanced Tour Details (`src/pages/tours/TourDetails.jsx`)**:
+  - Integrated `WhatsAppModal` directly into Tour participant management (both Active and Cancelled participant tables).
+  - Formatted comprehensive, professional Yatra receipts including Booking ID, Tour Name, Destination, Dates, Total Tour Fees, Paid Amount, Balance Due, and ISKCON Durgapur signoff.
+  - Added multi-source phone resolution: falls back gracefully through `en.whatsapp` -> `en.contact` -> `devotees` context lookup -> `en.guestContact`.
+  - Automatically triggers the WhatsApp confirmation modal upon recording an installment payment.
+- **Enhanced Add Participant Booking Modal (`src/components/tours/AddParticipantForm.jsx`)**:
+  - Added dedicated WhatsApp sharing card in the booking success view.
+  - Displays editable phone number input with instant copy-to-clipboard button.
+  - Dual action buttons: "WhatsApp Web" and "WhatsApp App" for desktop and mobile devices.
+  - Integrated full preview and custom message editor via `<WhatsAppModal>`.
+- **Popup Blocker & User Activation Fixes**:
+  - Eliminated the `noopener,noreferrer` parameter in `window.open` within `openWhatsApp`, which previously caused modern Chromium browsers to return `null` and trigger an accidental secondary `anchor.click()` popup that got blocked by browser security.
+  - Made WhatsApp opening completely synchronous on user click in `AddParticipantForm.jsx`: `openWhatsApp` now dispatches immediately, while receipt image PNG generation runs smoothly in the background without stealing or expiring transient user activation.
+  - Provided 1-click direct WhatsApp Web dispatch from the Tour participant table in `TourDetails.jsx` when a phone number is present, with automatic fallback to `<WhatsAppModal>` if a phone number is missing.
+  - Deferred modal dismissal (`setTimeout(() => onClose(), 300)`) in `WhatsAppModal.jsx` to prevent abruptly destroying the trigger element mid-navigation.
+  - Pre-seeded `targetPhone` and `message` directly in `useState` from props in `WhatsAppModal.jsx` to avoid initial invalid-phone state rendering.
+- **Automated DOM Testing (`test/dom_tour_whatsapp.test.mjs`)**:
+  - Implemented 5 automated DOM integration test suites using JSDOM:
+    1. Phone normalization across Indian standard, 0-prefixed, and country-code formats.
+    2. Direct window.open dispatch with target="_blank" and prefilled WhatsApp parameters.
+    3. Tour participant data resolution, Yatra balance due calculation, and message formatting.
+    4. DOM button click event simulation and unblocked dispatch.
+    5. Native clipboard copying integration.
+
+
+### Case-Insensitive & Prefix-Prioritized Devotee Search
+- **Core Search Engine (`src/lib/searchUtils.js`)**:
+  - Implemented `searchDevoteesByName`, `matchDevoteeName`, `normalizeText`, and `highlightMatches`.
+  - Guaranteed case-insensitivity: converts both user input and candidate strings to normalized lower-case with accent removal (`normalize('NFD')`), treating uppercase, lowercase, and mixed-case queries identically.
+  - Prefix Prioritization: Candidates whose legal name or initiated name starts with the user's typed characters (e.g. typing "deb" or "DEB" matches "**Deb**abrata Sahoo") are ranked at the highest priority (score 90-100), followed by word-initial matches (e.g. "sah" matching "Debabrata **Sah**oo"), then general substrings and contact numbers.
+  - Implemented `HighlightText` component dynamically highlighting the exact matching character sequence in amber (`<mark>`) without fragile regular expressions.
+- **Top Navigation Live Search Header (`src/components/layout/HeaderSearch.jsx` & `Header.jsx`)**:
+  - Replaced static dummy search input in application header with an interactive instant search bar accessible from every page.
+  - Displays instant floating dropdown showing matched devotees with avatar, highlighted name, spiritual name, counselor, contact, and status badge.
+  - Supports keyboard accessibility (Arrow Up/Down, Enter to view profile, Escape to dismiss) and clear button (`X`).
+  - Added mobile search trigger overlay for seamless phone and tablet navigation.
+- **Devotee List & Directory Integration (`src/pages/devotees/DevoteeList.jsx`)**:
+  - Integrated `searchDevoteesByName` and `HighlightText` in both Table and Grid views with live match highlights.
+  - Synchronized `searchTerm` state with URL `?search=` parameters so navigating from global search or links pre-populates and filters the directory instantly.
+  - Added single-click search clear button (`X`) and updated placeholder guide.
+- **Command Palette Integration (`src/components/CommandPalette.jsx`)**:
+  - Connected `Ctrl+K` global command palette devotee filter to `searchDevoteesByName` for unified ranking and case-insensitivity.
+- **Database Search Parity (`whatsapp-bot/database.mjs` & `api/_src/database.mjs`)**:
+  - SQLite: Upgraded `getDevotees` to use `LOWER(name) LIKE LOWER(?)` and `ORDER BY CASE WHEN LOWER(name) LIKE LOWER(?) THEN 1 ... END` for database-level prefix ranking.
+  - PostgreSQL: Trimmed queries and added `ORDER BY CASE WHEN name ILIKE ? THEN 1 ... END` for case-insensitive prefix prioritization.
+- **Automated Verification**:
+  - Created unit test suite (`test/searchUtils.test.mjs`) passing all 4 test suites (normalization, case-insensitivity, prefix sorting, segment highlighting).
+  - Verified full backend regression test suite (`tests/regression.api.test.mjs` - 23/23 tests passing).
+  - Production Vite build compiled cleanly with 0 errors (`dist/`).
+
+### Devotee Profile Details Restoration & ID Type Coercion Fix
+- **Dark Mode Font Visibility Fix (`src/pages/devotees/DevoteeProfile.jsx`)**:
+  - Fixed critical dark mode issue where `InfoRow` values were styled with `text-slate-900` without `dark:text-slate-100`, making all profile details visually black-on-black (invisible) on dark backgrounds while headers remained light. Added `dark:text-slate-100` and cleaned up malformed Tailwind class names (`dark:bg-slate-900/50/50`).
+- **Comprehensive Profile Field Display (`src/pages/devotees/DevoteeProfile.jsx`)**:
+  - Restored over 15 previously omitted fields into structured sections:
+    - *Personal & Demographics:* Full Name, Initiated/Spiritual Name, Gender, Date of Birth with calculated Age, Blood Group, Marital Status, Marriage Anniversary, Contact Number (with integrated WhatsApp launcher), WhatsApp Number, Email Address, Father/Guardian Name & Relationship.
+    - *Education & Profession:* Highest Qualification/Education, Occupation, Special Skills, Current Seva.
+    - *Residential Address:* Street Address, Village/Town, District, State, PIN Code.
+    - *Spiritual Journey:* Spiritual Status, Counselor, Spiritual Master (Diksha Guru), Daily Japa Rounds, Following 4 Regulative Principles Since, Shelter Date, 1st & 2nd Initiation Dates, Books Read, Books Currently Reading, Courses Completed.
+    - *Family & Commemorative Dates:* Children details (Child 1/2/3 with DOBs), Other Family Members, Shraddha Ceremony Date.
+- **Type-Safe ID Coercion across Frontend & Backend**:
+  - Standardized ID comparison across all components to string-coerced comparisons (`String(d.id) === String(id)`), preventing strict equality mismatches when IDs are parsed as numbers from PostgreSQL schemas:
+    - `src/pages/devotees/DevoteeProfile.jsx`: Prevented profile clearing during background auto-sync polls; added graceful loading spinner; wrapped numeric ID substrings with `String()`.
+    - `src/pages/devotees/DevoteeForm.jsx`: Implemented fallback fetching directly from API if devotee is not yet in local context state on page refresh.
+    - `src/pages/courses/CourseDetails.jsx` & `src/pages/Attendance.jsx`: Reconciled scanner check-ins to support string and numeric devotee IDs seamlessly.
+    - `src/pages/ChangeRequestForm.jsx` & `src/context/SadhanaContext.jsx`: Safe ID string matching.
+    - `src/components/JourneyTimeline.jsx`: Added Appearance Day (DOB), 4 Regulative Principles commitment, and Anniversary milestones.
+- **Backend ID Lookup Parity (`whatsapp-bot/database.mjs` & `api/_src/database.mjs`)**:
+  - Updated `getDevoteeById` to query by `id = ? OR CAST(id AS TEXT) = ?` in SQLite, ensuring numeric and string queries resolve correctly.
+  - Updated PostgreSQL `getDevoteeById` to accept both string and integer IDs, and converted search filters to `ILIKE` for full SQLite case-insensitive parity.
 
 ### Automated Dropbox Disaster Recovery & Space-Safe Auto-Sync
 - **Backend Autonomous Sync Service (`whatsapp-bot/services/DropboxAutoSyncService.mjs` & `server.mjs`)**:

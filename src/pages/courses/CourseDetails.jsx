@@ -5,13 +5,18 @@ import {
     GraduationCap, Calendar, Users, CreditCard, Award, 
     Plus, Trash2, Edit, CheckCircle, X, Search, 
     ArrowLeft, MoreVertical, IndianRupee, FileText,
-    History, Check, Download, ExternalLink, QrCode
+    History, Check, Download, ExternalLink, QrCode,
+    MessageSquare, RotateCcw, Phone
 } from 'lucide-react';
 import { useDevotees } from '../../context/DevoteeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import apiService from '../../services/api';
 import QRScanner from '../../components/QRScanner';
+import CancelRefundModal from '../../components/CancelRefundModal';
+import WhatsAppModal from '../../components/WhatsAppModal';
+import { openWhatsApp, sanitizeWhatsAppNumber } from '../../services/whatsappLink';
+import { searchDevoteesByName } from '../../lib/searchUtils';
 
 const CourseDetails = () => {
     const { id } = useParams();
@@ -31,6 +36,16 @@ const CourseDetails = () => {
     const [selectedEnrollment, setSelectedEnrollment] = useState(null);
     const [paymentForm, setPaymentForm] = useState({ amount: 0, mode: 'Cash', reference: '' });
     const [enrollSearch, setEnrollSearch] = useState('');
+
+    // Cancel & Refund Modal State
+    const [showCancelRefundModal, setShowCancelRefundModal] = useState(false);
+    const [cancelTargetEnrollment, setCancelTargetEnrollment] = useState(null);
+    const [isRefundOnlyAction, setIsRefundOnlyAction] = useState(false);
+
+    // WhatsApp Modal State
+    const [whatsAppParticipant, setWhatsAppParticipant] = useState(null);
+    const [whatsAppMessage, setWhatsAppMessage] = useState('');
+    const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
     
     // Attendance State
     const [showAttendanceModal, setShowAttendanceModal] = useState(false);
@@ -61,6 +76,118 @@ const CourseDetails = () => {
         fetchCourseData();
     }, [fetchCourseData]);
 
+    const handleSendWhatsAppReceipt = (en, openDirect = true) => {
+        const dev = Array.isArray(devotees) ? devotees.find(d => String(d.id) === String(en.devoteeId)) : null;
+
+        const name = en.initiatedName || en.devoteeName || dev?.initiatedName || dev?.name || 'Devotee';
+        const rawPhone = en.whatsapp || en.contact || dev?.whatsapp || dev?.contact || '';
+
+        const courseFee = Number(course?.fees || 0);
+        const totalPaid = Number(en.totalPaid || 0);
+        const totalRefunded = Number(en.totalRefunded || 0);
+        const totalReceived = Number(en.totalReceived || (totalPaid + totalRefunded));
+        const isCancelled = en.status === 'Cancelled' || en.status === 'Dropped';
+
+        let message;
+        if (isCancelled) {
+            message = 
+                `Hare Krishna ${name}! 🙏\n\n` +
+                `This is an update regarding your course enrollment:\n` +
+                `• Course: ${course?.name || 'Spiritual Course'}\n` +
+                `• Status: *${(en.status || 'Cancelled').toUpperCase()}*\n\n` +
+                `*Financial & Refund Summary:*\n` +
+                `• Course Fee: ₹${courseFee.toLocaleString('en-IN')}\n` +
+                `• Total Paid Initially: ₹${totalReceived.toLocaleString('en-IN')}\n` +
+                `• Amount Refunded: ₹${totalRefunded.toLocaleString('en-IN')}\n` +
+                `• Balance Retained: ₹${totalPaid.toLocaleString('en-IN')}\n` +
+                `• Refund Status: ${en.paymentStatus || 'Processed'}\n\n` +
+                `For any queries, please contact the course coordinator.\n\n` +
+                `*ISKCON DURGAPUR*`;
+        } else {
+            const dueAmount = courseFee - totalPaid;
+            message = 
+                `Hare Krishna ${name}! 🙏\n\n` +
+                `Here are your course enrollment details:\n` +
+                `• Course: ${course?.name || 'Spiritual Course'}\n` +
+                `• Duration: ${formatDateRange(course?.startDate, course?.endDate)}\n` +
+                `• Instructor: ${course?.instructor || 'ISKCON'}\n` +
+                `• Status: ${en.status || 'Enrolled'}\n` +
+                `• Sessions Attended: ${en.attendedSessions || 0}\n` +
+                `• Course Fees: ₹${courseFee.toLocaleString('en-IN')}\n` +
+                `• Total Paid: ₹${totalPaid.toLocaleString('en-IN')}\n` +
+                `• Balance Due: ₹${(dueAmount > 0 ? dueAmount : 0).toLocaleString('en-IN')}\n\n` +
+                `*ISKCON DURGAPUR*`;
+        }
+
+        const cleanPhone = sanitizeWhatsAppNumber(rawPhone);
+
+        if (openDirect && cleanPhone && cleanPhone.length >= 10) {
+            try {
+                openWhatsApp(cleanPhone, message, 'web');
+                const webUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+                toast.success(
+                    <span>Opening WhatsApp Web for {name}... <a href={webUrl} target="_blank" rel="noopener noreferrer" className="underline font-bold text-emerald-800 ml-1">Click if not opened</a></span>
+                );
+                return;
+            } catch (err) {
+                console.warn('Direct openWhatsApp failed, falling back to modal:', err);
+            }
+        }
+
+        setWhatsAppParticipant({
+            name,
+            contact: rawPhone,
+            whatsapp: rawPhone,
+            photo: en.photo || dev?.photo || '',
+            subtitle: `Course: ${course?.name || 'Spiritual Course'}`
+        });
+        setWhatsAppMessage(message);
+        setShowWhatsAppModal(true);
+    };
+
+    const handleConfirmCancelRefund = async ({ enrollmentId, refundAmount, refundMode, reason, newStatus }) => {
+        try {
+            if (refundAmount > 0) {
+                const payRes = await apiService.post('/api/courses/payments', {
+                    enrollmentId,
+                    amount: -refundAmount,
+                    paymentMode: `Refund (${refundMode})`,
+                    reference: reason || 'Course Cancellation Refund'
+                });
+                if (!payRes.success) {
+                    throw new Error(payRes.error || 'Failed to record refund');
+                }
+            }
+
+            if (newStatus && (!cancelTargetEnrollment || cancelTargetEnrollment.status !== newStatus)) {
+                const statRes = await apiService.put(`/api/courses/enroll/${enrollmentId}`, { status: newStatus });
+                if (!statRes.success) {
+                    throw new Error(statRes.error || 'Failed to update enrollment status');
+                }
+            }
+
+            toast.success(refundAmount > 0 ? `Successfully refunded ₹${refundAmount.toLocaleString('en-IN')}` : 'Status updated successfully');
+            fetchCourseData();
+
+            const currentPaid = Number(cancelTargetEnrollment?.totalPaid || 0);
+            const currentRefunded = Number(cancelTargetEnrollment?.totalRefunded || 0);
+            const currentReceived = Number(cancelTargetEnrollment?.totalReceived || currentPaid);
+            const updatedEn = {
+                ...cancelTargetEnrollment,
+                status: newStatus || 'Cancelled',
+                totalPaid: Math.max(0, currentPaid - refundAmount),
+                totalRefunded: currentRefunded + refundAmount,
+                totalReceived: currentReceived,
+                paymentStatus: (currentPaid - refundAmount <= 0) ? 'Refunded' : 'Partial Refund'
+            };
+
+            handleSendWhatsAppReceipt(updatedEn, false);
+        } catch (err) {
+            toast.error(err.message || 'Failed to process refund');
+            throw err;
+        }
+    };
+
     const handleEnroll = async (devoteeId) => {
         try {
             const response = await apiService.post('/api/courses/enroll', {
@@ -89,9 +216,15 @@ const CourseDetails = () => {
             });
             if (response.success) {
                 toast.success('Payment recorded');
+                const prevPaid = Number(selectedEnrollment.totalPaid || 0);
+                const addedAmount = parseFloat(paymentForm.amount) || 0;
+                const updatedEn = { ...selectedEnrollment, totalPaid: prevPaid + addedAmount };
+
                 fetchCourseData();
                 setShowPaymentModal(false);
                 setPaymentForm({ amount: 0, mode: 'Cash', reference: '' });
+
+                handleSendWhatsAppReceipt(updatedEn, false);
             } else {
                 toast.error(response.error || 'Failed to record payment');
             }
@@ -186,13 +319,13 @@ const CourseDetails = () => {
     };
 
     const handleScan = async (devoteeId) => {
-        const devotee = devotees.find(d => d.id === devoteeId);
+        const devotee = devotees.find(d => String(d.id) === String(devoteeId));
         if (!devotee) {
             toast.error('Invalid QR Code or Devotee Not Found');
             return;
         }
 
-        if (!enrollments.some(e => e.devoteeId === devoteeId)) {
+        if (!enrollments.some(e => String(e.devoteeId) === String(devoteeId))) {
             toast.error(`${devotee.initiatedName || devotee.name} is not enrolled in this course.`);
             return;
         }
@@ -247,16 +380,24 @@ const CourseDetails = () => {
         }
     };
 
-    const filteredEnrollments = enrollments.filter(e => 
-        e.devoteeName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        (e.initiatedName && e.initiatedName.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredEnrollments = enrollments.filter(e => {
+        const search = searchTerm.toLowerCase().trim();
+        if (!search) return true;
+        const tokens = search.split(/\s+/).filter(Boolean);
+        const name = (e.devoteeName || '').toLowerCase();
+        const initName = (e.initiatedName || '').toLowerCase();
+        const contact = String(e.whatsapp || e.contact || '');
+        return tokens.every(tok => name.includes(tok) || initName.includes(tok) || contact.includes(tok));
+    });
 
-    const availableDevotees = devotees.filter(d => 
-        !enrollments.some(e => e.devoteeId === d.id) &&
-        (d.name.toLowerCase().includes(enrollSearch.toLowerCase()) || 
-         (d.spiritualName && d.spiritualName.toLowerCase().includes(enrollSearch.toLowerCase())))
-    ).slice(0, 10);
+    const activeEnrollments = filteredEnrollments.filter(e => e.status !== 'Cancelled' && e.status !== 'Dropped');
+    const cancelledEnrollments = filteredEnrollments.filter(e => e.status === 'Cancelled' || e.status === 'Dropped');
+
+    const availableDevotees = useMemo(() => {
+        const unenrolled = devotees.filter(d => !enrollments.some(e => e.devoteeId === d.id));
+        if (!enrollSearch.trim()) return unenrolled.slice(0, 10);
+        return searchDevoteesByName(unenrolled, enrollSearch, { limit: 10 });
+    }, [devotees, enrollments, enrollSearch]);
 
     if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-corporate-600"></div></div>;
 
@@ -282,7 +423,7 @@ const CourseDetails = () => {
                                     {course.status}
                                 </span>
                                 <span className="text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full bg-blue-50 text-blue-600">
-                                    {enrollments.length} Participants
+                                    {activeEnrollments.length} Active Participants
                                 </span>
                             </div>
                             <h1 className="text-4xl font-black text-slate-900 leading-tight">{course.name}</h1>
@@ -343,19 +484,19 @@ const CourseDetails = () => {
                 {/* Dashboard Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 divide-x divide-slate-200">
                     <div className="p-6 text-center">
-                        <p className="text-2xl font-black text-slate-800 dark:text-slate-100">{enrollments.length}</p>
-                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Enrolled</p>
+                        <p className="text-2xl font-black text-slate-800 dark:text-slate-100">{activeEnrollments.length}</p>
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Active Enrolled</p>
                     </div>
                     <div className="p-6 text-center text-emerald-600">
-                        <p className="text-2xl font-black">₹{enrollments.reduce((sum, e) => sum + e.totalPaid, 0)}</p>
+                        <p className="text-2xl font-black">₹{activeEnrollments.reduce((sum, e) => sum + (e.totalPaid || 0), 0)}</p>
                         <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Total Collected</p>
                     </div>
                     <div className="p-6 text-center text-rose-600">
-                        <p className="text-2xl font-black">₹{enrollments.reduce((sum, e) => sum + (course.fees - e.totalPaid), 0)}</p>
+                        <p className="text-2xl font-black">₹{activeEnrollments.reduce((sum, e) => sum + Math.max(0, (course.fees || 0) - (e.totalPaid || 0)), 0)}</p>
                         <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Total Due</p>
                     </div>
                     <div className="p-6 text-center text-blue-600">
-                        <p className="text-2xl font-black">{enrollments.filter(e => e.certificateIssued).length}</p>
+                        <p className="text-2xl font-black">{activeEnrollments.filter(e => e.certificateIssued).length}</p>
                         <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase">Certificates Issued</p>
                     </div>
                 </div>
@@ -365,7 +506,7 @@ const CourseDetails = () => {
             <div className="space-y-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-                        <Users className="text-blue-500" /> Participants
+                        <Users className="text-blue-500" /> Active Participants
                     </h2>
                     <div className="flex gap-2">
                         <div className="relative">
@@ -403,7 +544,7 @@ const CourseDetails = () => {
                     </div>
                 </div>
 
-                {filteredEnrollments.length > 0 ? (
+                {activeEnrollments.length > 0 ? (
                     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
@@ -418,7 +559,7 @@ const CourseDetails = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {filteredEnrollments.map((en) => (
+                                    {activeEnrollments.map((en) => (
                                         <tr key={en.id} className="hover:bg-slate-50 dark:bg-slate-900/50/50 transition-colors group">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
@@ -434,16 +575,26 @@ const CourseDetails = () => {
                                             <td className="px-6 py-4">
                                                 <select 
                                                     value={en.status} 
-                                                    onChange={(e) => updateEnrollmentStatus(en.id, e.target.value)}
+                                                    onChange={(e) => {
+                                                        if (e.target.value === 'Cancelled' || e.target.value === 'Dropped') {
+                                                            setCancelTargetEnrollment(en);
+                                                            setIsRefundOnlyAction(false);
+                                                            setShowCancelRefundModal(true);
+                                                        } else {
+                                                            updateEnrollmentStatus(en.id, e.target.value);
+                                                        }
+                                                    }}
                                                     className={`text-xs font-black uppercase tracking-widest px-2 py-1 rounded-lg outline-none border border-transparent focus:border-slate-200 dark:border-slate-700 transition-all cursor-pointer ${
                                                         en.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' :
-                                                        en.status === 'Dropped' ? 'bg-rose-50 text-rose-600' :
+                                                        en.status === 'Dropped' ? 'bg-amber-50 text-amber-600' :
+                                                        en.status === 'Cancelled' ? 'bg-rose-50 text-rose-600' :
                                                         'bg-blue-50 text-blue-600'
                                                     }`}
                                                 >
                                                     <option value="Participated">Participated</option>
                                                     <option value="Completed">Completed</option>
                                                     <option value="Dropped">Dropped</option>
+                                                    <option value="Cancelled">Cancelled</option>
                                                 </select>
                                             </td>
                                             <td className="px-6 py-4">
@@ -486,12 +637,30 @@ const CourseDetails = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setCancelTargetEnrollment(en);
+                                                            setIsRefundOnlyAction(false);
+                                                            setShowCancelRefundModal(true);
+                                                        }}
+                                                        className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 transition-colors"
+                                                        title="Cancel & Refund Enrollment"
+                                                    >
+                                                        <RotateCcw size={16} />
+                                                    </button>
                                                     <button 
                                                         onClick={() => navigate(`/devotees/${en.devoteeId}`)}
                                                         className="p-2 text-slate-400 dark:text-slate-500 hover:text-corporate-600 transition-colors"
                                                         title="View Profile"
                                                     >
                                                         <ExternalLink size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleSendWhatsAppReceipt(en)}
+                                                        className="p-2 text-slate-400 dark:text-slate-500 hover:text-emerald-600 transition-colors"
+                                                        title="Send WhatsApp Receipt"
+                                                    >
+                                                        <MessageSquare size={16} />
                                                     </button>
                                                     {isAdmin && (
                                                         <button 
@@ -513,7 +682,7 @@ const CourseDetails = () => {
                 ) : (
                     <div className="bg-white dark:bg-slate-900 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-[2rem] p-20 text-center">
                         <Users className="mx-auto text-slate-200 mb-4" size={48} />
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">No participants yet</h3>
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">No active participants found</h3>
                         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Enroll devotees to start tracking their progress and payments.</p>
                         {isAdmin && (
                             <button 
@@ -523,6 +692,110 @@ const CourseDetails = () => {
                                 Enroll your first participant
                             </button>
                         )}
+                    </div>
+                )}
+
+                {/* Cancelled / Dropped Participants Section */}
+                {cancelledEnrollments.length > 0 && (
+                    <div className="mt-12 space-y-4">
+                        <h3 className="text-xl font-black text-slate-400 dark:text-slate-500 flex items-center gap-3">
+                            <History size={20} /> Cancelled &amp; Dropped Participants
+                        </h3>
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden opacity-85">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+                                        <tr>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Participant</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Status</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Payment &amp; Refund</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Attendance</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {cancelledEnrollments.map((en) => (
+                                            <tr key={en.id} className="hover:bg-slate-50 dark:bg-slate-900/50/50 transition-colors group">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border-2 border-white shadow-sm opacity-50">
+                                                            {en.photo ? <img src={en.photo} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500 font-bold">{en.devoteeName.charAt(0)}</div>}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-slate-400 dark:text-slate-500 text-sm leading-tight line-through">{en.initiatedName || en.devoteeName}</p>
+                                                            <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">{en.whatsapp || en.contact || 'No Contact'}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`text-xs font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${
+                                                        en.status === 'Dropped' ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-rose-50 text-rose-600 border border-rose-200'
+                                                    }`}>
+                                                        {en.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-black text-slate-700 dark:text-slate-300">
+                                                                ₹{en.totalPaid || 0}
+                                                            </span>
+                                                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
+                                                                en.paymentStatus === 'Refunded' ? 'bg-emerald-50 text-emerald-600' :
+                                                                en.paymentStatus === 'Partial Refund' ? 'bg-amber-50 text-amber-600' :
+                                                                'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                                            }`}>
+                                                                {en.paymentStatus || 'Cancelled'}
+                                                            </span>
+                                                        </div>
+                                                        {(Number(en.totalRefunded) > 0 || Number(en.totalReceived) > 0) && (
+                                                            <p className="text-[10px] text-slate-400">
+                                                                Paid: ₹{en.totalReceived || en.totalPaid || 0} &bull; Refunded: ₹{en.totalRefunded || 0}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <p className="text-xs font-bold text-slate-400">{en.attendedSessions || 0} Sessions</p>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        {Number(en.totalPaid || 0) > 0 && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setCancelTargetEnrollment(en);
+                                                                    setIsRefundOnlyAction(true);
+                                                                    setShowCancelRefundModal(true);
+                                                                }}
+                                                                className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-700 dark:text-amber-300 text-xs font-bold hover:bg-amber-100 transition-colors shadow-sm"
+                                                                title="Process Remaining Refund"
+                                                            >
+                                                                <RotateCcw size={13} />
+                                                                <span>Refund</span>
+                                                            </button>
+                                                        )}
+                                                        <button 
+                                                            onClick={() => navigate(`/devotees/${en.devoteeId}`)}
+                                                            className="p-2 text-slate-400 hover:text-corporate-600 transition-colors"
+                                                            title="View Profile"
+                                                        >
+                                                            <ExternalLink size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleSendWhatsAppReceipt(en)}
+                                                            className="p-2 text-slate-400 hover:text-emerald-600 transition-colors"
+                                                            title="Send WhatsApp Receipt"
+                                                        >
+                                                            <MessageSquare size={16} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -737,6 +1010,28 @@ const CourseDetails = () => {
                     onClose={() => setShowQRScanner(false)}
                 />
             )}
+
+            {/* WhatsApp Modal for Course Receipts & Communications */}
+            <WhatsAppModal
+                isOpen={showWhatsAppModal}
+                onClose={() => setShowWhatsAppModal(false)}
+                devotee={whatsAppParticipant}
+                initialMessage={whatsAppMessage}
+            />
+
+            {/* Cancel & Refund Modal */}
+            <CancelRefundModal
+                isOpen={showCancelRefundModal}
+                onClose={() => {
+                    setShowCancelRefundModal(false);
+                    setCancelTargetEnrollment(null);
+                }}
+                participant={cancelTargetEnrollment}
+                itemType="Course"
+                itemTitle={course?.name || 'Spiritual Course'}
+                onConfirm={handleConfirmCancelRefund}
+                isExistingCancelled={isRefundOnlyAction}
+            />
         </div>
     );
 };

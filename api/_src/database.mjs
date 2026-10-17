@@ -45,6 +45,11 @@ export const initDb = async () => {
             [key, value]
         );
     }
+    try {
+        await pool.query("UPDATE devotees SET photo = '' WHERE photo LIKE '%photo-1633332755192-727a05c4013d%'");
+    } catch (e) {
+        // Silently continue if table not yet populated
+    }
     console.log('[DB] PostgreSQL schema initialized');
     return { success: true };
 };
@@ -153,19 +158,25 @@ export const getDevotees = async (limit = 50, offset = 0, search = '', filters =
     const clauses = [];
     const params = [];
 
-    if (search) {
-        clauses.push("(name LIKE ? OR spiritualName LIKE ? OR contact LIKE ? OR whatsapp LIKE ? OR initiatedName LIKE ?)");
-        const searchParam = `%${search}%`;
-        params.push(searchParam, searchParam, searchParam, searchParam, searchParam);
+    const cleanSearch = String(search || '').trim();
+    if (cleanSearch) {
+        const tokens = cleanSearch.toLowerCase().split(/\s+/).filter(Boolean);
+        if (tokens.length > 0) {
+            tokens.forEach(tok => {
+                const tokenParam = `%${tok}%`;
+                clauses.push("(name ILIKE ? OR spiritualName ILIKE ? OR contact ILIKE ? OR whatsapp ILIKE ? OR initiatedName ILIKE ? OR email ILIKE ?)");
+                params.push(tokenParam, tokenParam, tokenParam, tokenParam, tokenParam, tokenParam);
+            });
+        }
     }
 
     if (filters.status) { clauses.push("status = ?"); params.push(filters.status); }
     if (filters.gender) { clauses.push("gender = ?"); params.push(filters.gender); }
     if (filters.spiritualStatus) { clauses.push("spiritualStatus = ?"); params.push(filters.spiritualStatus); }
-    if (filters.counselor) { clauses.push("counselor = ?"); params.push(filters.counselor); }
-    if (filters.district) { clauses.push("district = ?"); params.push(filters.district); }
+    if (filters.counselor) { clauses.push("counselor ILIKE ?"); params.push(filters.counselor); }
+    if (filters.district) { clauses.push("district ILIKE ?"); params.push(filters.district); }
     if (filters.contact) {
-        clauses.push("(contact LIKE ? OR whatsapp LIKE ?)");
+        clauses.push("(contact ILIKE ? OR whatsapp ILIKE ?)");
         const contactParam = `%${filters.contact}%`;
         params.push(contactParam, contactParam);
     }
@@ -174,8 +185,16 @@ export const getDevotees = async (limit = 50, offset = 0, search = '', filters =
     query += whereClause;
     countQuery += whereClause;
 
-    query += " ORDER BY createdAt DESC LIMIT ? OFFSET ?";
-    const queryParams = [...params, limit, offset];
+    let queryParams;
+    if (cleanSearch) {
+        const prefixParam = `${cleanSearch}%`;
+        const wordParam = `% ${cleanSearch}%`;
+        query += " ORDER BY CASE WHEN name ILIKE ? THEN 1 WHEN initiatedName ILIKE ? THEN 2 WHEN name ILIKE ? THEN 3 ELSE 4 END, name ASC, createdAt DESC LIMIT ? OFFSET ?";
+        queryParams = [...params, prefixParam, prefixParam, wordParam, limit, offset];
+    } else {
+        query += " ORDER BY createdAt DESC LIMIT ? OFFSET ?";
+        queryParams = [...params, limit, offset];
+    }
 
     const countResult = await getAsync(countQuery, params);
     const rows = await allAsync(query, queryParams);
@@ -624,7 +643,8 @@ export const getDevoteeByPhone = async (phone) => {
 };
 
 export const getDevoteeById = async (id) => {
-    return getAsync('SELECT * FROM devotees WHERE id = ?', [id]);
+    const strId = String(id);
+    return getAsync('SELECT * FROM devotees WHERE id = ? OR id = ?', [id, strId]);
 };
 
 // ─── Seva Assignments ──────────────────────────────────────────────────
@@ -876,9 +896,11 @@ export const enrollDevotee = async (data) => {
 export const getCourseEnrollments = async (courseId) => {
     return allAsync(
         `SELECT ce.*, d.name as devoteeName, d.spiritualName, d.initiatedName, d.contact, d.photo, d.whatsapp,
-                (SELECT COUNT(*) FROM course_attendance ca WHERE ca.courseId = ce.courseId AND ca.devoteeId = ce.devoteeId) as attendedSessions
+                (SELECT COUNT(*) FROM course_attendance ca WHERE ca.courseId = ce.courseId AND ca.devoteeId = ce.devoteeId) as attendedSessions,
+                (SELECT COALESCE(SUM(CASE WHEN cp.amount < 0 THEN -cp.amount ELSE 0 END), 0) FROM course_payments cp WHERE cp.enrollmentId = ce.id) as totalRefunded,
+                (SELECT COALESCE(SUM(CASE WHEN cp.amount > 0 THEN cp.amount ELSE 0 END), 0) FROM course_payments cp WHERE cp.enrollmentId = ce.id) as totalReceived
          FROM course_enrollments ce
-         JOIN devotees d ON ce.devoteeId = d.id
+         LEFT JOIN devotees d ON (ce.devoteeId = d.id OR CAST(ce.devoteeId AS TEXT) = CAST(d.id AS TEXT))
          WHERE ce.courseId = ?`,
         [courseId]
     );
@@ -959,14 +981,15 @@ export const addCoursePayment = async (data) => {
         const paymentId = payRes.lastID;
 
         const row = await tx.get(
-            'SELECT ce.totalPaid, c.fees FROM course_enrollments ce JOIN courses c ON ce.courseId = c.id WHERE ce.id = ?',
+            'SELECT ce.totalPaid, ce.status, c.fees FROM course_enrollments ce JOIN courses c ON ce.courseId = c.id WHERE ce.id = ?',
             [data.enrollmentId]
         );
         if (!row) throw new Error('Enrollment not found');
-        const newTotal = Number(row.totalPaid || 0) + Number(data.amount);
+        const newTotal = Math.max(0, Number(row.totalPaid || 0) + Number(data.amount));
         let paymentStatus = 'Partial';
         if (newTotal >= Number(row.fees || 0)) paymentStatus = 'Completed';
-        if (newTotal <= 0) paymentStatus = 'Due';
+        if (newTotal <= 0) paymentStatus = (row.status === 'Cancelled' || row.status === 'Dropped' || Number(data.amount) < 0) ? 'Refunded' : 'Due';
+        if (Number(data.amount) < 0 && newTotal > 0) paymentStatus = 'Partial Refund';
 
         await tx.run(
             'UPDATE course_enrollments SET totalPaid = ?, paymentStatus = ? WHERE id = ?',
@@ -1048,9 +1071,11 @@ export const enrollInTour = async (data) => {
 
 export const getTourEnrollments = async (tourId) => {
     return allAsync(
-        `SELECT te.*, d.name as devoteeName, d.spiritualName, d.initiatedName, d.contact, d.photo, d.whatsapp
+        `SELECT te.*, d.name as devoteeName, d.spiritualName, d.initiatedName, d.contact, d.photo, d.whatsapp,
+                (SELECT COALESCE(SUM(CASE WHEN tp.amount < 0 THEN -tp.amount ELSE 0 END), 0) FROM tour_payments tp WHERE tp.enrollmentId = te.id) as totalRefunded,
+                (SELECT COALESCE(SUM(CASE WHEN tp.amount > 0 THEN tp.amount ELSE 0 END), 0) FROM tour_payments tp WHERE tp.enrollmentId = te.id) as totalReceived
          FROM tour_enrollments te
-         LEFT JOIN devotees d ON te.devoteeId = d.id
+         LEFT JOIN devotees d ON (te.devoteeId = d.id OR CAST(te.devoteeId AS TEXT) = CAST(d.id AS TEXT))
          WHERE te.tourId = ?`,
         [tourId]
     );
@@ -1084,14 +1109,15 @@ export const addTourPayment = async (data) => {
         const paymentId = payRes.lastID;
 
         const row = await tx.get(
-            'SELECT te.totalPaid, t.fees FROM tour_enrollments te JOIN tours t ON te.tourId = t.id WHERE te.id = ?',
+            'SELECT te.totalPaid, te.status, t.fees FROM tour_enrollments te JOIN tours t ON te.tourId = t.id WHERE te.id = ?',
             [data.enrollmentId]
         );
         if (!row) throw new Error('Tour Enrollment not found');
-        const newTotal = Number(row.totalPaid || 0) + Number(data.amount);
+        const newTotal = Math.max(0, Number(row.totalPaid || 0) + Number(data.amount));
         let paymentStatus = 'Partial';
         if (newTotal >= Number(row.fees || 0)) paymentStatus = 'Completed';
-        if (newTotal <= 0) paymentStatus = 'Due';
+        if (newTotal <= 0) paymentStatus = (row.status === 'Cancelled' || Number(data.amount) < 0) ? 'Refunded' : 'Due';
+        if (Number(data.amount) < 0 && newTotal > 0) paymentStatus = 'Partial Refund';
 
         await tx.run(
             'UPDATE tour_enrollments SET totalPaid = ?, paymentStatus = ? WHERE id = ?',

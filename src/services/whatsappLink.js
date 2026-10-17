@@ -59,10 +59,20 @@ export const openWhatsApp = (number, message = '', mode = 'web') => {
         return { success: true, url: targetUrl };
     }
 
-    // 2. Browser Environment with popup blocker fallback
-    try {
-        const popup = window.open(targetUrl, '_blank', 'noopener,noreferrer');
-        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+    // 2. Browser Environment with reliable window.open
+    if (typeof window !== 'undefined') {
+        try {
+            // In modern browsers, window.open without features returns WindowProxy
+            const popup = window.open(targetUrl, '_blank');
+            if (popup) {
+                return { success: true, url: targetUrl };
+            }
+        } catch (e) {
+            console.warn('Direct window.open failed:', e);
+        }
+
+        // Fallback for strict browser popup policies
+        try {
             const anchor = document.createElement('a');
             anchor.href = targetUrl;
             anchor.target = '_blank';
@@ -70,9 +80,12 @@ export const openWhatsApp = (number, message = '', mode = 'web') => {
             document.body.appendChild(anchor);
             anchor.click();
             document.body.removeChild(anchor);
+            return { success: true, url: targetUrl };
+        } catch (e) {
+            console.warn('Anchor dispatch failed, falling back to top navigation:', e);
+            window.location.href = targetUrl;
+            return { success: true, url: targetUrl };
         }
-    } catch {
-        window.location.href = targetUrl;
     }
 
     return { success: true, url: targetUrl };

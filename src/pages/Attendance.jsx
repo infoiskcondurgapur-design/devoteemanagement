@@ -11,6 +11,7 @@ import clsx from 'clsx';
 import QRScanner from '../components/QRScanner';
 import apiService from '../services/api';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { searchDevoteesByName } from '../lib/searchUtils';
 
 const EVENT_TYPES = ['Sunday Feast', 'Monday Seminar', 'Ekadashi', 'Festival', 'Retreat', 'Other'];
 
@@ -104,8 +105,8 @@ const MarkAttendanceModal = ({ event, devotees, onClose, onSaved }) => {
     }, [event]);
 
     const filtered = useMemo(() => {
-        const q = search.toLowerCase();
-        return devotees.filter(d => d.name?.toLowerCase().includes(q) || d.initiatedName?.toLowerCase().includes(q) || d.counselor?.toLowerCase().includes(q));
+        if (!search.trim()) return devotees;
+        return searchDevoteesByName(devotees, search);
     }, [devotees, search]);
 
     const toggle = (id) => {
@@ -211,7 +212,7 @@ const Attendance = () => {
     };
 
     const handleScan = async (devoteeId) => {
-        const devotee = devotees.find(d => d.id === devoteeId);
+        const devotee = devotees.find(d => String(d.id) === String(devoteeId));
         if (!devotee) {
             toast.error('Invalid QR Code or Devotee Not Found');
             return;
@@ -258,10 +259,10 @@ const Attendance = () => {
         }
     };
 
-    const filteredSummary = summary.filter(d =>
-        d.name?.toLowerCase().includes(search.toLowerCase()) ||
-        d.initiatedName?.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredSummary = useMemo(() => {
+        if (!search.trim()) return summary;
+        return searchDevoteesByName(summary, search);
+    }, [summary, search]);
 
     // Merge planned events with attendance events for the list
     const allEvents = useMemo(() => {

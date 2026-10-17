@@ -1,7 +1,10 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { X, Search, IndianRupee, Save, MessageSquare, CheckCircle2, UserCheck, User } from 'lucide-react';
+import { X, Search, IndianRupee, Save, MessageSquare, CheckCircle2, UserCheck, User, Globe, Smartphone, Copy, ExternalLink } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import TourReceipt from '../tours/TourReceipt';
+import WhatsAppModal from '../WhatsAppModal';
+import { openWhatsApp, sanitizeWhatsAppNumber } from '../../services/whatsappLink';
+import { searchDevoteesByName } from '../../lib/searchUtils';
 import { useDevotees } from '../../context/DevoteeContext';
 import { useToast } from '../Toast';
 import apiService from '../../services/api';
@@ -20,6 +23,8 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
     const [savedBooking, setSavedBooking] = useState(null);
     const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
     const [whatsappSent, setWhatsappSent] = useState(false);
+    const [targetPhone, setTargetPhone] = useState('');
+    const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
 
     const [formData, setFormData] = useState({
         devoteeId: '',
@@ -48,14 +53,8 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
     }, [isWalkin, formData.devoteeId, tour?.enrollments]);
 
     const filteredDevotees = useMemo(() => {
-        const q = devoteeSearch.toLowerCase().trim();
-        if (!q) return devotees.slice(0, 20);
-        return devotees.filter(d =>
-            d.name?.toLowerCase().includes(q) || 
-            d.initiatedName?.toLowerCase().includes(q) ||
-            d.contact?.includes(q) ||
-            d.whatsapp?.includes(q)
-        ).slice(0, 20);
+        if (!devoteeSearch.trim()) return devotees.slice(0, 20);
+        return searchDevoteesByName(devotees, devoteeSearch, { limit: 20 });
     }, [devotees, devoteeSearch]);
 
     const handleSelectDevotee = (dev) => {
@@ -113,6 +112,7 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
             }
 
             toast.success('Participant booked successfully!');
+            const phone = (isWalkin ? formData.guestContact : formData.mobile) || '';
             const bookingDetails = {
                 enrollmentId,
                 tourName: tour.name,
@@ -123,10 +123,11 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
                 bookingDate: formData.bookingDate,
                 mode: formData.mode,
                 reference: formData.reference,
-                mobile: isWalkin ? formData.guestContact : formData.mobile,
+                mobile: phone,
                 devoteeName: isWalkin ? null : formData.devoteeName,
                 guestName: isWalkin ? formData.guestName : null,
             };
+            setTargetPhone(phone);
             setSavedBooking(bookingDetails);
             onSuccess?.();
         } catch (err) {
@@ -159,46 +160,75 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
         }
     };
 
-    const handleSendWhatsApp = async () => {
-        if (!savedBooking?.mobile || !receiptRef.current) return;
-        setSendingWhatsApp(true);
+    const getBookingMessage = (booking) => {
+        if (!booking) return '';
+        const displayName = booking.guestName || booking.devoteeName || 'Pilgrim';
+        return `Hare Krishna ${displayName}! 🙏\n\n` +
+            `Thank you for booking your Yatra with us.\n\n` +
+            `📋 *Booking Details:*\n` +
+            `• *Booking ID:* #YATRA-${String(booking.enrollmentId).padStart(5, '0')}\n` +
+            `• *Tour / Yatra:* ${booking.tourName}\n` +
+            (booking.destination ? `• *Destination:* ${booking.destination}\n` : '') +
+            `• *Booking Date:* ${booking.bookingDate}\n\n` +
+            `💳 *Payment Summary:*\n` +
+            `• *Tour Fees:* ₹${Number(booking.tourFees || 0).toLocaleString('en-IN')}\n` +
+            `• *Paid Amount:* ₹${Number(booking.paidAmount || 0).toLocaleString('en-IN')}\n` +
+            `• *Balance Due:* ₹${Number(booking.dueAmount || 0).toLocaleString('en-IN')}\n` +
+            (booking.mode ? `• *Payment Mode:* ${booking.mode}\n` : '') +
+            (booking.reference ? `• *Reference:* ${booking.reference}\n` : '') +
+            `\nFor any questions or travel guidelines, please connect with the Yatra coordinator.\n\n` +
+            `*ISKCON DURGAPUR*\n` +
+            `Hare Krishna! 🌸`;
+    };
+
+    const handleSendWhatsApp = (mode = 'web') => {
+        const phone = targetPhone || savedBooking?.mobile;
+        if (!phone || !phone.trim()) {
+            toast.error('Please enter a WhatsApp mobile number');
+            return;
+        }
+
+        const waMessage = getBookingMessage(savedBooking);
+
+        // 1. Immediately open WhatsApp synchronously with active user gesture
         try {
-            toast.info('Generating receipt image...');
-            const dataUrl = await htmlToImage.toPng(receiptRef.current, {
+            const res = openWhatsApp(phone, waMessage, mode);
+            if (res.success) {
+                setWhatsappSent(true);
+                toast.success(res.message || 'WhatsApp opened successfully!');
+            } else {
+                toast.error(res.message || 'Could not open WhatsApp');
+            }
+        } catch (err) {
+            toast.error(err.message || 'Could not open WhatsApp');
+        }
+
+        // 2. Auto download receipt image asynchronously in background without blocking window.open
+        if (receiptRef.current) {
+            htmlToImage.toPng(receiptRef.current, {
                 pixelRatio: 2,
                 backgroundColor: '#fff',
                 cacheBust: true,
+            }).then(dataUrl => {
+                const link = document.createElement('a');
+                link.download = `TourReceipt_YATRA-${String(savedBooking.enrollmentId).padStart(5, '0')}.png`;
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }).catch(e => {
+                console.warn('Could not auto-download receipt image:', e);
             });
-            const link = document.createElement('a');
-            link.download = `TourReceipt_${savedBooking.enrollmentId}.png`;
-            link.href = dataUrl;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        }
+    };
 
-            let waNumber = savedBooking.mobile.replace(/[^0-9]/g, '');
-            if (waNumber.length === 10) waNumber = '91' + waNumber;
-
-            const displayName = savedBooking.guestName || savedBooking.devoteeName || 'Pilgrim';
-            const waMessage =
-                `Hare Krishna ${displayName}!\n\n` +
-                `Thank you for booking your Yatra with us.\n\n` +
-                `Booking #YATRA-${String(savedBooking.enrollmentId).padStart(5, '0')}\n` +
-                `Tour: ${savedBooking.tourName}\n` +
-                `Destination: ${savedBooking.destination || '—'}\n` +
-                `Date: ${savedBooking.bookingDate}\n\n` +
-                `Payment Summary:\n` +
-                `- Tour Fees: INR ${Number(savedBooking.tourFees).toLocaleString()}\n` +
-                `- Paid: INR ${Number(savedBooking.paidAmount).toLocaleString()}\n` +
-                `- Balance Due: INR ${Number(savedBooking.dueAmount).toLocaleString()}\n\n` +
-                `ISKCON DURGAPUR`;
-
-            window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMessage)}`, '_blank', 'noopener,noreferrer');
-            setWhatsappSent(true);
-        } catch (err) {
-            toast.error('Failed to generate receipt: ' + err.message);
-        } finally {
-            setSendingWhatsApp(false);
+    const handleCopyConfirmation = async () => {
+        try {
+            const waMessage = getBookingMessage(savedBooking);
+            await navigator.clipboard.writeText(waMessage);
+            toast.success('Confirmation message copied to clipboard!');
+        } catch {
+            toast.error('Could not copy to clipboard');
         }
     };
 
@@ -217,36 +247,69 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
 
                     <TourReceipt ref={receiptRef} booking={savedBooking} />
 
-                    {savedBooking.mobile && !whatsappSent && (
-                        <div className="w-full mb-4 p-5 bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col items-center gap-3 animate-in fade-in slide-in-from-top-2">
-                            <div className="flex items-center gap-2 text-emerald-700 font-bold">
-                                <MessageSquare className="w-5 h-5" />
-                                <span>Share confirmation on WhatsApp?</span>
+                    {/* WhatsApp Sharing Card */}
+                    <div className="w-full mb-5 p-4 bg-emerald-50/80 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800 flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-bold text-sm">
+                                <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                <span>Share confirmation on WhatsApp</span>
                             </div>
-                            <div className="flex gap-2 w-full">
-                                <button
-                                    onClick={() => setWhatsappSent(true)}
-                                    className="flex-1 py-2 rounded-xl bg-white dark:bg-slate-900 border border-emerald-100 text-emerald-600 font-bold text-sm hover:bg-emerald-100 transition-colors"
-                                >
-                                    No, Skip
-                                </button>
-                                <button
-                                    disabled={sendingWhatsApp}
-                                    onClick={handleSendWhatsApp}
-                                    className="flex-1 py-2 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
-                                >
-                                    {sendingWhatsApp ? 'Preparing...' : 'Download & Share'}
-                                </button>
-                            </div>
+                            {whatsappSent && (
+                                <span className="text-xs bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> Sent
+                                </span>
+                            )}
                         </div>
-                    )}
 
-                    {whatsappSent && savedBooking.mobile && (
-                        <div className="w-full mb-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-center gap-2 text-emerald-700 font-bold text-sm">
-                            <CheckCircle2 className="w-5 h-5" />
-                            <span>Receipt ready to share!</span>
+                        {/* Phone input & copy button */}
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="tel"
+                                value={targetPhone}
+                                onChange={(e) => setTargetPhone(e.target.value)}
+                                placeholder="Enter WhatsApp phone number..."
+                                className="flex-1 px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                            />
+                            <button
+                                type="button"
+                                onClick={handleCopyConfirmation}
+                                title="Copy confirmation text"
+                                className="p-2 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+                            >
+                                <Copy className="w-4 h-4" />
+                            </button>
                         </div>
-                    )}
+
+                        {/* Dual action buttons: Web & App */}
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                type="button"
+                                disabled={sendingWhatsApp || !targetPhone.trim()}
+                                onClick={() => handleSendWhatsApp('web')}
+                                className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+                            >
+                                <Globe className="w-4 h-4" />
+                                WhatsApp Web
+                            </button>
+                            <button
+                                type="button"
+                                disabled={sendingWhatsApp || !targetPhone.trim()}
+                                onClick={() => handleSendWhatsApp('app')}
+                                className="flex items-center justify-center gap-2 py-2 px-3 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+                            >
+                                <Smartphone className="w-4 h-4" />
+                                WhatsApp App
+                            </button>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowWhatsAppModal(true)}
+                            className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline flex items-center justify-center gap-1 font-semibold pt-0.5"
+                        >
+                            <ExternalLink className="w-3.5 h-3.5" /> Preview or edit message
+                        </button>
+                    </div>
 
                     <div className="flex flex-col w-full gap-3">
                         <button
@@ -262,6 +325,20 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
                             Done
                         </button>
                     </div>
+
+                    {/* WhatsApp Modal for customizing / reviewing */}
+                    <WhatsAppModal
+                        isOpen={showWhatsAppModal}
+                        onClose={() => setShowWhatsAppModal(false)}
+                        devotee={{
+                            name: savedBooking.guestName || savedBooking.devoteeName || 'Pilgrim',
+                            whatsapp: targetPhone || savedBooking.mobile,
+                            contact: targetPhone || savedBooking.mobile,
+                            subtitle: `Tour: ${savedBooking.tourName} (#YATRA-${String(savedBooking.enrollmentId).padStart(5, '0')})`,
+                            initialMessage: getBookingMessage(savedBooking)
+                        }}
+                        initialMessage={getBookingMessage(savedBooking)}
+                    />
                 </div>
             </div>
         );

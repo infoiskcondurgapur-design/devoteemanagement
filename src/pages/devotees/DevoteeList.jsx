@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Search, Filter, Eye, Edit, Trash, LayoutGrid, List, MessageSquare, X, ChevronLeft, ChevronRight, Layout, UserCheck, Maximize2, RefreshCw, Phone, Upload } from 'lucide-react';
 import { useDevotees } from '../../context/DevoteeContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../components/Toast';
+import { searchDevoteesByName, HighlightText } from '../../lib/searchUtils';
 import clsx from 'clsx';
 
 import ConfirmationModal from '../../components/ConfirmationModal';
@@ -18,8 +19,9 @@ const DevoteeList = () => {
     } = useDevotees();
     const navigate = useNavigate();
     const toast = useToast();
+    const [searchParams, setSearchParams] = useSearchParams();
 
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState(() => searchParams.get('search') || '');
     const [viewMode, setViewMode] = useState('list');
     const [deleteId, setDeleteId] = useState(null);
     const [isSearching, setIsSearching] = useState(false);
@@ -50,6 +52,15 @@ const DevoteeList = () => {
     const handleScroll = (e) => {
         setScrollTop(e.target.scrollTop);
     };
+
+    // Keep searchTerm in sync with URL ?search= query parameter
+    React.useEffect(() => {
+        const urlSearch = searchParams.get('search') || '';
+        if (urlSearch !== searchTerm) {
+            setSearchTerm(urlSearch);
+            setCurrentPage(1);
+        }
+    }, [searchParams]);
 
     // Server-side paginated fetch effect:
     // Fetches immediately on mount and when page, size, search, or filters change
@@ -105,13 +116,7 @@ const DevoteeList = () => {
         if (Array.isArray(devotees) && devotees.length > 0) {
             let filtered = devotees;
             if (searchTerm) {
-                const term = searchTerm.toLowerCase();
-                filtered = filtered.filter(d => 
-                    (d.name && d.name.toLowerCase().includes(term)) ||
-                    (d.contact && d.contact.toLowerCase().includes(term)) ||
-                    (d.whatsapp && d.whatsapp.toLowerCase().includes(term)) ||
-                    (d.dob && d.dob.toLowerCase().includes(term))
-                );
+                filtered = searchDevoteesByName(filtered, searchTerm);
             }
             if (filters.status) filtered = filtered.filter(d => d.status === filters.status);
             if (filters.gender) filtered = filtered.filter(d => d.gender === filters.gender);
@@ -253,12 +258,22 @@ const DevoteeList = () => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500 group-focus-within:text-orange-500 transition-colors" />
                         <input
                             type="text"
-                            placeholder="Search by name, phone, or DOB..."
+                            placeholder="Search devotees by name (e.g. Deb), phone, or DOB..."
                             value={searchTerm}
                             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                            className={`w-full pl-10 pr-20 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all shadow-sm ${isSearching ? 'border-orange-300' : ''}`}
+                            className={`w-full pl-10 pr-24 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all shadow-sm ${isSearching ? 'border-orange-300' : ''}`}
                         />
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                            {searchTerm && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
+                                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
+                                    title="Clear search"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
                             {isSearching ? (
                                 <div className="animate-spin h-4 w-4 border-2 border-orange-500 border-t-transparent rounded-full"></div>
                             ) : (
@@ -435,9 +450,13 @@ const DevoteeList = () => {
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <div className="font-semibold text-slate-900 truncate max-w-[150px]">{devotee.name}</div>
+                                                    <div className="font-semibold text-slate-900 dark:text-slate-100 truncate max-w-[180px]" title={devotee.name}>
+                                                        <HighlightText text={devotee.name} query={searchTerm} />
+                                                    </div>
                                                     {(devotee.initiatedName || devotee.spiritualName) && (
-                                                        <div className="text-[10px] text-orange-600 font-medium truncate max-w-[150px]">{devotee.initiatedName || devotee.spiritualName}</div>
+                                                        <div className="text-[10px] text-orange-600 dark:text-orange-400 font-medium truncate max-w-[180px]" title={devotee.initiatedName || devotee.spiritualName}>
+                                                            <HighlightText text={devotee.initiatedName || devotee.spiritualName} query={searchTerm} />
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>
@@ -515,8 +534,14 @@ const DevoteeList = () => {
                                     </div>
                                 )}
                             </div>
-                            <h3 className="font-bold text-slate-900 text-lg mb-1">{devotee.name}</h3>
-                            {(devotee.initiatedName || devotee.spiritualName) && <p className="text-sm text-orange-600 font-medium mb-3">{devotee.initiatedName || devotee.spiritualName}</p>}
+                            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-lg mb-1">
+                                <HighlightText text={devotee.name} query={searchTerm} />
+                            </h3>
+                            {(devotee.initiatedName || devotee.spiritualName) && (
+                                <p className="text-sm text-orange-600 dark:text-orange-400 font-medium mb-3">
+                                    <HighlightText text={devotee.initiatedName || devotee.spiritualName} query={searchTerm} />
+                                </p>
+                            )}
                             <div className="text-sm text-slate-500 dark:text-slate-400 mb-6">
                                 <p>{devotee.contact}</p>
                                 <p className="text-xs mt-1">{devotee.gender} • {devotee.counselor}</p>

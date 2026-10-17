@@ -10,20 +10,21 @@ import {
     openWhatsApp 
 } from '../services/whatsappLink';
 
-const WhatsAppModal = ({ isOpen, onClose, devotee }) => {
+const WhatsAppModal = ({ isOpen, onClose, devotee, initialMessage = '' }) => {
     const { getAiMessageDraft } = useDevotees();
     const toast = useToast();
-    const [message, setMessage] = useState('');
-    const [targetPhone, setTargetPhone] = useState('');
+    const initialPhone = devotee?.whatsapp || devotee?.contact || devotee?.mobile || devotee?.guestContact || '';
+    const [message, setMessage] = useState(initialMessage || devotee?.initialMessage || '');
+    const [targetPhone, setTargetPhone] = useState(initialPhone);
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         if (isOpen && devotee) {
-            setMessage('');
-            setTargetPhone(devotee.whatsapp || devotee.contact || '');
+            setMessage(initialMessage || devotee.initialMessage || '');
+            setTargetPhone(devotee.whatsapp || devotee.contact || devotee.mobile || devotee.guestContact || '');
             setCopied(false);
         }
-    }, [isOpen, devotee]);
+    }, [isOpen, devotee, initialMessage]);
 
     if (!isOpen || !devotee) return null;
 
@@ -40,7 +41,9 @@ const WhatsAppModal = ({ isOpen, onClose, devotee }) => {
         try {
             openWhatsApp(targetPhone, message, mode);
             toast.success(`Opening ${mode === 'web' ? 'WhatsApp Web' : 'WhatsApp'}...`);
-            onClose();
+            setTimeout(() => {
+                onClose();
+            }, 300);
         } catch (err) {
             toast.error(err.message || 'Failed to open WhatsApp');
         }
@@ -58,20 +61,29 @@ const WhatsAppModal = ({ isOpen, onClose, devotee }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
 
             <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden animate-in fade-in-50 zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
                     <div className="flex items-center gap-4">
-                        <img 
-                            src={devotee.photo || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=100&h=100&fit=crop'} 
-                            className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm" 
-                            alt={devotee.name} 
-                        />
+                        {devotee.photo ? (
+                            <img 
+                                src={devotee.photo} 
+                                className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm" 
+                                alt={devotee.name} 
+                            />
+                        ) : (
+                            <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-300 font-black flex items-center justify-center text-base border-2 border-white shadow-sm">
+                                {(devotee.name || 'P').charAt(0).toUpperCase()}
+                            </div>
+                        )}
                         <div>
                             <h3 className="font-bold text-slate-900 dark:text-white line-clamp-1">{devotee.name}</h3>
+                            {devotee.subtitle && (
+                                <p className="text-[11px] text-orange-600 dark:text-orange-400 font-semibold truncate max-w-[200px]">{devotee.subtitle}</p>
+                            )}
                             <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
                                     {isValidPhone ? `+${cleanNumber}` : (targetPhone || 'No phone number')}

@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import PwaInstallPrompt from '../PwaInstallPrompt';
 import NetworkStatus from '../NetworkStatus';
+import HeaderSearch from './HeaderSearch';
 
 const Header = ({ toggleSidebar, isSidebarOpen }) => {
     const { unreadCount } = useNotifications();
@@ -42,14 +43,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
 
             {/* Right: Actions */}
             <div className="flex items-center gap-4">
-                <div className="relative">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
-                    <input
-                        type="text"
-                        placeholder="Search..."
-                        className="pl-9 pr-4 py-1.5 bg-slate-100 dark:bg-slate-800 border-none rounded-full text-sm text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-slate-750 transition-all w-64 hidden sm:block"
-                    />
-                </div>
+                <HeaderSearch />
 
                 <NetworkStatus />
                 <PwaInstallPrompt />

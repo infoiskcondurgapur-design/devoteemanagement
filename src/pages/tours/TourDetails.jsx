@@ -6,18 +6,23 @@ import {
     Plus, Trash2, Edit, CheckCircle, X, Search,
     ArrowLeft, MoreVertical, IndianRupee, Plane,
     History, Check, ExternalLink, PersonStanding,
-    MessageSquare, Download, Filter as FilterIcon, Printer, Phone
+    MessageSquare, Download, Filter as FilterIcon, Printer, Phone, RotateCcw
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useDevotees } from '../../context/DevoteeContext';
 import { useToast } from '../../components/Toast';
 import apiService from '../../services/api';
 import AddParticipantForm from '../../components/tours/AddParticipantForm';
+import CancelRefundModal from '../../components/CancelRefundModal';
+import WhatsAppModal from '../../components/WhatsAppModal';
+import { openWhatsApp, sanitizeWhatsAppNumber } from '../../services/whatsappLink';
 import * as XLSX from 'xlsx';
 
 const TourDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { isAdmin } = useAuth();
+    const { devotees } = useDevotees();
     const toast = useToast();
 
     const [tour, setTour] = useState(null);
@@ -31,6 +36,16 @@ const TourDetails = () => {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [selectedEnrollment, setSelectedEnrollment] = useState(null);
     const [paymentForm, setPaymentForm] = useState({ amount: 0, mode: 'Cash', reference: '' });
+
+    // WhatsApp Modal State
+    const [whatsAppParticipant, setWhatsAppParticipant] = useState(null);
+    const [whatsAppMessage, setWhatsAppMessage] = useState('');
+    const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+
+    // Cancel & Refund Modal State
+    const [showCancelRefundModal, setShowCancelRefundModal] = useState(false);
+    const [cancelTargetEnrollment, setCancelTargetEnrollment] = useState(null);
+    const [isRefundOnlyAction, setIsRefundOnlyAction] = useState(false);
 
     // Filters
     const [statusFilter, setStatusFilter] = useState('All');
@@ -69,6 +84,49 @@ const TourDetails = () => {
         }
     };
 
+    const handleConfirmCancelRefund = async ({ enrollmentId, refundAmount, refundMode, reason, newStatus }) => {
+        try {
+            if (refundAmount > 0) {
+                const payRes = await apiService.post('/api/tours/payments', {
+                    enrollmentId,
+                    amount: -refundAmount,
+                    paymentMode: `Refund (${refundMode})`,
+                    reference: reason || 'Cancellation Refund'
+                });
+                if (!payRes.success) {
+                    throw new Error(payRes.error || 'Failed to record refund');
+                }
+            }
+
+            if (newStatus && (!cancelTargetEnrollment || cancelTargetEnrollment.status !== newStatus)) {
+                const statRes = await apiService.put(`/api/tours/enroll/${enrollmentId}`, { status: newStatus });
+                if (!statRes.success) {
+                    throw new Error(statRes.error || 'Failed to update enrollment status');
+                }
+            }
+
+            toast.success(refundAmount > 0 ? `Successfully refunded ₹${refundAmount.toLocaleString('en-IN')}` : 'Cancellation recorded');
+            fetchTourData();
+
+            const currentPaid = Number(cancelTargetEnrollment?.totalPaid || 0);
+            const currentRefunded = Number(cancelTargetEnrollment?.totalRefunded || 0);
+            const currentReceived = Number(cancelTargetEnrollment?.totalReceived || currentPaid);
+            const updatedEn = {
+                ...cancelTargetEnrollment,
+                status: newStatus || 'Cancelled',
+                totalPaid: Math.max(0, currentPaid - refundAmount),
+                totalRefunded: currentRefunded + refundAmount,
+                totalReceived: currentReceived,
+                paymentStatus: (currentPaid - refundAmount <= 0) ? 'Refunded' : 'Partial Refund'
+            };
+
+            handleSendWhatsAppReceipt(updatedEn, false);
+        } catch (err) {
+            toast.error(err.message || 'Failed to process refund');
+            throw err;
+        }
+    };
+
     const handleAddPayment = async (e) => {
         e.preventDefault();
         try {
@@ -78,9 +136,16 @@ const TourDetails = () => {
             });
             if (response.success) {
                 toast.success('Payment recorded');
+                const prevPaid = Number(selectedEnrollment.totalPaid || 0);
+                const addedAmount = parseFloat(paymentForm.amount) || 0;
+                const updatedEn = { ...selectedEnrollment, totalPaid: prevPaid + addedAmount };
+
                 fetchTourData();
                 setShowPaymentModal(false);
                 setPaymentForm({ amount: 0, mode: 'Cash', reference: '' });
+
+                // Open WhatsApp modal with receipt
+                handleSendWhatsAppReceipt(updatedEn, false);
             } else {
                 toast.error(response.error || 'Failed to record payment');
             }
@@ -100,7 +165,6 @@ const TourDetails = () => {
                 'Contact': (en.devoteeId && !en.devoteeId.startsWith('GUEST_')) ? (en.whatsapp || en.contact) : (en.guestContact || ''),
                 'Booking Date': en.bookingDate
             }));
-
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Participants");
@@ -111,19 +175,83 @@ const TourDetails = () => {
         }
     };
 
-    const handleSendWhatsAppReceipt = async (en) => {
-        try {
-            toast.info('Initiating WhatsApp...');
-            const waNumber = ((en.devoteeId && !en.devoteeId.startsWith('GUEST_')) ? (en.whatsapp || en.contact) : en.guestContact || '').replace(/[^0-9]/g, '');
-            if (!waNumber) return toast.error('No contact number available');
+    const handleSendWhatsAppReceipt = (en, openDirect = true) => {
+        const isGuest = !en.devoteeId || en.devoteeId.startsWith('GUEST_');
+        const dev = !isGuest && Array.isArray(devotees) ? devotees.find(d => String(d.id) === String(en.devoteeId)) : null;
 
-            const name = (en.devoteeId && !en.devoteeId.startsWith('GUEST_')) ? (en.initiatedName || en.devoteeName) : en.guestName;
-            const message = `Hare Krishna ${name}! Thank you for your payment of Rs.${en.totalPaid} for the ${tour.name} tour. Balance due: Rs.${tour.fees - en.totalPaid}.`;
+        const name = isGuest 
+            ? (en.guestName || 'Pilgrim') 
+            : (en.initiatedName || en.devoteeName || dev?.initiatedName || dev?.name || 'Devotee');
 
-            window.open(`https://wa.me/${waNumber.length === 10 ? '91' + waNumber : waNumber}?text=${encodeURIComponent(message)}`, '_blank');
-        } catch {
-            toast.error('WhatsApp failed');
+        const rawPhone = isGuest 
+            ? (en.guestContact || '') 
+            : (en.whatsapp || en.contact || dev?.whatsapp || dev?.contact || '');
+
+        const tourFee = Number(tour?.fees || 0);
+        const totalPaid = Number(en.totalPaid || 0);
+        const totalRefunded = Number(en.totalRefunded || 0);
+        const totalReceived = Number(en.totalReceived || (totalPaid + totalRefunded));
+        const isCancelled = en.status === 'Cancelled';
+
+        let message;
+        if (isCancelled) {
+            message = 
+                `Hare Krishna ${name}! 🙏\n\n` +
+                `This is an update regarding your Yatra booking:\n` +
+                `• Tour: ${tour?.name || 'Spiritual Yatra'}\n` +
+                `• Destination: ${tour?.destination || '—'}\n` +
+                `• Dates: ${formatDateRange(tour?.startDate, tour?.endDate)}\n` +
+                `• Status: *CANCELLED*\n\n` +
+                `*Financial & Refund Summary:*\n` +
+                `• Tour Fee: ₹${tourFee.toLocaleString('en-IN')}\n` +
+                `• Total Paid Initially: ₹${totalReceived.toLocaleString('en-IN')}\n` +
+                `• Amount Refunded: ₹${totalRefunded.toLocaleString('en-IN')}\n` +
+                `• Balance Retained: ₹${totalPaid.toLocaleString('en-IN')}\n` +
+                `• Status: ${en.paymentStatus || 'Processed'}\n\n` +
+                `For any questions or clarification, please reach out to the Yatra coordinator.\n\n` +
+                `*ISKCON DURGAPUR*`;
+        } else {
+            const dueAmount = tourFee - totalPaid;
+            message = 
+                `Hare Krishna ${name}! 🙏\n\n` +
+                `Here are your Yatra booking details:\n` +
+                `• Tour: ${tour?.name || 'Spiritual Yatra'}\n` +
+                `• Destination: ${tour?.destination || '—'}\n` +
+                `• Dates: ${formatDateRange(tour?.startDate, tour?.endDate)}\n` +
+                `• Booking Status: ${en.status}\n` +
+                `• Tour Fees: ₹${tourFee.toLocaleString('en-IN')}\n` +
+                `• Total Paid: ₹${totalPaid.toLocaleString('en-IN')}\n` +
+                `• Balance Due: ₹${(dueAmount > 0 ? dueAmount : 0).toLocaleString('en-IN')}\n\n` +
+                `For any assistance, please contact the Yatra coordinator.\n\n` +
+                `*ISKCON DURGAPUR*`;
         }
+
+        const cleanPhone = sanitizeWhatsAppNumber(rawPhone);
+
+        // If phone is valid and direct open is requested, open WhatsApp Web immediately on user click
+        if (openDirect && cleanPhone && cleanPhone.length >= 10) {
+            try {
+                openWhatsApp(cleanPhone, message, 'web');
+                const webUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+                toast.success(
+                    <span>Opening WhatsApp Web for {name}... <a href={webUrl} target="_blank" rel="noopener noreferrer" className="underline font-bold text-emerald-800 ml-1">Click if not opened</a></span>
+                );
+                return;
+            } catch (err) {
+                console.warn('Direct openWhatsApp failed, falling back to modal:', err);
+            }
+        }
+
+        // Otherwise open the modal for user review or to enter missing phone number
+        setWhatsAppParticipant({
+            name,
+            contact: rawPhone,
+            whatsapp: rawPhone,
+            photo: en.photo || dev?.photo || '',
+            subtitle: `Tour: ${tour?.name || 'Yatra'}`
+        });
+        setWhatsAppMessage(message);
+        setShowWhatsAppModal(true);
     };
 
     const handleDeleteTour = async () => {
@@ -157,18 +285,25 @@ const TourDetails = () => {
     const filteredEnrollments = useMemo(() => {
         return enrollments.filter(e => {
             const searchLower = searchTerm.toLowerCase().trim();
+            const tokens = searchLower.split(/\s+/).filter(Boolean);
             const contactStr = String(
                 (e.devoteeId && !e.devoteeId.startsWith('GUEST_')) 
                     ? (e.whatsapp || e.contact || '') 
                     : (e.guestContact || '')
-            ).trim();
+            ).trim().toLowerCase();
 
-            const matchesSearch = !searchTerm ||
-                (e.devoteeName && e.devoteeName.toLowerCase().includes(searchLower)) ||
-                (e.initiatedName && e.initiatedName.toLowerCase().includes(searchLower)) ||
-                (e.guestName && e.guestName.toLowerCase().includes(searchLower)) ||
-                (e.devoteeId && e.devoteeId.toString().toLowerCase().includes(searchLower) && !e.devoteeId.toString().startsWith('GUEST_')) ||
-                (contactStr && contactStr.toLowerCase().includes(searchLower));
+            const devName = (e.devoteeName || '').toLowerCase();
+            const initName = (e.initiatedName || '').toLowerCase();
+            const guestName = (e.guestName || '').toLowerCase();
+            const devId = String(e.devoteeId || '').toLowerCase();
+
+            const matchesSearch = !searchTerm || tokens.every(tok => 
+                devName.includes(tok) || 
+                initName.includes(tok) || 
+                guestName.includes(tok) || 
+                (devId.includes(tok) && !devId.startsWith('guest_')) || 
+                contactStr.includes(tok)
+            );
 
             if (!matchesSearch) return false;
 
@@ -455,7 +590,15 @@ const TourDetails = () => {
                                             <td className="px-6 py-4">
                                                 <select
                                                     value={en.status}
-                                                    onChange={(e) => updateEnrollmentStatus(en.id, e.target.value)}
+                                                    onChange={(e) => {
+                                                        if (e.target.value === 'Cancelled') {
+                                                            setCancelTargetEnrollment(en);
+                                                            setIsRefundOnlyAction(false);
+                                                            setShowCancelRefundModal(true);
+                                                        } else {
+                                                            updateEnrollmentStatus(en.id, e.target.value);
+                                                        }
+                                                    }}
                                                     className={`text-xs font-black uppercase tracking-widest px-2 py-1 rounded-lg outline-none border border-transparent focus:border-slate-200 dark:border-slate-700 transition-all cursor-pointer ${en.status === 'Confirmed' ? 'bg-emerald-50 text-emerald-600' :
                                                             en.status === 'Cancelled' ? 'bg-rose-50 text-rose-600' :
                                                                 'bg-blue-50 text-blue-600'
@@ -496,6 +639,17 @@ const TourDetails = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setCancelTargetEnrollment(en);
+                                                            setIsRefundOnlyAction(false);
+                                                            setShowCancelRefundModal(true);
+                                                        }}
+                                                        className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 transition-colors"
+                                                        title="Cancel & Refund Booking"
+                                                    >
+                                                        <RotateCcw size={16} />
+                                                    </button>
                                                     <button
                                                         onClick={() => en.devoteeId && !en.devoteeId.startsWith('GUEST_') && navigate(`/devotees/${en.devoteeId}`)}
                                                         disabled={!en.devoteeId || en.devoteeId.startsWith('GUEST_')}
@@ -608,24 +762,61 @@ const TourDetails = () => {
                                                     </select>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900/50/50 p-2 rounded-xl border border-transparent">
-                                                        <div>
-                                                            <p className="text-xs font-black text-slate-400 dark:text-slate-500">Rs.{en.totalPaid || 0}</p>
-                                                            <span className="text-[9px] font-black uppercase tracking-tight text-slate-400 dark:text-slate-500">Cancelled</span>
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-black text-slate-700 dark:text-slate-300">
+                                                                Rs.{en.totalPaid || 0}
+                                                            </span>
+                                                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
+                                                                en.paymentStatus === 'Refunded' ? 'bg-emerald-50 text-emerald-600' :
+                                                                en.paymentStatus === 'Partial Refund' ? 'bg-amber-50 text-amber-600' :
+                                                                'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                                            }`}>
+                                                                {en.paymentStatus || 'Cancelled'}
+                                                            </span>
                                                         </div>
+                                                        {(Number(en.totalRefunded) > 0 || Number(en.totalReceived) > 0) && (
+                                                            <p className="text-[10px] text-slate-400">
+                                                                Paid: Rs.{en.totalReceived || en.totalPaid || 0} &bull; Refunded: Rs.{en.totalRefunded || 0}
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <p className="text-sm font-bold text-slate-400 dark:text-slate-500">{en.whatsapp || en.contact || 'No Contact'}</p>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
-                                                    <button
-                                                        onClick={() => en.devoteeId && !en.devoteeId.startsWith('GUEST_') && navigate(`/devotees/${en.devoteeId}`)}
-                                                        disabled={!en.devoteeId || en.devoteeId.startsWith('GUEST_')}
-                                                        className="p-2 text-slate-300 hover:text-slate-500 dark:text-slate-400"
-                                                    >
-                                                        <ExternalLink size={16} />
-                                                    </button>
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        {Number(en.totalPaid || 0) > 0 && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setCancelTargetEnrollment(en);
+                                                                    setIsRefundOnlyAction(true);
+                                                                    setShowCancelRefundModal(true);
+                                                                }}
+                                                                className="flex items-center gap-1 px-2.5 py-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-700 dark:text-amber-300 text-xs font-bold hover:bg-amber-100 transition-colors shadow-sm"
+                                                                title="Process Remaining Refund"
+                                                            >
+                                                                <RotateCcw size={13} />
+                                                                <span>Refund</span>
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => en.devoteeId && !en.devoteeId.startsWith('GUEST_') && navigate(`/devotees/${en.devoteeId}`)}
+                                                            disabled={!en.devoteeId || en.devoteeId.startsWith('GUEST_')}
+                                                            className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-400"
+                                                            title="View Profile"
+                                                        >
+                                                            <ExternalLink size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleSendWhatsAppReceipt(en)}
+                                                            className="p-2 text-slate-400 hover:text-emerald-600 transition-colors"
+                                                            title="Send WhatsApp Message"
+                                                        >
+                                                            <MessageSquare size={16} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -741,6 +932,28 @@ const TourDetails = () => {
                     </div>
                 </div>
             )}
+
+            {/* WhatsApp Modal for Yatra Receipts & Communications */}
+            <WhatsAppModal
+                isOpen={showWhatsAppModal}
+                onClose={() => setShowWhatsAppModal(false)}
+                devotee={whatsAppParticipant}
+                initialMessage={whatsAppMessage}
+            />
+
+            {/* Cancel & Refund Modal */}
+            <CancelRefundModal
+                isOpen={showCancelRefundModal}
+                onClose={() => {
+                    setShowCancelRefundModal(false);
+                    setCancelTargetEnrollment(null);
+                }}
+                participant={cancelTargetEnrollment}
+                itemType="Tour"
+                itemTitle={tour?.name || 'Spiritual Yatra'}
+                onConfirm={handleConfirmCancelRefund}
+                isExistingCancelled={isRefundOnlyAction}
+            />
         </div>
     );
 };

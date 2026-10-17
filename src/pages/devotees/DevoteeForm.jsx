@@ -19,7 +19,7 @@ const DevoteeForm = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const isEdit = !!id;
-    const { addDevotee, updateDevotee, devotees, findDuplicate } = useDevotees();
+    const { addDevotee, updateDevotee, devotees, getDevoteeById, findDuplicate } = useDevotees();
     const toast = useToast();
     const [isSaving, setIsSaving] = useState(false);
 
@@ -60,60 +60,66 @@ const DevoteeForm = () => {
     const [previewUrl, setPreviewUrl] = useState(null);
     const [sameAsContact, setSameAsContact] = useState(false);
 
+    // Helper to populate form from a devotee record
+    const populateForm = React.useCallback((devoteeToEdit) => {
+        if (!devoteeToEdit) return;
+        const rounds = devoteeToEdit.rounds || devoteeToEdit.japaRounds || '';
+        
+        let parsedBooksRead = [];
+        let parsedCourses = [];
+        
+        try {
+            if (typeof devoteeToEdit.booksRead === 'string' && devoteeToEdit.booksRead.startsWith('[')) {
+                parsedBooksRead = JSON.parse(devoteeToEdit.booksRead);
+            } else if (Array.isArray(devoteeToEdit.booksRead)) {
+                parsedBooksRead = devoteeToEdit.booksRead;
+            } else if (typeof devoteeToEdit.booksRead === 'string' && devoteeToEdit.booksRead.trim() !== '') {
+                 parsedBooksRead = devoteeToEdit.booksRead.split(',').map(s => s.trim());
+            }
+
+            if (typeof devoteeToEdit.courses === 'string' && devoteeToEdit.courses.startsWith('[')) {
+                parsedCourses = JSON.parse(devoteeToEdit.courses);
+            } else if (Array.isArray(devoteeToEdit.courses)) {
+                parsedCourses = devoteeToEdit.courses;
+            } else if (typeof devoteeToEdit.courses === 'string' && devoteeToEdit.courses.trim() !== '') {
+                parsedCourses = devoteeToEdit.courses.split(',').map(s => s.trim());
+            }
+        } catch (e) {
+            console.error("Error parsing booksRead or courses", e);
+        }
+
+        const sanitizedDevotee = {};
+        Object.keys(devoteeToEdit).forEach(key => {
+            sanitizedDevotee[key] = devoteeToEdit[key] === null ? (defaultValues[key] ?? '') : devoteeToEdit[key];
+        });
+
+        const resolvedInitiatedName = sanitizedDevotee.initiatedName || sanitizedDevotee.spiritualName || '';
+        const resolvedSpiritualName = sanitizedDevotee.spiritualName || sanitizedDevotee.initiatedName || '';
+        sanitizedDevotee.initiatedName = resolvedInitiatedName;
+        sanitizedDevotee.spiritualName = resolvedSpiritualName;
+
+        reset({ 
+            ...defaultValues, 
+            ...sanitizedDevotee, 
+            rounds,
+            booksRead: parsedBooksRead,
+            courses: parsedCourses
+        });
+        if (devoteeToEdit.photo) setPreviewUrl(devoteeToEdit.photo);
+    }, [reset]);
+
     // Initialize Edit Data
     useEffect(() => {
-        if (isEdit) {
-            const devoteeToEdit = devotees.find(d => d.id === id);
-            if (devoteeToEdit) {
-                const rounds = devoteeToEdit.rounds || devoteeToEdit.japaRounds || '';
-                
-                // Parse JSON strings back into arrays for the form fields
-                let parsedBooksRead = [];
-                let parsedCourses = [];
-                
-                try {
-                    if (typeof devoteeToEdit.booksRead === 'string' && devoteeToEdit.booksRead.startsWith('[')) {
-                        parsedBooksRead = JSON.parse(devoteeToEdit.booksRead);
-                    } else if (Array.isArray(devoteeToEdit.booksRead)) {
-                        parsedBooksRead = devoteeToEdit.booksRead;
-                    } else if (typeof devoteeToEdit.booksRead === 'string' && devoteeToEdit.booksRead.trim() !== '') {
-                         parsedBooksRead = devoteeToEdit.booksRead.split(',').map(s => s.trim());
-                    }
-
-                    if (typeof devoteeToEdit.courses === 'string' && devoteeToEdit.courses.startsWith('[')) {
-                        parsedCourses = JSON.parse(devoteeToEdit.courses);
-                    } else if (Array.isArray(devoteeToEdit.courses)) {
-                        parsedCourses = devoteeToEdit.courses;
-                    } else if (typeof devoteeToEdit.courses === 'string' && devoteeToEdit.courses.trim() !== '') {
-                        parsedCourses = devoteeToEdit.courses.split(',').map(s => s.trim());
-                    }
-                } catch (e) {
-                    console.error("Error parsing booksRead or courses", e);
-                }
-
-                // Clean up any null values from the database to empty strings or default values
-                const sanitizedDevotee = {};
-                Object.keys(devoteeToEdit).forEach(key => {
-                    sanitizedDevotee[key] = devoteeToEdit[key] === null ? (defaultValues[key] ?? '') : devoteeToEdit[key];
-                });
-
-                // Ensure initiatedName and spiritualName fallback to each other
-                const resolvedInitiatedName = sanitizedDevotee.initiatedName || sanitizedDevotee.spiritualName || '';
-                const resolvedSpiritualName = sanitizedDevotee.spiritualName || sanitizedDevotee.initiatedName || '';
-                sanitizedDevotee.initiatedName = resolvedInitiatedName;
-                sanitizedDevotee.spiritualName = resolvedSpiritualName;
-
-                reset({ 
-                    ...defaultValues, 
-                    ...sanitizedDevotee, 
-                    rounds,
-                    booksRead: parsedBooksRead,
-                    courses: parsedCourses
-                });
-                if (devoteeToEdit.photo) setPreviewUrl(devoteeToEdit.photo);
-            }
+        if (!isEdit) return;
+        const devoteeToEdit = devotees.find(d => String(d.id) === String(id));
+        if (devoteeToEdit) {
+            populateForm(devoteeToEdit);
+        } else if (getDevoteeById) {
+            getDevoteeById(id).then(fresh => {
+                if (fresh) populateForm(fresh);
+            }).catch(() => {});
         }
-    }, [isEdit, id, devotees, reset]);
+    }, [isEdit, id, devotees, populateForm, getDevoteeById]);
 
     // Age Calculation Effect
     useEffect(() => {

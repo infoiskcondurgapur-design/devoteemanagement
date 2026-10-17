@@ -46,7 +46,7 @@ const ChangeRequestForm = () => {
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
-        const found = devotees.find(d => d.id === id) || null;
+        const found = devotees.find(d => String(d.id) === String(id)) || null;
         if (found) {
             setDevotee(found);
         } else {

@@ -49,7 +49,7 @@ export const SadhanaProvider = ({ children }) => {
             const result = await apiService.get(`/api/sadhana/${devoteeId}`);
             if (result.success) {
                 setSadhanaEntries(prev => {
-                    const others = prev.filter(e => e.devoteeId !== devoteeId);
+                    const others = prev.filter(e => String(e.devoteeId) !== String(devoteeId));
                     return [...others, ...result.data];
                 });
             }
@@ -59,7 +59,7 @@ export const SadhanaProvider = ({ children }) => {
     }, []);
 
     const getEntriesByDevotee = (devoteeId) => {
-        const filtered = sadhanaEntries.filter(e => e.devoteeId === devoteeId);
+        const filtered = sadhanaEntries.filter(e => String(e.devoteeId) === String(devoteeId));
         return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
     };
 

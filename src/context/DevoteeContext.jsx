@@ -25,13 +25,19 @@ export const DevoteeProvider = ({ children }) => {
     const [filterOptions, setFilterOptions] = useState({ counselors: [], districts: [] });
     const [isLiveConnected, setIsLiveConnected] = useState(false);
 
-    // ✅ Safe localStorage helper — strips base64 photos to avoid quota errors but keeps URLs
+    // Strips legacy Unsplash placeholder photo that was previously defaulted
+    const cleanPhotoUrl = (photo) => {
+        if (!photo || typeof photo !== 'string') return '';
+        if (photo.includes('photo-1633332755192-727a05c4013d')) return '';
+        return photo;
+    };
+
+    // ✅ Safe localStorage helper — strips base64 photos to avoid quota errors and cleans legacy placeholder URLs
     const safeLocalStorageSave = (devoteeList) => {
         try {
             const safe = devoteeList.map(d => ({
                 ...d,
-                // Only strip if it's a large data URI (base64). Keep Cloudinary/Unsplash URLs.
-                photo: d.photo && d.photo.startsWith('data:') ? '' : (d.photo || '')
+                photo: d.photo && d.photo.startsWith('data:') ? '' : cleanPhotoUrl(d.photo)
             }));
             localStorage.setItem('devotees', JSON.stringify(safe));
         } catch (e) {
@@ -40,18 +46,19 @@ export const DevoteeProvider = ({ children }) => {
         }
     };
 
-    // ✅ Heals devotees with null/undefined IDs locally without creating duplicate entries
+    // ✅ Heals devotees with null/undefined IDs locally and sanitizes legacy placeholder photos
     const healNullIds = async (devoteeList) => {
-        const broken = devoteeList.filter(d => !d.id);
-        if (broken.length === 0) return devoteeList;
-        console.warn(`[Heal] Found ${broken.length} devotees with null ID — patching locally...`);
-        const healed = [...devoteeList];
-        for (const dev of broken) {
-            const newId = crypto.randomUUID();
-            const idx = healed.findIndex(d => d === dev);
-            if (idx !== -1) healed[idx] = { ...dev, id: newId };
-        }
-        return healed;
+        return devoteeList.map(dev => {
+            const cleanedPhoto = cleanPhotoUrl(dev.photo);
+            if (!dev.id || dev.photo !== cleanedPhoto) {
+                return {
+                    ...dev,
+                    id: dev.id || crypto.randomUUID(),
+                    photo: cleanedPhoto
+                };
+            }
+            return dev;
+        });
     };
 
     useEffect(() => {
@@ -297,7 +304,7 @@ export const DevoteeProvider = ({ children }) => {
     const addDevotee = async (devoteeData, imageFile) => {
         setSaveStatus('saving');
         try {
-            let photoUrl = devoteeData.photo || 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=400&h=400&fit=crop';
+            let photoUrl = cleanPhotoUrl(devoteeData.photo);
             if (imageFile || (devoteeData.photo && devoteeData.photo.startsWith('data:'))) {
                 const uploadedUrl = await uploadPhoto(imageFile || devoteeData.photo);
                 if (uploadedUrl) photoUrl = uploadedUrl;
@@ -362,7 +369,7 @@ export const DevoteeProvider = ({ children }) => {
     const updateDevotee = async (id, updatedData, imageFile) => {
         setSaveStatus('saving');
         try {
-            let photoUrl = updatedData.photo;
+            let photoUrl = cleanPhotoUrl(updatedData.photo);
             if (imageFile || (updatedData.photo && updatedData.photo.startsWith('data:'))) {
                 const uploadedUrl = await uploadPhoto(imageFile || updatedData.photo);
                 if (uploadedUrl) photoUrl = uploadedUrl;

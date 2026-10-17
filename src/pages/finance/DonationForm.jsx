@@ -5,6 +5,7 @@ import * as htmlToImage from 'html-to-image';
 import MoneyReceipt from '../../components/finance/MoneyReceipt';
 import { useDevotees } from '../../context/DevoteeContext';
 import { useToast } from '../../components/Toast';
+import { searchDevoteesByName } from '../../lib/searchUtils';
 import apiService from '../../services/api';
 import clsx from 'clsx';
 
@@ -52,11 +53,8 @@ const FinanceForm = () => {
     const [whatsappSent, setWhatsappSent] = useState(false);
 
     const filteredDevotees = useMemo(() => {
-        const q = devoteeSearch.toLowerCase();
-        if (!q) return devotees.slice(0, 20);
-        return devotees.filter(d =>
-            d.name?.toLowerCase().includes(q) || d.initiatedName?.toLowerCase().includes(q)
-        ).slice(0, 20);
+        if (!devoteeSearch.trim()) return devotees.slice(0, 20);
+        return searchDevoteesByName(devotees, devoteeSearch, { limit: 20 });
     }, [devotees, devoteeSearch]);
 
     // Auto-calculate Due Amount (for income)

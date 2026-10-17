@@ -23,6 +23,16 @@ const JourneyTimeline = ({ devotee }) => {
     const milestones = useMemo(() => {
         const list = [];
 
+        if (devotee.dob) {
+            list.push({
+                date: devotee.dob,
+                title: 'Appearance Day',
+                desc: 'Blessed birth into this material world.',
+                type: 'registration',
+                color: 'bg-emerald-500'
+            });
+        }
+
         if (devotee.createdAt) {
             list.push({
                 date: devotee.createdAt,
@@ -33,19 +43,30 @@ const JourneyTimeline = ({ devotee }) => {
             });
         }
 
-        if (devotee.shelterDate) {
+        if (devotee.followingPrinciplesSince) {
             list.push({
-                date: devotee.shelterDate,
-                title: 'Accepted Shelter',
-                desc: 'Official acceptance of shelter from a spiritual master.',
-                type: 'shelter',
-                color: 'bg-rose-500'
+                date: devotee.followingPrinciplesSince,
+                title: 'Committed to 4 Regulative Principles',
+                desc: 'Dedicated to pure Vaishnava sadhana and principles.',
+                type: 'seva',
+                color: 'bg-indigo-500'
             });
         }
 
-        if (devotee.initiatedDate1) {
+        if (devotee.anniversary) {
             list.push({
-                date: devotee.initiatedDate1,
+                date: devotee.anniversary,
+                title: 'Marriage Anniversary',
+                desc: 'Grihastha ashram sacred milestone.',
+                type: 'shelter',
+                color: 'bg-pink-500'
+            });
+        }
+
+        const init1 = devotee.initiatedDate1 || devotee.initiationDate;
+        if (init1) {
+            list.push({
+                date: init1,
                 title: 'First Initiation (Harinama)',
                 desc: 'Sacred initiation into the chanting of the Holy Name.',
                 type: 'initiation',
@@ -53,9 +74,10 @@ const JourneyTimeline = ({ devotee }) => {
             });
         }
 
-        if (devotee.initiatedDate2) {
+        const init2 = devotee.initiatedDate2 || devotee.secondInitiationDate;
+        if (init2) {
             list.push({
-                date: devotee.initiatedDate2,
+                date: init2,
                 title: 'Second Initiation (Brahmin)',
                 desc: 'Receiving the sacred thread and gayatri mantra.',
                 type: 'initiation',

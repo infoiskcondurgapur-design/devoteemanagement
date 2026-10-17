@@ -5,6 +5,7 @@ import { useReferenceData } from '../../context/ReferenceDataContext';
 import { Search, User, ChevronRight, AlertTriangle, CheckCircle, Clock, Maximize2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ImageModal from '../../components/ImageModal';
+import { searchDevoteesByName, HighlightText } from '../../lib/searchUtils';
 
 const CounselorDashboard = () => {
     const { devotees } = useDevotees();
@@ -23,13 +24,12 @@ const CounselorDashboard = () => {
     const [selectedCounselor, setSelectedCounselor] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Filter devotees by counselor
+    // Filter devotees by counselor using case-insensitive token-based search
     const myCounselees = useMemo(() => {
         if (!selectedCounselor) return [];
-        return devotees.filter(d =>
-            d.counselor === selectedCounselor &&
-            d.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        const inGroup = devotees.filter(d => d.counselor === selectedCounselor);
+        if (!searchTerm.trim()) return inGroup;
+        return searchDevoteesByName(inGroup, searchTerm);
     }, [selectedCounselor, devotees, searchTerm]);
 
     // Analyze sadhana status
@@ -138,8 +138,14 @@ const CounselorDashboard = () => {
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <div className="font-medium text-slate-900">{devotee.name}</div>
-                                                        <div className="text-xs text-orange-600">{devotee.initiatedName || 'Uninitiated'}</div>
+                                                        <div className="font-medium text-slate-900 dark:text-slate-100">
+                                                            <HighlightText text={devotee.name} query={searchTerm} />
+                                                        </div>
+                                                        <div className="text-xs text-orange-600 dark:text-orange-400">
+                                                            {devotee.initiatedName ? (
+                                                                <HighlightText text={devotee.initiatedName} query={searchTerm} />
+                                                            ) : 'Uninitiated'}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>

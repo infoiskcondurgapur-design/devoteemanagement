@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Command, LayoutDashboard, Users, Heart, Calendar, ArrowRight, User, FileEdit, ClipboardList } from 'lucide-react';
 import { useDevotees } from '../context/DevoteeContext';
 import { useAuth } from '../context/AuthContext';
+import { searchDevoteesByName } from '../lib/searchUtils';
 import clsx from 'clsx';
 
 const CommandPalette = () => {
@@ -63,17 +64,14 @@ const CommandPalette = () => {
         ...quickActions.filter(a => a.title.toLowerCase().includes(query.toLowerCase())),
 
         // Devotees (Admin Only)
-        ...(isAdmin ? devotees.filter(d =>
-            d.name.toLowerCase().includes(query.toLowerCase()) ||
-            (d.initiatedName && d.initiatedName.toLowerCase().includes(query.toLowerCase()))
-        ).map(d => ({
+        ...(isAdmin && query.trim() ? searchDevoteesByName(devotees, query, { limit: 5 }).map(d => ({
             id: d.id,
             title: d.name,
-            subtitle: d.initiatedName,
+            subtitle: d.initiatedName || d.spiritualName,
             icon: Users,
             path: `/devotees/${d.id}`,
             type: 'Devotee'
-        })).slice(0, 5) : []) // Limit to 5 devotees
+        })) : []) // Limit to 5 devotees
     ];
 
     // Validation for active index
