@@ -2,6 +2,38 @@
 
 ## [2026-10-17]
 
+### Vaishnava Calendar & Ekadashi Notification Hub (বৈষ্ণব ক্যালেন্ডার ও একাদশী নোটিফিকেশন হাব)
+- **Astronomical Vaishnava Dataset (`src/data/vaishnavaCalendarData.js`)**:
+  - Comprehensive dataset for 2026 and 2027 calibrated to ISKCON Sri Mayapur Dham / West Bengal / Kolkata / Durgapur standard time (IST, UTC+05:30).
+  - Contains all Ekadashi fasting dates, exact Parana (fast-breaking) windows, Gaura/Krishna Pakshas, scriptural Katha/Mahatmya excerpts, and major Vaishnava appearances/disappearances (Gaura Purnima, Rama Navami, Janmashtami, Radhashtami, Nrisimha Caturdashi, Srila Prabhupada Vyasa-Puja, Govardhana Puja, Gita Jayanti, etc.).
+  - Fasting guidelines dictionary (`FASTING_GUIDELINES`) listing prohibited grains & pulses (পঞ্চরবিশস্য) and permitted satvik foods.
+- **Calendar & Countdown Utility Engine (`src/lib/vaishnavaCalendarUtils.js`)**:
+  - `getNextEkadashi()`: Real-time detection of upcoming Ekadashi, remaining days countdown, and instant status detection for Ekadashi Day (আজ একাদশী) and Parana Day (আজ পারণ সময়).
+  - `generateEkadashiWhatsAppText()`: Generates pre-formatted devotional WhatsApp broadcast messages with support for Bilingual (Bengali & English), Bengali-only, and English-only templates.
+  - `getEventsByMonth()`, `searchVaishnavaEvents()`, `formatParanaNotice()`.
+- **Live Ekadashi Widget on Dashboard (`src/components/dashboard/EkadashiWidget.jsx`)**:
+  - Embedded prominently at the top of the side column on `src/pages/Dashboard.jsx`.
+  - Three real-time states:
+    1. *Ekadashi Day (Today)*: Saffron glowing banner displaying current Ekadashi vrata with fasting guidance.
+    2. *Parana Day (Today)*: Emerald alert displaying exact Parana time window for breaking fast.
+    3. *Upcoming Countdown*: Shows remaining days, date, and Parana time preview with quick action buttons.
+  - 1-Click WhatsApp notification modal trigger and link to full calendar.
+- **Dedicated Vaishnava Calendar Page (`src/pages/VaishnavaCalendar.jsx`)**:
+  - Available at route `/calendar` and linked in the primary sidebar navigation (`src/components/layout/Sidebar.jsx`).
+  - Year selector (2026 / 2027) and quick month pills (জানুয়ারি - ডিসেম্বর).
+  - Category filters: All, Ekadashis Only 📿, Appearances & Disappearances 🙏, Major Festivals 🪔.
+  - Real-time search across Bengali name, English name, and Katha.
+  - Fasting & Parana badges, scriptural Mahatmya previews.
+  - Fasting Guidelines Drawer / Modal ("অনুকূল ও প্রতিকূল খাদ্য বিধি").
+  - "শ্রীমন্দির ইভেন্টে সিঙ্ক করুন" (Sync to DMS Events) button: 1-click auto-import into `/api/events` table for temple attendance & feast coordination.
+- **WhatsApp Notification Hub Modal (`src/components/spiritual/EkadashiBroadcastModal.jsx`)**:
+  - Allows counselors and admins to preview, edit, choose language (Bilingual / Bengali / English), and dispatch Ekadashi reminders to WhatsApp contacts or copy to clipboard for broadcast groups.
+- **Automated Verification & Deployment**:
+  - 7 unit tests created and passing (`test/vaishnava_calendar.test.mjs`).
+  - 23 backend regression tests passing (`npm run test:regression`).
+  - Vite production build passing (`npm run build`).
+  - Deployed directly to production: `https://devoteemanagement.vercel.app`.
+
 ### Smart Case-Insensitive, Multi-Token & Any-Word Search
 - **Client Search Engine Upgrade (`src/lib/searchUtils.js`)**:
   - **Tokenized Matching**: Search queries with multiple words, reversed word order, or middle names (e.g. `das sadananda`, `sadananda das`, `mukherjee koushik`) now match devotees regardless of word position.

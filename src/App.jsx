@@ -37,6 +37,7 @@ const Communication = lazy(() => import('./pages/Communication'));
 const Settings = lazy(() => import('./pages/Settings'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const Events = lazy(() => import('./pages/Events'));
+const VaishnavaCalendar = lazy(() => import('./pages/VaishnavaCalendar'));
 const SelfUpdate = lazy(() => import('./pages/SelfUpdate'));
 const PublicRegister = lazy(() => import('./pages/public/PublicRegister'));
 
@@ -120,6 +121,7 @@ function App() {
                               <Route path="finance/new" element={<DonationForm />} />
 
                               <Route path="events" element={<Events />} />
+                              <Route path="calendar" element={<VaishnavaCalendar />} />
                               <Route path="counseling" element={<CounselorDashboard />} />
                               <Route path="network" element={<NetworkGraph />} />
                               <Route path="map" element={<DevoteeMap />} />

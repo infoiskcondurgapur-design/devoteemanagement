@@ -8,6 +8,7 @@ import { useToast } from '../components/Toast';
 import ErrorBoundary from '../components/ErrorBoundary';
 import WhatsAppModal from '../components/WhatsAppModal';
 import ImageModal from '../components/ImageModal';
+import EkadashiWidget from '../components/dashboard/EkadashiWidget';
 import { MessageSquare } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -283,6 +284,11 @@ const Dashboard = () => {
 
                 {/* Info Side Panel */}
                 <div className="lg:col-span-4 space-y-8">
+
+                    {/* Vaishnava Calendar & Ekadashi Live Hub */}
+                    <ErrorBoundary>
+                        <EkadashiWidget />
+                    </ErrorBoundary>
 
                     {/* System Status Panel */}
                     <ErrorBoundary>
