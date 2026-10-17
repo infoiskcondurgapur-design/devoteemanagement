@@ -82,11 +82,13 @@ const DevoteeList = () => {
         return () => window.removeEventListener('devotees:refresh', handleLiveRefresh);
     }, [currentPage, pageSize, searchTerm, filters]);
 
-    // Continuous auto-sync interval: quietly refreshes current page every 10s
+    // Continuous auto-sync interval: quietly refreshes current page when tab is active (every 60s)
     React.useEffect(() => {
         const autoSyncInterval = setInterval(() => {
-            fetchPaginatedDevotees(currentPage, pageSize, searchTerm, filters);
-        }, 10000);
+            if (document.visibilityState === 'visible') {
+                fetchPaginatedDevotees(currentPage, pageSize, searchTerm, filters);
+            }
+        }, 60000);
         return () => clearInterval(autoSyncInterval);
     }, [currentPage, pageSize, searchTerm, filters]);
 

@@ -76,13 +76,10 @@ export const DevoteeProvider = ({ children }) => {
             checkGoogleSheetsStatus();
             fetchFilterOptions();
             statsInterval = setInterval(() => {
-                fetchStats();
-                fetchEvents();
-                checkGoogleSheetsStatus();
-                fetchFilterOptions();
-                fetchDevotees(true);
-                window.dispatchEvent(new CustomEvent('devotees:refresh'));
-            }, 10000);
+                if (document.visibilityState === 'visible') {
+                    fetchStats();
+                }
+            }, 60000);
         };
 
         // Real-Time WebSocket event listener

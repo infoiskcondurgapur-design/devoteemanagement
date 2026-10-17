@@ -675,8 +675,8 @@ export const runDataRepair = () => new Promise((resolve, reject) => {
         // 1. Clean whitespace from devotee names
         db.run("UPDATE devotees SET name = TRIM(name), initiatedName = TRIM(initiatedName)");
         
-        // 2. Clear legacy placeholder photo URLs
-        db.run("UPDATE devotees SET photo = '' WHERE photo LIKE '%photo-1633332755192-727a05c4013d%'");
+        // 2. Clear legacy placeholder photo URLs & oversized base64 bloat
+        db.run("UPDATE devotees SET photo = '' WHERE photo LIKE '%photo-1633332755192-727a05c4013d%' OR (photo LIKE 'data:image%' AND LENGTH(photo) > 100000)");
         
         // 3. Fix contact numbers (basic normalization)
         db.all("SELECT id, contact FROM devotees WHERE contact IS NOT NULL AND contact != ''", [], (err, rows) => {
@@ -791,12 +791,20 @@ export const getDevotees = (limit = 50, offset = 0, search = '', filters = {}) =
             if (err) return reject(err);
             db.all(query, queryParams, (err, rows) => {
                 if (err) reject(err);
-                else resolve({
-                    data: rows,
-                    total: countResult?.total || 0,
-                    limit,
-                    offset
-                });
+                else {
+                    const sanitizedRows = (rows || []).map(r => {
+                        if (limit > 50 && r.photo && r.photo.startsWith('data:') && r.photo.length > 50000) {
+                            return { ...r, photo: '' };
+                        }
+                        return r;
+                    });
+                    resolve({
+                        data: sanitizedRows,
+                        total: countResult?.total || 0,
+                        limit,
+                        offset
+                    });
+                }
             });
         });
     });

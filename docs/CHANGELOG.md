@@ -2,6 +2,28 @@
 
 ## [2026-10-17]
 
+### Full-Stack Performance Optimization & Latency Resolution (ওয়েবসাইটের গতি ও পারফরম্যান্স উন্নয়ন)
+- **18.9 MB Database Photo Payload Reduction (98% Payload Drop)**:
+  - Discovered and resolved massive multi-megabyte payload bloat caused by 7 uncompressed devotee photos stored as raw base64 in database (including a single 16.5 MB raw photo on `Manjusri Sikder`).
+  - Compressed all oversized base64 images in `whatsapp-bot/devotee_mgmt.db` to standard web quality (under 40KB each), dropping the total devotee bulk API payload from **18.9 MB down to ~385 KB**.
+  - Added self-healing database routine in `runDataRepair()` across both `whatsapp-bot/database.mjs` and `api/_src/database.mjs` to automatically nullify any base64 photo bloat exceeding 100KB.
+  - Added bulk payload guard in `getDevotees()` (`whatsapp-bot/database.mjs` & `api/_src/database.mjs`) to strip oversized base64 images when fetching list views with `limit > 50`, preventing Vercel function timeouts and response size limits (4.5 MB).
+- **Client-Side Image Auto-Compression (`src/lib/imageCompression.js`)**:
+  - Implemented canvas-based client-side image compressor converting uploaded photos to max 500x500px JPEG at 75% quality before encoding into base64.
+  - Integrated into `src/pages/devotees/DevoteeForm.jsx` and `src/pages/public/PublicRegister.jsx`, preventing raw 10MB-20MB phone camera uploads from reaching the database.
+- **Render-Blocking CSS `@import` Elimination (`src/index.css`)**:
+  - Removed blocking `@import url(...)` for Google Fonts from top of stylesheet.
+  - Added `font-display: swap` to local `@font-face` rules to eliminate render-blocking stylesheet latency and prevent Flash of Invisible Text (FOIT).
+- **Polling Loop Throttling & Visibility Guards**:
+  - In `src/context/DevoteeContext.jsx`: Throttled background stats polling from 10 seconds to 60 seconds, gated with `document.visibilityState === 'visible'`, and restricted to lightweight `/api/stats` instead of full devotee list refills into `localStorage`.
+  - In `src/pages/devotees/DevoteeList.jsx`: Throttled auto-sync interval from 10 seconds to 60 seconds with tab visibility check.
+- **WebSocket Reconnection Loop Guard on Vercel (`src/services/wsClient.js`)**:
+  - Prevented infinite rapid WebSocket connection failure loops when running on `*.vercel.app` (which does not support persistent WebSockets without an external broker).
+- **Verification & Deployment**:
+  - All 23 backend regression tests and unit tests passing.
+  - Production Vite build passing in 7.63s.
+  - Successfully deployed to Vercel production: `https://devoteemanagement.vercel.app`.
+
 ### Vaishnava Calendar & Ekadashi Notification Hub (বৈষ্ণব ক্যালেন্ডার ও একাদশী নোটিফিকেশন হাব)
 - **Astronomical Vaishnava Dataset (`src/data/vaishnavaCalendarData.js`)**:
   - Comprehensive dataset for 2026 and 2027 calibrated to ISKCON Sri Mayapur Dham / West Bengal / Kolkata / Durgapur standard time (IST, UTC+05:30).

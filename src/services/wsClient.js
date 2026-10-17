@@ -41,7 +41,12 @@ class RealtimeSyncClient {
             return 'ws://localhost:3001';
         }
 
-        // Deployed web origin (Vercel or custom domain with reverse proxy)
+        // Vercel serverless functions do not host a WebSocket server unless explicitly configured via VITE_WS_URL
+        if (hostname.endsWith('vercel.app')) {
+            return null;
+        }
+
+        // Deployed web origin (custom domain with reverse proxy/standalone node server)
         const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         return `${proto}//${window.location.host}`;
     }

@@ -6,6 +6,7 @@ import { useToast } from '../../components/Toast';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { devoteeSchema } from './devoteeSchema';
+import { compressImage } from '../../lib/imageCompression';
 
 // Sub-components
 import FormHeader from './components/FormHeader';
@@ -204,14 +205,20 @@ const DevoteeForm = () => {
         { id: 3, name: 'Family & Misc', icon: Heart },
     ];
 
-    const handleChange = (e) => {
+    const handleChange = async (e) => {
         const { name, files } = e.target;
         if (name === 'photo' && files?.[0]) {
             const file = files[0];
             setSelectedFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => setPreviewUrl(reader.result);
-            reader.readAsDataURL(file);
+            try {
+                const compressed = await compressImage(file, 500, 0.75);
+                setPreviewUrl(compressed);
+                setValue('photo', compressed);
+            } catch {
+                const reader = new FileReader();
+                reader.onloadend = () => setPreviewUrl(reader.result);
+                reader.readAsDataURL(file);
+            }
         }
     };
 

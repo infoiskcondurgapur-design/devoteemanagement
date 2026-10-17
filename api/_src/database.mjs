@@ -122,6 +122,13 @@ export const runDataRepair = async () => {
         await logIssue('warning', 'data-repair', `Duplicate contact found: ${row.contact} (${row.count} entries)`);
     }
 
+    // 4. Sanitize oversized legacy base64 photos & placeholder photos (> 100,000 chars)
+    try {
+        await runAsync("UPDATE devotees SET photo = '' WHERE photo LIKE '%photo-1633332755192-727a05c4013d%' OR (photo LIKE 'data:image%' AND LENGTH(photo) > 100000)");
+    } catch (e) {
+        console.warn('[DB Repair] Photo cleanup notice:', e.message);
+    }
+
     await logIssue('repair', 'backend', 'Automated data repair routines completed.');
     return { success: true };
 };
@@ -198,8 +205,14 @@ export const getDevotees = async (limit = 50, offset = 0, search = '', filters =
 
     const countResult = await getAsync(countQuery, params);
     const rows = await allAsync(query, queryParams);
+    const sanitizedRows = rows.map(r => {
+        if (limit > 50 && r.photo && r.photo.startsWith('data:') && r.photo.length > 50000) {
+            return { ...r, photo: '' };
+        }
+        return r;
+    });
     return {
-        data: rows,
+        data: sanitizedRows,
         total: (countResult && countResult.total) || 0,
         limit,
         offset

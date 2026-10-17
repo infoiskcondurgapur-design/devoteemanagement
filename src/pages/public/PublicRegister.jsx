@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { User, Heart, BookOpen, CheckCircle2, AlertTriangle, RotateCcw } from 'lucide-react';
 import { devoteeSchema } from '../devotees/devoteeSchema';
 import apiService from '../../services/api';
+import { compressImage } from '../../lib/imageCompression';
 
 // Reuses the admin wizard steps — they are presentational and need only a FormProvider.
 import VerticalNav from '../devotees/components/VerticalNav';
@@ -85,14 +86,19 @@ const PublicRegister = () => {
 
     const handlePrevStep = () => setCurrentStep(s => Math.max(s - 1, 1));
 
-    const handleChange = (e) => {
+    const handleChange = async (e) => {
         const { name, files } = e.target;
         if (name === 'photo' && files?.[0]) {
             const file = files[0];
             setSelectedFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => setPreviewUrl(reader.result);
-            reader.readAsDataURL(file);
+            try {
+                const compressed = await compressImage(file, 500, 0.75);
+                setPreviewUrl(compressed);
+            } catch {
+                const reader = new FileReader();
+                reader.onloadend = () => setPreviewUrl(reader.result);
+                reader.readAsDataURL(file);
+            }
         }
     };
 

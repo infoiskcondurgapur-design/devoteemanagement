@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Tiro+Bangla:ital@0;1&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -48,7 +47,8 @@
     font-family: 'DMSBengali';
     font-style: normal;
     font-weight: 400 700;
-    src: local('Tiro Bangla'), url('https://fonts.gstatic.com/s/tirobangla/v8/IFSgHe1Tm95E3O8b5i2V8MG9.ttf') format('truetype');
+    font-display: swap;
+    src: local('Tiro Bangla'), local('TiroBangla'), url('https://fonts.gstatic.com/s/tirobangla/v8/IFSgHe1Tm95E3O8b5i2V8MG9.ttf') format('truetype');
     unicode-range: U+0980-09FF, U+200C-200D;
   }
 
@@ -56,7 +56,8 @@
     font-family: 'DMSBengali';
     font-style: italic;
     font-weight: 400 700;
-    src: local('Tiro Bangla Italic'), url('https://fonts.gstatic.com/s/tirobangla/v8/IFSiHe1Tm95E3O8b5i2V8PG_80c.ttf') format('truetype');
+    font-display: swap;
+    src: local('Tiro Bangla Italic'), local('TiroBangla-Italic'), url('https://fonts.gstatic.com/s/tirobangla/v8/IFSiHe1Tm95E3O8b5i2V8PG_80c.ttf') format('truetype');
     unicode-range: U+0980-09FF, U+200C-200D;
   }
 
