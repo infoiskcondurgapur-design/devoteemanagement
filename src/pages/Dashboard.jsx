@@ -33,7 +33,7 @@ const StatCard = ({ title, value, label, icon: Icon, _delay }) => {
 
 const Dashboard = () => {
     const navigate = useNavigate();
-    const { getDashboardStats, fetchStats, lastUpdated, googleSheetsStatus, events, fetchEvents: fetchDashboardEvents } = useDevotees();
+    const { getDashboardStats, fetchStats, lastUpdated, events, fetchEvents: fetchDashboardEvents } = useDevotees();
     const toast = useToast();
     const statsData = getDashboardStats();
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -290,46 +290,6 @@ const Dashboard = () => {
                         <EkadashiWidget />
                     </ErrorBoundary>
 
-                    {/* System Status Panel */}
-                    <ErrorBoundary>
-                        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md">
-                            <div className="flex items-center justify-between mb-8">
-                                <h4 className="font-bold text-slate-800 dark:text-slate-100 text-[10px] uppercase tracking-widest">Connective Services</h4>
-                                <div className="flex items-center gap-2 px-2 py-1 bg-emerald-50 rounded-full border border-emerald-100">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                                    <span className="text-[9px] text-emerald-600 font-bold uppercase">Live</span>
-                                </div>
-                            </div>
-                            
-                            <div className="space-y-6">
-                                {/* Cloud Sync Integration Status */}
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-end">
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Cloud Sync (Sheets)</span>
-                                            <span className={clsx(
-                                                "text-sm font-black tracking-tight",
-                                                googleSheetsStatus.authenticated ? "text-blue-600" : "text-amber-600"
-                                            )}>
-                                                {googleSheetsStatus.authenticated ? 'Cloud Linked' : 'Not Integrated'}
-                                            </span>
-                                        </div>
-                                        {googleSheetsStatus.lastSync && (
-                                            <span className="text-[10px] font-bold text-muted-foreground italic">
-                                                {new Date(googleSheetsStatus.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                                        <div className={clsx(
-                                            "h-full rounded-full transition-all duration-1000 ease-out",
-                                            googleSheetsStatus.authenticated ? "bg-blue-500 w-full shadow-[0_0_10px_rgba(59,130,246,0.3)]" : "bg-amber-500 w-1/4"
-                                        )}></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </ErrorBoundary>
 
                     {/* Upcoming Birthdays Weekly Tracker */}
                     <ErrorBoundary>
