@@ -59,13 +59,13 @@ const EkadashiBroadcastModal = ({ isOpen, onClose, event, initialRecipientPhone 
                             📿
                         </div>
                         <div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 font-bangla">
                                 <span>একাদশী রিমাইন্ডার ও নোটিফিকেশন</span>
-                                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/80 dark:text-orange-300">
+                                <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/80 dark:text-orange-300 font-sans">
                                     WhatsApp Hub
                                 </span>
                             </h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-bangla">
                                 {event.bengaliName} • {event.date}
                             </p>
                         </div>
@@ -168,7 +168,7 @@ const EkadashiBroadcastModal = ({ isOpen, onClose, event, initialRecipientPhone 
                             rows={8}
                             value={messageText}
                             onChange={(e) => setMessageText(e.target.value)}
-                            className="w-full text-xs font-mono p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-slate-800 dark:text-slate-200 leading-relaxed custom-scrollbar"
+                            className="w-full text-xs font-bangla p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-slate-800 dark:text-slate-200 leading-relaxed custom-scrollbar"
                         />
                     </div>
 

@@ -80,7 +80,7 @@ const EkadashiWidget = () => {
                                     <span className="text-[10px] font-bold uppercase text-orange-600 dark:text-orange-400">
                                         আজ পরম পবিত্র একাদশী ব্রত
                                     </span>
-                                    <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 leading-tight">
+                                    <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 leading-tight font-bangla">
                                         {todayEkadashiEvent?.bengaliName}
                                     </h3>
                                     <p className="text-xs text-slate-500 dark:text-slate-400 italic">
@@ -90,10 +90,10 @@ const EkadashiWidget = () => {
                             </div>
 
                             <div className="text-xs text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-slate-800/80 p-2.5 rounded-lg border border-orange-100 dark:border-slate-700 flex items-center justify-between">
-                                <span className="font-medium text-rose-600 dark:text-rose-400 font-bold">
+                                <span className="font-medium text-rose-600 dark:text-rose-400 font-bold font-bangla">
                                     🚫 পঞ্চরবিশস্য বর্জনীয়
                                 </span>
-                                <span className="text-slate-500 dark:text-slate-400 font-medium">
+                                <span className="text-slate-500 dark:text-slate-400 font-medium font-bangla">
                                     পারণ: কাল {todayEkadashiEvent?.paranaTime?.split(' - ')[0]} পর
                                 </span>
                             </div>
@@ -102,17 +102,17 @@ const EkadashiWidget = () => {
                         /* STATE 2: TODAY IS PARANA DAY */
                         <div className="bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent dark:from-emerald-500/20 dark:via-teal-500/10 p-4 rounded-xl border border-emerald-200/80 dark:border-emerald-900/50 space-y-3">
                             <div>
-                                <span className="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                <span className="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bangla">
                                     <Clock className="w-3 h-3" /> আজ একাদশী পারণ সময়
                                 </span>
                                 <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 leading-tight">
                                     {todayParanaEvent?.paranaTime}
                                 </h3>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-bangla">
                                     {todayParanaEvent?.bengaliName}-এর উপবাস ভঙ্গ করুন।
                                 </p>
                             </div>
-                            <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">
+                            <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium font-bangla">
                                 এই সময়সীমার মধ্যে ভগবৎ-প্রসাদ গ্রহণ করে পারণ সম্পন্ন করুন।
                             </p>
                         </div>
@@ -121,10 +121,10 @@ const EkadashiWidget = () => {
                         <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-bangla">
                                         পরবর্তী একাদশী
                                     </span>
-                                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 font-bangla">
                                         {nextEkadashi?.bengaliName}
                                     </h3>
                                     <p className="text-xs text-slate-500 dark:text-slate-400">

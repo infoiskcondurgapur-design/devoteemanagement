@@ -194,11 +194,11 @@ const VaishnavaCalendar = () => {
                                 IST (UTC+05:30)
                             </span>
                         </div>
-                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white flex items-center gap-3">
+                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white flex items-center gap-3 font-bangla">
                             <span>বৈষ্ণব ক্যালেন্ডার ও উৎসব হাব</span>
                             <span className="text-2xl">📿</span>
                         </h1>
-                        <p className="text-xs sm:text-sm text-orange-100 max-w-2xl font-medium leading-relaxed">
+                        <p className="text-xs sm:text-sm text-orange-100 max-w-2xl font-medium leading-relaxed font-bangla">
                             শ্রীশ্রী চৈতন্য মহাপ্রভু ও শ্রীল প্রভুপাদের পদাঙ্ক অনুসরণে একাদশী উপবাস, পারণ সময়সূচী, আবির্ভাব-তিরোভাব তিথি এবং হোয়াটসঅ্যাপ নোটিফিকেশন সমন্বিত কেন্দ্র।
                         </p>
                     </div>
@@ -451,7 +451,7 @@ const VaishnavaCalendar = () => {
 
                                     {/* Event Title */}
                                     <div>
-                                        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 leading-snug group-hover:text-orange-600 transition-colors">
+                                        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 leading-snug group-hover:text-orange-600 transition-colors font-bangla">
                                             {event.bengaliName}
                                         </h3>
                                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium italic mt-0.5">
@@ -463,7 +463,7 @@ const VaishnavaCalendar = () => {
                                     {event.fasting && (
                                         <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 p-2.5 rounded-xl space-y-1.5 text-xs">
                                             <div className="flex items-center justify-between font-bold text-amber-900 dark:text-amber-200">
-                                                <span className="flex items-center gap-1.5">
+                                                <span className="flex items-center gap-1.5 font-bangla">
                                                     <Flame className="w-3.5 h-3.5 text-orange-500" />
                                                     {event.fastingType || 'উপবাস ব্রত'}
                                                 </span>
@@ -471,7 +471,7 @@ const VaishnavaCalendar = () => {
                                             {event.paranaTime && (
                                                 <div className="text-[11px] text-amber-800 dark:text-amber-300 font-medium flex items-center gap-1 pt-1 border-t border-amber-200/50 dark:border-amber-900/40">
                                                     <Clock className="w-3 h-3 text-amber-600" />
-                                                    <span>পারণ: {event.paranaTime}</span>
+                                                    <span className="font-bangla">পারণ: {event.paranaTime}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -479,7 +479,7 @@ const VaishnavaCalendar = () => {
 
                                     {/* Mahatmya Preview */}
                                     {event.mahatmyaBn && (
-                                        <div className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 italic">
+                                        <div className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 italic font-bangla">
                                             "{event.mahatmyaBn}"
                                         </div>
                                     )}

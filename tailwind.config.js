@@ -60,6 +60,11 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      fontFamily: {
+        sans: ["'DMSBengali'", 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+        bangla: ["'Tiro Bangla'", "'DMSBengali'", 'serif'],
+        bengali: ["'Tiro Bangla'", "'DMSBengali'", 'serif'],
+      },
       animation: {
         "bounce-slow": "bounce 3s infinite",
       }

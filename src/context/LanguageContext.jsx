@@ -26,6 +26,7 @@ export const LanguageProvider = ({ children }) => {
 
     useEffect(() => {
         localStorage.setItem('app_lang', lang);
+        document.documentElement.lang = lang;
     }, [lang]);
 
     const t = (key) => {

@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Tiro+Bangla:ital@0;1&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -43,13 +44,33 @@
 }
 
 @layer base {
+  @font-face {
+    font-family: 'DMSBengali';
+    font-style: normal;
+    font-weight: 400 700;
+    src: local('Tiro Bangla'), url('https://fonts.gstatic.com/s/tirobangla/v8/IFSgHe1Tm95E3O8b5i2V8MG9.ttf') format('truetype');
+    unicode-range: U+0980-09FF, U+200C-200D;
+  }
+
+  @font-face {
+    font-family: 'DMSBengali';
+    font-style: italic;
+    font-weight: 400 700;
+    src: local('Tiro Bangla Italic'), url('https://fonts.gstatic.com/s/tirobangla/v8/IFSiHe1Tm95E3O8b5i2V8PG_80c.ttf') format('truetype');
+    unicode-range: U+0980-09FF, U+200C-200D;
+  }
+
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: 'DMSBengali', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
+  }
+
+  .font-bangla, .font-bengali, [lang="bn"], :lang(bn) {
+    font-family: 'Tiro Bangla', 'DMSBengali', serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
