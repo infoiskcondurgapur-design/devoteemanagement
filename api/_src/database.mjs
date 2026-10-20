@@ -913,10 +913,10 @@ export const enrollDevotee = async (data) => {
 
 export const getCourseEnrollments = async (courseId) => {
     return allAsync(
-        `SELECT ce.*, d.name as devoteeName, d.spiritualName, d.initiatedName, d.contact, d.photo, d.whatsapp,
-                (SELECT COUNT(*) FROM course_attendance ca WHERE ca.courseId = ce.courseId AND ca.devoteeId = ce.devoteeId) as attendedSessions,
-                (SELECT COALESCE(SUM(CASE WHEN cp.amount < 0 THEN -cp.amount ELSE 0 END), 0) FROM course_payments cp WHERE cp.enrollmentId = ce.id) as totalRefunded,
-                (SELECT COALESCE(SUM(CASE WHEN cp.amount > 0 THEN cp.amount ELSE 0 END), 0) FROM course_payments cp WHERE cp.enrollmentId = ce.id) as totalReceived
+        `SELECT ce.*, d.name as "devoteeName", d.spiritualName as "spiritualName", d.initiatedName as "initiatedName", d.contact, d.photo, d.whatsapp,
+                (SELECT COUNT(*) FROM course_attendance ca WHERE ca.courseId = ce.courseId AND ca.devoteeId = ce.devoteeId) as "attendedSessions",
+                (SELECT COALESCE(SUM(CASE WHEN cp.amount < 0 THEN -cp.amount ELSE 0 END), 0) FROM course_payments cp WHERE cp.enrollmentId = ce.id) as "totalRefunded",
+                (SELECT COALESCE(SUM(CASE WHEN cp.amount > 0 THEN cp.amount ELSE 0 END), 0) FROM course_payments cp WHERE cp.enrollmentId = ce.id) as "totalReceived"
          FROM course_enrollments ce
          LEFT JOIN devotees d ON (ce.devoteeId = d.id OR CAST(ce.devoteeId AS TEXT) = CAST(d.id AS TEXT))
          WHERE ce.courseId = ?`,
@@ -1089,9 +1089,9 @@ export const enrollInTour = async (data) => {
 
 export const getTourEnrollments = async (tourId) => {
     return allAsync(
-        `SELECT te.*, d.name as devoteeName, d.spiritualName, d.initiatedName, d.contact, d.photo, d.whatsapp, d.counselor as devoteeCounselor,
-                (SELECT COALESCE(SUM(CASE WHEN tp.amount < 0 THEN -tp.amount ELSE 0 END), 0) FROM tour_payments tp WHERE tp.enrollmentId = te.id) as totalRefunded,
-                (SELECT COALESCE(SUM(CASE WHEN tp.amount > 0 THEN tp.amount ELSE 0 END), 0) FROM tour_payments tp WHERE tp.enrollmentId = te.id) as totalReceived
+        `SELECT te.*, d.name as "devoteeName", d.spiritualName as "spiritualName", d.initiatedName as "initiatedName", d.contact, d.photo, d.whatsapp, d.counselor as "devoteeCounselor",
+                (SELECT COALESCE(SUM(CASE WHEN tp.amount < 0 THEN -tp.amount ELSE 0 END), 0) FROM tour_payments tp WHERE tp.enrollmentId = te.id) as "totalRefunded",
+                (SELECT COALESCE(SUM(CASE WHEN tp.amount > 0 THEN tp.amount ELSE 0 END), 0) FROM tour_payments tp WHERE tp.enrollmentId = te.id) as "totalReceived"
          FROM tour_enrollments te
          LEFT JOIN devotees d ON (te.devoteeId = d.id OR CAST(te.devoteeId AS TEXT) = CAST(d.id AS TEXT))
          WHERE te.tourId = ?`,

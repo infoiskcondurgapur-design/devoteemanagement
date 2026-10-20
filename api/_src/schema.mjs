@@ -333,14 +333,43 @@ export const INIT_DDL = (() => {
     return Object.values(TABLES).map(lowerIdentifiers).concat(INDEXES);
 })();
 
+export const QUERY_ALIAS_CAMEL_CASE = [
+    'actualAmount',
+    'anniversariesToday',
+    'attendedSessions',
+    'attendeeCount',
+    'birthdaysToday',
+    'budgetAmount',
+    'categoryName',
+    'currentMonthRegistrations',
+    'devoteeContact',
+    'devoteeCounselor',
+    'devoteeName',
+    'devoteeNameFull',
+    'itemName',
+    'lastMonthRegistrations',
+    'lastSeen',
+    'requestedByName',
+    'totalAll',
+    'totalAttendance',
+    'totalCount',
+    'totalReceived',
+    'totalRefunded',
+    'totalThisMonth',
+    'volunteerCount'
+];
+
 // All camelCase columns per table, used by db.mjs to restore camelCase keys
 // on result rows (Postgres folds unquoted, lowercased identifiers).
 // Computed from the ORIGINAL (pre-lowercasing) DDL so mixed-case names are kept.
-export const CAMEL_CASE_KEYS = Object.values(TABLES)
-    .join(' ')
-    .match(/"([A-Za-z][A-Za-z0-9]*)"/g)
-    .map(s => s.slice(1, -1))
-    .filter(k => /[A-Z]/.test(k));
+export const CAMEL_CASE_KEYS = [
+    ...Object.values(TABLES)
+        .join(' ')
+        .match(/"([A-Za-z][A-Za-z0-9]*)"/g)
+        .map(s => s.slice(1, -1))
+        .filter(k => /[A-Z]/.test(k)),
+    ...QUERY_ALIAS_CAMEL_CASE
+];
 
 // Lowercase names of all columns whose PostgreSQL type is numeric (NUMERIC,
 // BIGINT, REAL, DOUBLE PRECISION). The pg drivers serialize these types as

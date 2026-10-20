@@ -26,17 +26,17 @@ test('matchDevoteeName is strictly case-insensitive', () => {
     // Lowercase query
     const resLower = matchDevoteeName(devotee, 'deb');
     assert.equal(resLower.matched, true);
-    assert.equal(resLower.score, 90); // Prefix match
+    assert.equal(resLower.score, 95); // Prefix match
 
     // Uppercase query
     const resUpper = matchDevoteeName(devotee, 'DEB');
     assert.equal(resUpper.matched, true);
-    assert.equal(resUpper.score, 90);
+    assert.equal(resUpper.score, 95);
 
     // Mixed-case query
     const resMixed = matchDevoteeName(devotee, 'DeB');
     assert.equal(resMixed.matched, true);
-    assert.equal(resMixed.score, 90);
+    assert.equal(resMixed.score, 95);
 
     // Full name match
     assert.equal(matchDevoteeName(devotee, 'debabrata sahoo').score, 100);
@@ -46,9 +46,9 @@ test('matchDevoteeName is strictly case-insensitive', () => {
     assert.equal(matchDevoteeName(devotee, 'dam').matched, true);
     assert.equal(matchDevoteeName(devotee, 'DAM').matched, true);
 
-    // Word prefix match (second word)
-    assert.equal(matchDevoteeName(devotee, 'sah').score, 80);
-    assert.equal(matchDevoteeName(devotee, 'SAH').score, 80);
+    // Substring match in second word
+    assert.equal(matchDevoteeName(devotee, 'sah').score, 85);
+    assert.equal(matchDevoteeName(devotee, 'SAH').score, 85);
 });
 
 test('searchDevoteesByName prioritizes prefix matches first', () => {

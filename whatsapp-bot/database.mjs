@@ -1427,6 +1427,7 @@ export const getSevas = () => new Promise((resolve, reject) => {
 export const updateSeva = (id, data) => new Promise((resolve, reject) => {
     const validCols = ['department', 'role', 'status', 'notes'];
     const keys = Object.keys(data).filter(k => validCols.includes(k));
+    if (keys.length === 0) return resolve({ success: true });
     const sets = keys.map(k => `${k} = ?`).join(', ');
     const vals = [...keys.map(k => data[k]), id];
     db.run(`UPDATE seva_assignments SET ${sets} WHERE id = ?`, vals, function (err) { if (err) reject(err); else resolve({ success: true }); });
@@ -1459,6 +1460,7 @@ export const getSevaShifts = (date = null, department = null) => new Promise((re
 export const updateSevaShift = (id, data) => new Promise((resolve, reject) => {
     const validCols = ['department', 'shiftName', 'shiftDate', 'startTime', 'endTime', 'requiredVolunteers', 'notes'];
     const keys = Object.keys(data).filter(k => validCols.includes(k));
+    if (keys.length === 0) return resolve({ success: true });
     const sets = keys.map(k => `${k} = ?`).join(', ');
     const vals = [...keys.map(k => data[k]), id];
     db.run(`UPDATE seva_shifts SET ${sets} WHERE id = ?`, vals, function (err) { if (err) reject(err); else resolve({ success: true }); });
@@ -1618,6 +1620,7 @@ export const getCourseById = (id) => new Promise((resolve, reject) => {
 export const updateCourse = (id, data) => new Promise((resolve, reject) => {
     const validCols = ['name', 'description', 'startDate', 'endDate', 'status', 'fees', 'instructor'];
     const keys = Object.keys(data).filter(k => validCols.includes(k));
+    if (keys.length === 0) return resolve({ success: true });
     const sets = keys.map(k => `${k} = ?`).join(', ');
     const vals = [...keys.map(k => data[k]), id];
     db.run(`UPDATE courses SET ${sets} WHERE id = ?`, vals, function (err) { if (err) reject(err); else resolve({ success: true }); });
@@ -1701,6 +1704,7 @@ export const syncCourseAttendance = (courseId, sessionDate, devoteeIds, markedBy
 export const updateEnrollment = (id, data) => new Promise((resolve, reject) => {
     const validCols = ['status', 'certificateIssued', 'totalPaid', 'paymentStatus'];
     const keys = Object.keys(data).filter(k => validCols.includes(k));
+    if (keys.length === 0) return resolve({ success: true });
     const sets = keys.map(k => `${k} = ?`).join(', ');
     const vals = [...keys.map(k => data[k]), id];
     db.run(`UPDATE course_enrollments SET ${sets} WHERE id = ?`, vals, function (err) { if (err) reject(err); else resolve({ success: true }); });
@@ -1781,6 +1785,7 @@ export const getTourById = (id) => new Promise((resolve, reject) => {
 export const updateTour = (id, data) => new Promise((resolve, reject) => {
     const validCols = ['name', 'destination', 'startDate', 'endDate', 'status', 'fees', 'organizer', 'maxParticipants'];
     const keys = Object.keys(data).filter(k => validCols.includes(k));
+    if (keys.length === 0) return resolve({ success: true });
     const sets = keys.map(k => `${k} = ?`).join(', ');
     const vals = [...keys.map(k => data[k]), id];
     db.run(`UPDATE tours SET ${sets} WHERE id = ?`, vals, function (err) { if (err) reject(err); else resolve({ success: true }); });
@@ -1820,6 +1825,7 @@ export const getTourEnrollments = (tourId) => new Promise((resolve, reject) => {
 export const updateTourEnrollment = (id, data) => new Promise((resolve, reject) => {
     const validCols = ['status', 'totalPaid', 'paymentStatus', 'leader'];
     const keys = Object.keys(data).filter(k => validCols.includes(k));
+    if (keys.length === 0) return resolve({ success: true });
     const sets = keys.map(k => `${k} = ?`).join(', ');
     const vals = [...keys.map(k => data[k]), id];
     db.run(`UPDATE tour_enrollments SET ${sets} WHERE id = ?`, vals, function (err) { if (err) reject(err); else resolve({ success: true }); });
@@ -1914,6 +1920,7 @@ export const addInventoryItem = (data) => new Promise((resolve, reject) => {
 export const updateInventoryItem = (id, data) => new Promise((resolve, reject) => {
     const validCols = ['categoryId', 'name', 'sku', 'description', 'unit', 'unitPrice', 'stockLevel', 'reorderLevel'];
     const keys = Object.keys(data).filter(k => validCols.includes(k));
+    if (keys.length === 0) return resolve({ success: true });
     const sets = keys.map(k => `${k} = ?`).join(', ');
     const vals = [...keys.map(k => data[k]), id];
     db.run(`UPDATE inventory_items SET ${sets} WHERE id = ?`, vals, function (err) { if (err) reject(err); else resolve({ success: true }); });

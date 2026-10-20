@@ -63,6 +63,7 @@ const AGGREGATE_KEYS = new Set([
     'currentmonthregistrations', 'lastmonthregistrations',
     'totalattendance', 'attendeeCount', 'volunteercount',
     'totalall', 'totalthismonth', 'totalcount', 'attendedsessions',
+    'totalrefunded', 'totalreceived',
     'income', 'expense', 'budgetamount', 'actualamount', 'utilization'
 ].map(k => k.toLowerCase()));
 

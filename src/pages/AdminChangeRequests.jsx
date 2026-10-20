@@ -132,8 +132,8 @@ const AdminChangeRequests = () => {
                                 return (
                                     <tr key={req.id} className="hover:bg-slate-50 dark:bg-slate-900/50/50 transition-colors">
                                         <td className="px-4 py-3">
-                                            <div className="font-bold text-slate-900 text-sm">{req.devoteeName || req.devoteeId}</div>
-                                            <div className="text-xs text-slate-500">{req.devoteeContact}</div>
+                                            <div className="font-bold text-slate-900 text-sm">{req.devoteeName || req.devoteename || req.devoteeId}</div>
+                                            <div className="text-xs text-slate-500">{req.devoteeContact || req.devoteecontact}</div>
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="text-sm text-slate-700 dark:text-slate-300 max-w-xs">

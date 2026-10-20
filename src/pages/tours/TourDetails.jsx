@@ -83,9 +83,11 @@ const TourDetails = () => {
             if (response.success) {
                 toast.success('Status updated');
                 fetchTourData();
+            } else {
+                toast.error(response.error || 'Failed to update status');
             }
-        } catch {
-            toast.error('Update failed');
+        } catch (err) {
+            toast.error(err?.message || 'Update failed');
         }
     };
 
@@ -98,8 +100,8 @@ const TourDetails = () => {
             } else {
                 toast.error(response.error || 'Failed to update leader');
             }
-        } catch {
-            toast.error('Update failed');
+        } catch (err) {
+            toast.error(err?.message || 'Update failed');
         }
     };
 
@@ -128,8 +130,8 @@ const TourDetails = () => {
             fetchTourData();
 
             const currentPaid = Number(cancelTargetEnrollment?.totalPaid || 0);
-            const currentRefunded = Number(cancelTargetEnrollment?.totalRefunded || 0);
-            const currentReceived = Number(cancelTargetEnrollment?.totalReceived || currentPaid);
+            const currentRefunded = Number(cancelTargetEnrollment?.totalRefunded || cancelTargetEnrollment?.totalrefunded || 0);
+            const currentReceived = Number(cancelTargetEnrollment?.totalReceived || cancelTargetEnrollment?.totalreceived || currentPaid);
             const updatedEn = {
                 ...cancelTargetEnrollment,
                 status: newStatus || 'Cancelled',
@@ -175,20 +177,28 @@ const TourDetails = () => {
 
     const handleExportExcel = () => {
         try {
-            const data = activeEnrollments.map(en => ({
-                'Name': (en.devoteeId && !en.devoteeId.startsWith('GUEST_')) ? (en.initiatedName || en.devoteeName) : en.guestName,
-                'Leader': en.leader || en.devoteeCounselor || '—',
-                'Status': en.status,
-                'Payment': en.paymentStatus,
-                'Paid (Rs.)': en.totalPaid,
-                'Pending (Rs.)': tour.fees - en.totalPaid,
-                'Contact': (en.devoteeId && !en.devoteeId.startsWith('GUEST_')) ? (en.whatsapp || en.contact) : (en.guestContact || ''),
-                'Booking Date': en.bookingDate
-            }));
+            const tourFeesNum = Number(tour?.fees || 0);
+            const data = activeEnrollments.map(en => {
+                const paid = Number(en.totalPaid || 0);
+                const devCounselor = en.devoteeCounselor || en.devoteecounselor || '';
+                const name = (en.devoteeId && !en.devoteeId.startsWith('GUEST_')) 
+                    ? (en.initiatedName || en.devoteeName || en.devoteename) 
+                    : en.guestName;
+                return {
+                    'Name': name,
+                    'Leader': en.leader || devCounselor || '—',
+                    'Status': en.status,
+                    'Payment': en.paymentStatus,
+                    'Paid (Rs.)': paid,
+                    'Pending (Rs.)': Math.max(0, tourFeesNum - paid),
+                    'Contact': (en.devoteeId && !en.devoteeId.startsWith('GUEST_')) ? (en.whatsapp || en.contact) : (en.guestContact || ''),
+                    'Booking Date': en.bookingDate
+                };
+            });
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Participants");
-            XLSX.writeFile(wb, `${tour.name.replace(/\s+/g, '_')}_Participants.xlsx`);
+            XLSX.writeFile(wb, `${(tour?.name || 'Tour').replace(/\s+/g, '_')}_Participants.xlsx`);
             toast.success('Exported to Excel');
         } catch {
             toast.error('Export failed');
@@ -201,7 +211,7 @@ const TourDetails = () => {
 
         const name = isGuest 
             ? (en.guestName || 'Pilgrim') 
-            : (en.initiatedName || en.devoteeName || dev?.initiatedName || dev?.name || 'Devotee');
+            : (en.initiatedName || en.devoteeName || en.devoteename || dev?.initiatedName || dev?.name || 'Devotee');
 
         const rawPhone = isGuest 
             ? (en.guestContact || '') 
@@ -209,8 +219,8 @@ const TourDetails = () => {
 
         const tourFee = Number(tour?.fees || 0);
         const totalPaid = Number(en.totalPaid || 0);
-        const totalRefunded = Number(en.totalRefunded || 0);
-        const totalReceived = Number(en.totalReceived || (totalPaid + totalRefunded));
+        const totalRefunded = Number(en.totalRefunded || en.totalrefunded || 0);
+        const totalReceived = Number(en.totalReceived || en.totalreceived || (totalPaid + totalRefunded));
         const isCancelled = en.status === 'Cancelled';
 
         let message;
@@ -334,12 +344,12 @@ const TourDetails = () => {
                     : (e.guestContact || '')
             ).trim().toLowerCase();
 
-            const devName = (e.devoteeName || '').toLowerCase();
+            const devName = (e.devoteeName || e.devoteename || '').toLowerCase();
             const initName = (e.initiatedName || '').toLowerCase();
             const guestName = (e.guestName || '').toLowerCase();
             const devId = String(e.devoteeId || '').toLowerCase();
             const leaderName = (e.leader || '').toLowerCase();
-            const counselorName = (e.devoteeCounselor || '').toLowerCase();
+            const counselorName = (e.devoteeCounselor || e.devoteecounselor || '').toLowerCase();
 
             const matchesSearch = !searchTerm || tokens.every(tok => 
                 devName.includes(tok) || 
@@ -641,12 +651,12 @@ const TourDetails = () => {
                                                     <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border-2 border-white shadow-sm">
                                                         {en.photo
                                                             ? <img src={en.photo} alt="" className="w-full h-full object-cover" />
-                                                            : <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500 font-bold">{(en.guestName || en.devoteeName || '?').charAt(0).toUpperCase()}</div>
+                                                            : <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500 font-bold">{(en.guestName || en.devoteeName || en.devoteename || '?').charAt(0).toUpperCase()}</div>
                                                         }
                                                     </div>
                                                     <div>
                                                         <p className="font-bold text-slate-900 text-sm leading-tight">
-                                                             {(en.devoteeId && !en.devoteeId.startsWith('GUEST_')) ? (en.initiatedName || en.devoteeName) : en.guestName}
+                                                             {(en.devoteeId && !en.devoteeId.startsWith('GUEST_')) ? (en.initiatedName || en.devoteeName || en.devoteename) : en.guestName}
                                                              {(!en.devoteeId || en.devoteeId.startsWith('GUEST_')) && (
                                                                  <span className="ml-2 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-[8px] font-black uppercase tracking-widest">Walk-in</span>
                                                              )}
@@ -718,12 +728,12 @@ const TourDetails = () => {
                                                             <button
                                                                 onClick={() => {
                                                                     setEditingLeaderId(en.id);
-                                                                    setEditingLeaderValue(en.devoteeCounselor || '');
+                                                                    setEditingLeaderValue(en.devoteeCounselor || en.devoteecounselor || '');
                                                                 }}
                                                                 className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:text-orange-600 border border-dashed border-slate-300 dark:border-slate-700 hover:border-orange-400 px-2 py-0.5 rounded-lg transition-colors"
-                                                                title={en.devoteeCounselor ? `Quick assign Counselor (${en.devoteeCounselor})` : "Assign a Leader"}
+                                                                title={(en.devoteeCounselor || en.devoteecounselor) ? `Quick assign Counselor (${en.devoteeCounselor || en.devoteecounselor})` : "Assign a Leader"}
                                                             >
-                                                                <Plus size={11} /> {en.devoteeCounselor ? en.devoteeCounselor : 'Assign Leader'}
+                                                                <Plus size={11} /> {(en.devoteeCounselor || en.devoteecounselor) ? (en.devoteeCounselor || en.devoteecounselor) : 'Assign Leader'}
                                                             </button>
                                                         ) : (
                                                             <span className="text-slate-300 text-xs font-medium">—</span>
@@ -811,7 +821,7 @@ const TourDetails = () => {
                                                     </button>
                                                     {isAdmin && (
                                                         <button
-                                                            onClick={() => handleDeleteParticipant(en.id, en.guestName || en.initiatedName || en.devoteeName)}
+                                                            onClick={() => handleDeleteParticipant(en.id, en.guestName || en.initiatedName || en.devoteeName || en.devoteename)}
                                                             className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 transition-colors"
                                                             title="Remove Participant"
                                                         >
@@ -884,12 +894,12 @@ const TourDetails = () => {
                                                         <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border-2 border-white shadow-sm opacity-50">
                                                             {en.photo
                                                                 ? <img src={en.photo} alt="" className="w-full h-full object-cover" />
-                                                                : <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500 font-bold">{(en.guestName || en.devoteeName || '?').charAt(0).toUpperCase()}</div>
+                                                                : <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500 font-bold">{(en.guestName || en.devoteeName || en.devoteename || '?').charAt(0).toUpperCase()}</div>
                                                             }
                                                         </div>
                                                         <div>
                                                             <p className="font-bold text-slate-400 dark:text-slate-500 text-sm leading-tight line-through">
-                                                                {(en.devoteeId && !en.devoteeId.startsWith('GUEST_')) ? (en.initiatedName || en.devoteeName) : en.guestName}
+                                                                {(en.devoteeId && !en.devoteeId.startsWith('GUEST_')) ? (en.initiatedName || en.devoteeName || en.devoteename) : en.guestName}
                                                             </p>
                                                             <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Booked: {formatDate(en.bookingDate)}</p>
                                                         </div>
@@ -897,7 +907,7 @@ const TourDetails = () => {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-                                                        {en.leader || en.devoteeCounselor || '—'}
+                                                        {en.leader || en.devoteeCounselor || en.devoteecounselor || '—'}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
@@ -925,9 +935,9 @@ const TourDetails = () => {
                                                                 {en.paymentStatus || 'Cancelled'}
                                                             </span>
                                                         </div>
-                                                        {(Number(en.totalRefunded) > 0 || Number(en.totalReceived) > 0) && (
+                                                        {(Number(en.totalRefunded || en.totalrefunded || 0) > 0 || Number(en.totalReceived || en.totalreceived || 0) > 0) && (
                                                             <p className="text-[10px] text-slate-400">
-                                                                Paid: Rs.{en.totalReceived || en.totalPaid || 0} &bull; Refunded: Rs.{en.totalRefunded || 0}
+                                                                Paid: Rs.{en.totalReceived || en.totalreceived || en.totalPaid || 0} &bull; Refunded: Rs.{en.totalRefunded || en.totalrefunded || 0}
                                                             </p>
                                                         )}
                                                     </div>
@@ -997,7 +1007,7 @@ const TourDetails = () => {
                                     <div>
                                         <h3 className="text-2xl font-black text-slate-900 leading-tight">Record Payment</h3>
                                         <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
-                                            For {selectedEnrollment.initiatedName || selectedEnrollment.devoteeName || selectedEnrollment.guestName}
+                                            For {selectedEnrollment.initiatedName || selectedEnrollment.devoteeName || selectedEnrollment.devoteename || selectedEnrollment.guestName}
                                         </p>
                                     </div>
                                     <button type="button" onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors">

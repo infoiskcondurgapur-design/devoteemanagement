@@ -81,7 +81,7 @@ const MyRequests = () => {
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
                                         <div className="font-bold text-slate-900 text-sm">
-                                            {req.devoteeName || req.devoteeId}
+                                            {req.devoteeName || req.devoteename || req.devoteeId}
                                         </div>
                                         <div className="text-xs text-slate-500 mt-1">
                                             {req.createdAt ? new Date(req.createdAt).toLocaleString() : '--'}

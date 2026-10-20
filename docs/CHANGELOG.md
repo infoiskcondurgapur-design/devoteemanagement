@@ -2,6 +2,22 @@
 
 ## [2026-10-20]
 
+### Bug Fixes & Cross-Environment Consistency Hardening (বাগ ফিক্স ও ক্রস-এনভায়রনমেন্ট কনসিস্টেন্সি)
+- **PostgreSQL Column Alias Lowercase Restoration (`api/_src/schema.mjs` & `api/_src/db.mjs`)**:
+  - Identified that PostgreSQL folds unquoted JOIN and aggregate query aliases (`devoteeName`, `devoteeCounselor`, `totalRefunded`, `totalReceived`, `attendedSessions`, `devoteeContact`, etc.) to lowercase. Because these aliases were not columns defined in `TABLES`, `db.mjs` was returning lowercase keys (`devoteecounselor`, `devoteename`), causing frontend UI elements on Vercel to miss fields or fall back to defaults.
+  - Quoted JOIN aliases in `api/_src/database.mjs` (`as "devoteeCounselor"`, `as "totalRefunded"`, `as "totalReceived"`).
+  - Extended `CAMEL_CASE_KEYS` in `api/_src/schema.mjs` with `QUERY_ALIAS_CAMEL_CASE` across 23 known aliases to guarantee full camelCase restoration across all Postgres query rows.
+  - Added `totalrefunded` and `totalreceived` to `AGGREGATE_KEYS` in `api/_src/db.mjs` for automatic numeric coercion.
+  - Added defensive fallback `en.devoteeCounselor || en.devoteecounselor` and `en.devoteeName || en.devoteename` across `TourDetails.jsx`, `CancelRefundModal.jsx`, `AdminChangeRequests.jsx`, and `MyRequests.jsx`.
+- **Empty Payload Update Guard in SQLite (`whatsapp-bot/database.mjs`)**:
+  - Added `if (keys.length === 0) return resolve({ success: true });` across all SQLite update functions (`updateTourEnrollment`, `updateTour`, `updateCourse`, `updateEnrollment`, `updateSeva`, `updateSevaShift`, `updateInventoryItem`), preventing SQL syntax errors (`UPDATE ... SET  WHERE id = ?`) when empty update payloads are dispatched.
+- **Safe Math & Error Handling (`src/pages/tours/TourDetails.jsx`)**:
+  - Hardened Excel export math: `Math.max(0, Number(tour?.fees || 0) - Number(en.totalPaid || 0))` preventing `NaN` values.
+  - Improved error toasts in `updateEnrollmentStatus` and `updateEnrollmentLeader` to display the actual server rejection message (`err?.message || 'Update failed'`).
+- **Test Suite Modernization (`package.json` & `test/searchUtils.test.mjs`)**:
+  - Configured `npm test` script with `--test-concurrency=1` to ensure sequential test execution against the SQLite database without locking contention.
+  - Updated search unit tests to align with enhanced scoring constants (95 prefix, 85 substring). All 16 unit tests and 23 regression tests pass with 0 errors.
+
 ### Tour Participant Leader Column Option (ট্যুর পার্টিসিপেন্ট লিডার কলাম ও ম্যানেজমেন্ট)
 - **Zero-Data-Loss Schema Migration (`ALTER TABLE tour_enrollments ADD COLUMN leader TEXT`)**:
   - Successfully altered `tour_enrollments` in SQLite (`whatsapp-bot/devotee_mgmt.db`) and PostgreSQL (`api/_src/database.mjs` & `api/_src/schema.mjs`) to include the `leader` column.

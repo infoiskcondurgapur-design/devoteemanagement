@@ -19,12 +19,12 @@ const CancelRefundModal = ({
     const [error, setError] = useState('');
 
     const name = participant 
-        ? (participant.initiatedName || participant.devoteeName || participant.guestName || 'Participant')
+        ? (participant.initiatedName || participant.devoteeName || participant.devoteename || participant.guestName || 'Participant')
         : 'Participant';
 
     const netPaid = Math.max(0, Number(participant?.totalPaid || 0));
-    const alreadyRefunded = Math.max(0, Number(participant?.totalRefunded || 0));
-    const totalReceived = Math.max(netPaid + alreadyRefunded, Number(participant?.totalReceived || netPaid));
+    const alreadyRefunded = Math.max(0, Number(participant?.totalRefunded || participant?.totalrefunded || 0));
+    const totalReceived = Math.max(netPaid + alreadyRefunded, Number(participant?.totalReceived || participant?.totalreceived || netPaid));
 
     // The maximum amount available to refund right now is whatever net paid balance remains
     const refundableBalance = netPaid;
