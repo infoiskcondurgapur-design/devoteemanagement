@@ -36,6 +36,9 @@ const TourReceipt = React.forwardRef(({ booking }, ref) => {
                             <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase mb-0.5">Pilgrim Details</p>
                             <p className="text-xl font-black text-slate-900 uppercase">{displayName}</p>
                             <p className="text-slate-600 dark:text-slate-300 font-medium">{booking.mobile ? `Contact: ${booking.mobile}` : 'Contact: Not Provided'}</p>
+                            {booking.dob && (
+                                <p className="text-slate-600 dark:text-slate-300 font-medium">DOB: {formatDate(booking.dob)}</p>
+                            )}
                         </div>
                     </div>
 

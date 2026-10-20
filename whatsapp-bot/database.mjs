@@ -412,6 +412,7 @@ export const initDb = () => {
                 bookingDate TEXT NOT NULL,
                 status TEXT DEFAULT 'Reserved', -- Reserved, Confirmed, Cancelled
                 leader TEXT,
+                dob TEXT,
                 totalPaid REAL DEFAULT 0,
                 paymentStatus TEXT DEFAULT 'Due', -- Due, Partial, Completed
                 createdAt TEXT DEFAULT (datetime('now')),
@@ -619,13 +620,17 @@ export const healSchema = async () => {
                     }
                 });
 
-                // Tour Enrollments Leader column check (safe migration without data loss)
+                // Tour Enrollments Leader & DOB columns check (safe migration without data loss)
                 db.all("PRAGMA table_info(tour_enrollments)", [], (errTour, tourRows) => {
                     if (tourRows) {
                         const cols = tourRows.map(r => r.name);
                         if (!cols.includes('leader')) {
                             console.log('[DB] Healing schema: Adding leader column to tour_enrollments');
                             db.run("ALTER TABLE tour_enrollments ADD COLUMN leader TEXT");
+                        }
+                        if (!cols.includes('dob')) {
+                            console.log('[DB] Healing schema: Adding dob column to tour_enrollments');
+                            db.run("ALTER TABLE tour_enrollments ADD COLUMN dob TEXT");
                         }
                     }
                 });
@@ -1808,13 +1813,13 @@ export const enrollInTour = (data) => new Promise((resolve, reject) => {
     // Workaround for NOT NULL constraint on devoteeId in existing databases
     const effectiveDevoteeId = data.devoteeId || `GUEST_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
-    db.run(`INSERT INTO tour_enrollments (tourId, devoteeId, guestName, guestContact, bookingDate, status, leader, totalPaid, paymentStatus) VALUES (?,?,?,?,?,?,?,?,?)`,
-        [data.tourId, effectiveDevoteeId, data.guestName || null, data.guestContact || null, data.bookingDate || new Date().toISOString().slice(0, 10), data.status || 'Reserved', data.leader || null, 0, 'Due'],
+    db.run(`INSERT INTO tour_enrollments (tourId, devoteeId, guestName, guestContact, bookingDate, status, leader, dob, totalPaid, paymentStatus) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+        [data.tourId, effectiveDevoteeId, data.guestName || null, data.guestContact || null, data.bookingDate || new Date().toISOString().slice(0, 10), data.status || 'Reserved', data.leader || null, data.dob || null, 0, 'Due'],
         function (err) { if (err) reject(err); else resolve({ id: this.lastID }); });
 });
 
 export const getTourEnrollments = (tourId) => new Promise((resolve, reject) => {
-    db.all(`SELECT te.*, d.name as devoteeName, d.spiritualName, d.initiatedName, d.contact, d.photo, d.whatsapp, d.counselor as devoteeCounselor,
+    db.all(`SELECT te.*, d.name as devoteeName, d.spiritualName, d.initiatedName, d.contact, d.photo, d.whatsapp, d.counselor as devoteeCounselor, d.dob as devoteeDob, d.age as devoteeAge,
             (SELECT COALESCE(SUM(CASE WHEN tp.amount < 0 THEN -tp.amount ELSE 0 END), 0) FROM tour_payments tp WHERE tp.enrollmentId = te.id) as totalRefunded,
             (SELECT COALESCE(SUM(CASE WHEN tp.amount > 0 THEN tp.amount ELSE 0 END), 0) FROM tour_payments tp WHERE tp.enrollmentId = te.id) as totalReceived
             FROM tour_enrollments te
@@ -1823,7 +1828,7 @@ export const getTourEnrollments = (tourId) => new Promise((resolve, reject) => {
 });
 
 export const updateTourEnrollment = (id, data) => new Promise((resolve, reject) => {
-    const validCols = ['status', 'totalPaid', 'paymentStatus', 'leader'];
+    const validCols = ['status', 'totalPaid', 'paymentStatus', 'leader', 'dob'];
     const keys = Object.keys(data).filter(k => validCols.includes(k));
     if (keys.length === 0) return resolve({ success: true });
     const sets = keys.map(k => `${k} = ?`).join(', ');

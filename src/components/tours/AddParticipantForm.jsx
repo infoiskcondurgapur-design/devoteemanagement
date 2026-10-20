@@ -33,6 +33,7 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
         guestContact: '',
         mobile: '',
         leader: '',
+        dob: '',
         paidAmount: '',
         dueAmount: 0,
         bookingDate: new Date().toISOString().split('T')[0],
@@ -83,6 +84,7 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
             devoteeName: dev.initiatedName || dev.name,
             mobile: dev.contact || dev.whatsapp || '',
             leader: prev.leader || dev.counselor || '',
+            dob: dev.dob || '',
         }));
         setDevoteeSearch(dev.initiatedName || dev.name);
         setShowDropdown(false);
@@ -109,6 +111,7 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
                 tourId: tour.id,
                 bookingDate: formData.bookingDate,
                 leader: formData.leader?.trim() || null,
+                dob: formData.dob || null,
                 ...(isWalkin
                     ? { guestName: formData.guestName, guestContact: formData.guestContact }
                     : { devoteeId: formData.devoteeId }
@@ -145,6 +148,7 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
                 mode: formData.mode,
                 reference: formData.reference,
                 leader: formData.leader?.trim() || null,
+                dob: formData.dob || null,
                 mobile: phone,
                 devoteeName: isWalkin ? null : formData.devoteeName,
                 guestName: isWalkin ? formData.guestName : null,
@@ -402,7 +406,7 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
                     </div>
 
                     {isWalkin ? (
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Participant Name <span className="text-red-500">*</span></label>
                                 <input
@@ -421,6 +425,16 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
                                     value={formData.guestContact}
                                     onChange={handleChange}
                                     placeholder="WhatsApp number"
+                                    className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Date of Birth (DOB)</label>
+                                <input
+                                    type="date"
+                                    name="dob"
+                                    value={formData.dob}
+                                    onChange={handleChange}
                                     className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm"
                                 />
                             </div>
@@ -469,17 +483,29 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
                         </div>
                     )}
 
-                    {/* Mobile for devotee mode */}
+                    {/* Mobile & DOB for devotee mode */}
                     {!isWalkin && formData.devoteeId && (
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Mobile Number</label>
-                            <input
-                                name="mobile"
-                                value={formData.mobile}
-                                onChange={handleChange}
-                                placeholder="WhatsApp number"
-                                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm"
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Mobile Number</label>
+                                <input
+                                    name="mobile"
+                                    value={formData.mobile}
+                                    onChange={handleChange}
+                                    placeholder="WhatsApp number"
+                                    className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Date of Birth (DOB)</label>
+                                <input
+                                    type="date"
+                                    name="dob"
+                                    value={formData.dob}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm"
+                                />
+                            </div>
                         </div>
                     )}
 

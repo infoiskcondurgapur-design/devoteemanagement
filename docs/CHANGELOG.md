@@ -2,6 +2,24 @@
 
 ## [2026-10-20]
 
+### Tour Participant Date of Birth (DOB) Integration (ট্যুর পার্টিসিপেন্ট জন্মতারিখ অপশন ও কলাম)
+- **Zero-Data-Loss Schema Migration (`ALTER TABLE tour_enrollments ADD COLUMN dob TEXT`)**:
+  - Added `dob TEXT` column to `tour_enrollments` in SQLite (`whatsapp-bot/devotee_mgmt.db`) and PostgreSQL (`api/_src/database.mjs` & `api/_src/schema.mjs`).
+  - Confirmed 100% preservation of all existing 125 tour enrollments and 130 payments without data loss.
+  - Implemented automatic schema healing in `healSchema()` (SQLite) and `initDb()` (PostgreSQL) with `ALTER TABLE tour_enrollments ADD COLUMN IF NOT EXISTS "dob" TEXT`.
+  - Joined `d.dob as "devoteeDob"` and `d.age as "devoteeAge"` in `getTourEnrollments()`, ensuring all 125 previously enrolled devotees automatically display their DOB from their profile even if not re-entered.
+- **Add Participant Modal DOB Integration (`src/components/tours/AddParticipantForm.jsx`)**:
+  - Added Date of Birth (DOB) field for both Walk-in participants and Existing Devotees.
+  - Selecting an existing devotee automatically auto-fills their registered DOB into the form while allowing custom overrides.
+  - Included DOB in the booking confirmation receipt (`TourReceipt.jsx`).
+- **Tour Details Table & Excel Management (`src/pages/tours/TourDetails.jsx`)**:
+  - Added dedicated **DOB** column to both Active and Cancelled participant tables.
+  - Displays formatted date with dynamic age indicator (e.g. `15 May 1992 (34y)`).
+  - Inline DOB quick-editing for administrators with interactive date picker, Save (✔), and Cancel (✖) buttons.
+  - Multi-token search matches date of birth queries.
+  - Excel export (`handleExportExcel`) includes `'DOB'` and `'Age'` columns.
+  - WhatsApp booking summary receipt reflects the participant's DOB and age.
+
 ### Bug Fixes & Cross-Environment Consistency Hardening (বাগ ফিক্স ও ক্রস-এনভায়রনমেন্ট কনসিস্টেন্সি)
 - **PostgreSQL Column Alias Lowercase Restoration (`api/_src/schema.mjs` & `api/_src/db.mjs`)**:
   - Identified that PostgreSQL folds unquoted JOIN and aggregate query aliases (`devoteeName`, `devoteeCounselor`, `totalRefunded`, `totalReceived`, `attendedSessions`, `devoteeContact`, etc.) to lowercase. Because these aliases were not columns defined in `TABLES`, `db.mjs` was returning lowercase keys (`devoteecounselor`, `devoteename`), causing frontend UI elements on Vercel to miss fields or fall back to defaults.

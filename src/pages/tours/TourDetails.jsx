@@ -56,6 +56,21 @@ const TourDetails = () => {
     const [editingLeaderId, setEditingLeaderId] = useState(null);
     const [editingLeaderValue, setEditingLeaderValue] = useState('');
 
+    // Inline DOB Editing State
+    const [editingDobId, setEditingDobId] = useState(null);
+    const [editingDobValue, setEditingDobValue] = useState('');
+
+    const calculateAge = (dobString) => {
+        if (!dobString) return null;
+        const birthDate = new Date(dobString);
+        if (isNaN(birthDate.getTime())) return null;
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+        return age >= 0 ? age : null;
+    };
+
     const fetchTourData = useCallback(async () => {
         try {
             const response = await apiService.get(`/api/tours/${id}`);
@@ -99,6 +114,20 @@ const TourDetails = () => {
                 fetchTourData();
             } else {
                 toast.error(response.error || 'Failed to update leader');
+            }
+        } catch (err) {
+            toast.error(err?.message || 'Update failed');
+        }
+    };
+
+    const updateEnrollmentDob = async (enrollmentId, dob) => {
+        try {
+            const response = await apiService.put(`/api/tours/enroll/${enrollmentId}`, { dob: dob || null });
+            if (response.success) {
+                toast.success('DOB updated');
+                fetchTourData();
+            } else {
+                toast.error(response.error || 'Failed to update DOB');
             }
         } catch (err) {
             toast.error(err?.message || 'Update failed');
@@ -181,12 +210,15 @@ const TourDetails = () => {
             const data = activeEnrollments.map(en => {
                 const paid = Number(en.totalPaid || 0);
                 const devCounselor = en.devoteeCounselor || en.devoteecounselor || '';
+                const dobVal = en.dob || en.devoteeDob || '';
                 const name = (en.devoteeId && !en.devoteeId.startsWith('GUEST_')) 
                     ? (en.initiatedName || en.devoteeName || en.devoteename) 
                     : en.guestName;
                 return {
                     'Name': name,
                     'Leader': en.leader || devCounselor || '—',
+                    'DOB': dobVal ? formatDate(dobVal) : '—',
+                    'Age': calculateAge(dobVal) ?? '',
                     'Status': en.status,
                     'Payment': en.paymentStatus,
                     'Paid (Rs.)': paid,
@@ -242,6 +274,7 @@ const TourDetails = () => {
                 `*ISKCON DURGAPUR*`;
         } else {
             const dueAmount = tourFee - totalPaid;
+            const dobVal = en.dob || en.devoteeDob;
             message = 
                 `Hare Krishna ${name}! 🙏\n\n` +
                 `Here are your Yatra booking details:\n` +
@@ -250,6 +283,7 @@ const TourDetails = () => {
                 `• Dates: ${formatDateRange(tour?.startDate, tour?.endDate)}\n` +
                 `• Booking Status: ${en.status}\n` +
                 (en.leader ? `• Leader / Guide: ${en.leader}\n` : '') +
+                (dobVal ? `• DOB: ${formatDate(dobVal)}${calculateAge(dobVal) !== null ? ` (${calculateAge(dobVal)} yrs)` : ''}\n` : '') +
                 `• Tour Fees: ₹${tourFee.toLocaleString('en-IN')}\n` +
                 `• Total Paid: ₹${totalPaid.toLocaleString('en-IN')}\n` +
                 `• Balance Due: ₹${(dueAmount > 0 ? dueAmount : 0).toLocaleString('en-IN')}\n\n` +
@@ -350,6 +384,7 @@ const TourDetails = () => {
             const devId = String(e.devoteeId || '').toLowerCase();
             const leaderName = (e.leader || '').toLowerCase();
             const counselorName = (e.devoteeCounselor || e.devoteecounselor || '').toLowerCase();
+            const dobStr = String(e.dob || e.devoteeDob || '').toLowerCase();
 
             const matchesSearch = !searchTerm || tokens.every(tok => 
                 devName.includes(tok) || 
@@ -358,7 +393,8 @@ const TourDetails = () => {
                 (devId.includes(tok) && !devId.startsWith('guest_')) || 
                 contactStr.includes(tok) ||
                 leaderName.includes(tok) ||
-                counselorName.includes(tok)
+                counselorName.includes(tok) ||
+                dobStr.includes(tok)
             );
 
             if (!matchesSearch) return false;
@@ -637,6 +673,7 @@ const TourDetails = () => {
                                     <tr>
                                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Devotee</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Leader</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">DOB</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Booking Status</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Payments</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Contact</th>
@@ -734,6 +771,85 @@ const TourDetails = () => {
                                                                 title={(en.devoteeCounselor || en.devoteecounselor) ? `Quick assign Counselor (${en.devoteeCounselor || en.devoteecounselor})` : "Assign a Leader"}
                                                             >
                                                                 <Plus size={11} /> {(en.devoteeCounselor || en.devoteecounselor) ? (en.devoteeCounselor || en.devoteecounselor) : 'Assign Leader'}
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-slate-300 text-xs font-medium">—</span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            {/* DOB Column */}
+                                            <td className="px-6 py-4">
+                                                {editingDobId === en.id ? (
+                                                    <div className="flex items-center gap-1.5 min-w-[170px]">
+                                                        <input
+                                                            type="date"
+                                                            autoFocus
+                                                            value={editingDobValue}
+                                                            onChange={(e) => setEditingDobValue(e.target.value)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    updateEnrollmentDob(en.id, editingDobValue);
+                                                                    setEditingDobId(null);
+                                                                } else if (e.key === 'Escape') {
+                                                                    setEditingDobId(null);
+                                                                }
+                                                            }}
+                                                            className="px-2.5 py-1 text-xs border border-orange-300 dark:border-orange-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm"
+                                                        />
+                                                        <button
+                                                            onClick={() => {
+                                                                updateEnrollmentDob(en.id, editingDobValue);
+                                                                setEditingDobId(null);
+                                                            }}
+                                                            className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded transition-colors"
+                                                            title="Save"
+                                                        >
+                                                            <Check size={14} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setEditingDobId(null)}
+                                                            className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                                                            title="Cancel"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                    </div>
+                                                ) : (en.dob || en.devoteeDob) ? (
+                                                    <div className="inline-flex items-center gap-1.5 group/dob">
+                                                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                                            {formatDate(en.dob || en.devoteeDob)}
+                                                        </span>
+                                                        {calculateAge(en.dob || en.devoteeDob) !== null && (
+                                                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold">
+                                                                {calculateAge(en.dob || en.devoteeDob)}y
+                                                            </span>
+                                                        )}
+                                                        {isAdmin && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingDobId(en.id);
+                                                                    setEditingDobValue(en.dob || en.devoteeDob || '');
+                                                                }}
+                                                                className="opacity-0 group-hover/dob:opacity-100 p-1 text-slate-400 hover:text-orange-600 transition-all rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                                                                title="Change DOB"
+                                                            >
+                                                                <Edit size={12} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-1.5">
+                                                        {isAdmin ? (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingDobId(en.id);
+                                                                    setEditingDobValue('');
+                                                                }}
+                                                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 dark:text-slate-500 hover:text-orange-600 border border-dashed border-slate-300 dark:border-slate-700 hover:border-orange-400 px-2 py-0.5 rounded-lg transition-colors"
+                                                                title="Add DOB"
+                                                            >
+                                                                <Plus size={11} /> Add DOB
                                                             </button>
                                                         ) : (
                                                             <span className="text-slate-300 text-xs font-medium">—</span>
@@ -880,6 +996,7 @@ const TourDetails = () => {
                                         <tr>
                                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Devotee</th>
                                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Leader</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">DOB</th>
                                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Booking Status</th>
                                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Payments</th>
                                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Contact</th>
@@ -909,6 +1026,17 @@ const TourDetails = () => {
                                                     <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
                                                         {en.leader || en.devoteeCounselor || en.devoteecounselor || '—'}
                                                     </span>
+                                                </td>
+                                                {/* Cancelled DOB Column */}
+                                                <td className="px-6 py-4">
+                                                    {(en.dob || en.devoteeDob) ? (
+                                                        <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+                                                            {formatDate(en.dob || en.devoteeDob)}
+                                                            {calculateAge(en.dob || en.devoteeDob) !== null ? ` (${calculateAge(en.dob || en.devoteeDob)}y)` : ''}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-slate-300 dark:text-slate-600">—</span>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <select
