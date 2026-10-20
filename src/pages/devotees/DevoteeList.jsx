@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, Filter, Eye, Edit, Trash, LayoutGrid, List, MessageSquare, X, ChevronLeft, ChevronRight, Layout, UserCheck, Maximize2, RefreshCw, Phone, Upload } from 'lucide-react';
+import { Plus, Search, Filter, Eye, Edit, Trash, LayoutGrid, List, MessageSquare, X, ChevronLeft, ChevronRight, Layout, UserCheck, Maximize2, RefreshCw, Phone, Upload, User } from 'lucide-react';
 import { useDevotees } from '../../context/DevoteeContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../components/Toast';
@@ -19,7 +19,7 @@ const DevoteeList = () => {
     } = useDevotees();
     const navigate = useNavigate();
     const toast = useToast();
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
 
     const [searchTerm, setSearchTerm] = useState(() => searchParams.get('search') || '');
     const [viewMode, setViewMode] = useState('list');
