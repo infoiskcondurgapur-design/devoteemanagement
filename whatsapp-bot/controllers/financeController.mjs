@@ -58,6 +58,47 @@ export const removeExpense = async (req, res) => {
     }
 };
 
+// --- Expense Categories (Dynamic from Tours & Courses) ---
+export const getExpenseCategories = async (req, res) => {
+    try {
+        const [tours, courses] = await Promise.all([
+            db.getTours(false),
+            db.getCourses(false)
+        ]);
+
+        const seenTours = new Set();
+        const uniqueTours = [];
+        for (const t of (tours || [])) {
+            const name = (t.name || '').trim();
+            if (name && !seenTours.has(name.toLowerCase())) {
+                seenTours.add(name.toLowerCase());
+                uniqueTours.push({ id: t.id, name });
+            }
+        }
+
+        const seenCourses = new Set();
+        const uniqueCourses = [];
+        for (const c of (courses || [])) {
+            const name = (c.name || '').trim();
+            if (name && !seenCourses.has(name.toLowerCase())) {
+                seenCourses.add(name.toLowerCase());
+                uniqueCourses.push({ id: c.id, name });
+            }
+        }
+
+        res.json({
+            success: true,
+            data: {
+                tours: uniqueTours,
+                courses: uniqueCourses
+            }
+        });
+    } catch (error) {
+        console.error('[FinanceController] getExpenseCategories error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
 // --- General Finance ---
 export const getStats = async (req, res) => {
     try {

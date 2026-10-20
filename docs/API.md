@@ -186,6 +186,23 @@ For local development when credentials are unknown:
 #### `GET /api/finance/expenses`
 - **Purpose**: Fetch all expenses list.
 
+#### `GET /api/finance/expense-categories`
+- **Purpose**: Dynamically retrieve available expense categories derived from all registered Tours and Courses.
+- **Response (200)**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "tours": [
+        { "id": 1, "name": "Puri Dham Yatra" }
+      ],
+      "courses": [
+        { "id": 2, "name": "Bhakti Sastri 2026" }
+      ]
+    }
+  }
+  ```
+
 ---
 
 ### 5. Inventory Endpoints (`/api/inventory`)

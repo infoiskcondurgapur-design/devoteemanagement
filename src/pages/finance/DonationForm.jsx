@@ -10,10 +10,6 @@ import apiService from '../../services/api';
 import clsx from 'clsx';
 
 const PURPOSES = ['Deity Worship', 'Festival', 'Annadan', 'Construction', 'Spiritual Retreat', 'General', 'Book Distribution', 'Prasad', 'Other'];
-const EXPENSE_CATEGORIES = [
-    'Temple Construction', 'Deity Worship', 'Kitchen & Feast', 
-    'Book Distribution', 'Festival Fund', 'Maintenance', 'Staff Salary', 'Other'
-];
 const MODES = ['Cash', 'UPI', 'Bank Transfer', 'Cheque'];
 
 const FinanceForm = () => {
@@ -41,6 +37,7 @@ const FinanceForm = () => {
         // Expense specific
         title: '',
         category: '',
+        otherCategory: '',
         notes: ''
     });
     const [savedRecord, setSavedRecord] = useState(null);
@@ -51,6 +48,50 @@ const FinanceForm = () => {
     const [isWalkin, setIsWalkin] = useState(false);
     const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
     const [whatsappSent, setWhatsappSent] = useState(false);
+
+    // Dynamic Expense Categories (from Tours & Courses)
+    const [expenseCategories, setExpenseCategories] = useState({ tours: [], courses: [] });
+    const [loadingCategories, setLoadingCategories] = useState(false);
+
+    const fetchExpenseCategories = async () => {
+        setLoadingCategories(true);
+        try {
+            const res = await apiService.get('/api/finance/expense-categories');
+            if (res && res.data && (Array.isArray(res.data.tours) || Array.isArray(res.data.courses))) {
+                setExpenseCategories({
+                    tours: res.data.tours || [],
+                    courses: res.data.courses || []
+                });
+                return;
+            }
+        } catch {
+            // Fallback below
+        }
+
+        try {
+            const [toursRes, coursesRes] = await Promise.allSettled([
+                apiService.get('/api/tours'),
+                apiService.get('/api/courses')
+            ]);
+            const tours = toursRes.status === 'fulfilled' && toursRes.value?.data ? toursRes.value.data : [];
+            const courses = coursesRes.status === 'fulfilled' && coursesRes.value?.data ? coursesRes.value.data : [];
+            setExpenseCategories({ tours, courses });
+        } catch (err) {
+            console.error('Failed to load expense categories:', err);
+        } finally {
+            setLoadingCategories(false);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchExpenseCategories();
+    }, []);
+
+    React.useEffect(() => {
+        if (activeTab === 'expense') {
+            fetchExpenseCategories();
+        }
+    }, [activeTab]);
 
     const filteredDevotees = useMemo(() => {
         if (!devoteeSearch.trim()) return devotees.slice(0, 20);
@@ -93,7 +134,8 @@ const FinanceForm = () => {
             if (!isWalkin && !formData.devoteeId) return toast.error('Please select a devotee or mark as Walk-in');
         } else {
             if (!formData.title) return toast.error('Expense title is required');
-            if (!formData.category) return toast.error('Expense category is required');
+            const finalCategory = formData.category === 'Other' ? (formData.otherCategory?.trim() || 'Other') : formData.category;
+            if (!finalCategory) return toast.error('Expense purpose is required');
         }
 
         setSaving(true);
@@ -115,9 +157,10 @@ const FinanceForm = () => {
                 toast.success('Donation recorded!');
                 setSavedRecord({ ...body, id: data.id, type: 'income' });
             } else {
+                const finalCategory = formData.category === 'Other' ? (formData.otherCategory?.trim() || 'Other') : formData.category;
                 const body = {
                     title: formData.title,
-                    category: formData.category,
+                    category: finalCategory,
                     amount: parseFloat(formData.amount),
                     date: formData.date,
                     mode: formData.mode,
@@ -289,12 +332,57 @@ const FinanceForm = () => {
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Expense Purpose <span className="text-red-500">*</span></label>
-                                    <select name="category" value={formData.category} onChange={handleChange}
-                                        className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm" required>
-                                        <option value="">Select Category</option>
-                                        {EXPENSE_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+                                        Expense Purpose <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="category"
+                                        value={formData.category}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-xl text-sm text-slate-800 dark:text-slate-100"
+                                        required
+                                    >
+                                        <option value="">{loadingCategories ? 'Loading purposes...' : 'Select Purpose'}</option>
+                                        {expenseCategories.tours && expenseCategories.tours.length > 0 && (
+                                            <optgroup label="── Tours (ট্যুর) ──">
+                                                {expenseCategories.tours.map(t => (
+                                                    <option key={`tour-${t.id || t.name}`} value={`Tour: ${t.name}`}>
+                                                        Tour: {t.name}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        )}
+                                        {expenseCategories.courses && expenseCategories.courses.length > 0 && (
+                                            <optgroup label="── Courses (কোর্স) ──">
+                                                {expenseCategories.courses.map(c => (
+                                                    <option key={`course-${c.id || c.name}`} value={`Course: ${c.name}`}>
+                                                        Course: {c.name}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        )}
+                                        <optgroup label="── Other (অন্যান্য) ──">
+                                            <option value="Other">Other</option>
+                                        </optgroup>
+                                        {formData.category &&
+                                         formData.category !== 'Other' &&
+                                         !(expenseCategories.tours || []).some(t => `Tour: ${t.name}` === formData.category || t.name === formData.category) &&
+                                         !(expenseCategories.courses || []).some(c => `Course: ${c.name}` === formData.category || c.name === formData.category) && (
+                                            <option value={formData.category}>{formData.category}</option>
+                                        )}
                                     </select>
+                                    {formData.category === 'Other' && (
+                                        <div className="mt-2">
+                                            <input
+                                                name="otherCategory"
+                                                value={formData.otherCategory || ''}
+                                                onChange={handleChange}
+                                                placeholder="Enter specific purpose..."
+                                                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 rounded-xl text-sm text-slate-800 dark:text-slate-100"
+                                                required
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Amount <span className="text-red-500">*</span></label>

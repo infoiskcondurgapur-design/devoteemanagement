@@ -13,6 +13,8 @@ router.get('/expenses', financeController.getAllExpenses);
 router.post('/expenses', financeController.createExpense);
 router.delete('/expenses/:id', financeController.removeExpense);
 
+router.get('/expense-categories', financeController.getExpenseCategories);
+
 router.get('/analytics/history', financeController.getHistory);
 router.get('/analytics/budget-performance', financeController.getBudgetPerformance);
 router.get('/budgets', financeController.getBudgets);

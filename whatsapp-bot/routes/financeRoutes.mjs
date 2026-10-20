@@ -16,6 +16,9 @@ router.get('/expenses', financeController.getAllExpenses);
 router.post('/expenses', financeController.createExpense);
 router.delete('/expenses/:id', financeController.removeExpense);
 
+// Dynamic Expense Categories (from Tours & Courses)
+router.get('/expense-categories', financeController.getExpenseCategories);
+
 // Analytics & Budgets
 router.get('/analytics/history', financeController.getHistory);
 router.get('/analytics/budget-performance', financeController.getBudgetPerformance);

@@ -2,6 +2,20 @@
 
 ## [2026-10-20]
 
+### Dynamic Expense Purpose from Tours & Courses (এক্সপেন্সেস পারপাস ডেটা থেকে পুরনো ক্যাটাগরি অপসারণ ও ট্যুর/কোর্স থেকে ডায়নামিক ক্যাটাগরি সংযুক্তকরণ)
+- **Eliminated Static Hardcoded Categories (`src/pages/finance/DonationForm.jsx`)**:
+  - Removed all 8 obsolete static categories (`Temple Construction`, `Deity Worship`, `Kitchen & Feast`, `Book Distribution`, `Festival Fund`, `Maintenance`, `Staff Salary`, `Other`).
+- **Dynamic Tour & Course Category Ingestion (`src/pages/finance/DonationForm.jsx`)**:
+  - Populated Expense Purpose directly and dynamically from all registered Tours and Courses in the database.
+  - Grouped into organized `<optgroup>` sections: `Tours (ট্যুর)` and `Courses (কোর্স)`, with a custom fallback option `Other (অন্যান্য)` for any non-tour/course operational expenditure.
+  - Structured category storage as `Tour: <Tour Name>` and `Course: <Course Name>` for immediate clarity in expense lists, filters, and financial analytics pie charts.
+  - Added dual-strategy data fetching: queries `/api/finance/expense-categories` first, with graceful automatic fallback to `/api/tours` and `/api/courses`.
+- **Backend Expense Categories Endpoint (`whatsapp-bot/` & `api/_src/`)**:
+  - Added `GET /api/finance/expense-categories` to both local Node backend (`whatsapp-bot/controllers/financeController.mjs`, `whatsapp-bot/routes/financeRoutes.mjs`) and Vercel serverless backend (`api/_src/controllers/financeController.mjs`, `api/_src/routes/financeRoutes.mjs`).
+  - Automatically retrieves all existing and newly added tours and courses in real-time, deduplicating records by title.
+- **Automated Verification Suite (`test/dynamic_expense_purposes.test.mjs`)**:
+  - Added test validating dynamic retrieval, verifying absence of old static categories, testing live addition of a new tour and course and their instantaneous appearance in the categories list, validating expense insertion with the dynamic category, and clean teardown. Tested alongside all 17 existing tests passing 100%.
+
 ### Live Devotee Map Overhaul & Eye-Comfort Theming (লাইভ ম্যাপ পেজের আধুনিকীকরণ ও আই-প্রোটেক্ট থিম)
 - **Leaflet Map Eye-Comfort Styling (`src/index.css`)**:
   - Overrode Leaflet map zoom controls (`.leaflet-bar a`), popup bubble wrappers (`.leaflet-popup-content-wrapper`), and tip pins with dark spruce backgrounds (`#243e40`), subtle borders (`#385c5e`), and soft sage mist typography, eliminating harsh white popups.
