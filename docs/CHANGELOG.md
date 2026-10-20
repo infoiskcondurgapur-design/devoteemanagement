@@ -2,6 +2,19 @@
 
 ## [2026-10-20]
 
+### Live Devotee Map Overhaul & Eye-Comfort Theming (লাইভ ম্যাপ পেজের আধুনিকীকরণ ও আই-প্রোটেক্ট থিম)
+- **Leaflet Map Eye-Comfort Styling (`src/index.css`)**:
+  - Overrode Leaflet map zoom controls (`.leaflet-bar a`), popup bubble wrappers (`.leaflet-popup-content-wrapper`), and tip pins with dark spruce backgrounds (`#243e40`), subtle borders (`#385c5e`), and soft sage mist typography, eliminating harsh white popups.
+  - Styled Leaflet attribution banner to dark translucent teal.
+- **Enhanced Live Map UI & Features (`src/pages/DevoteeMap.jsx`)**:
+  - **Tile Layer Switcher**: Added 3 selectable basemaps (Eye Comfort Dark, Street View, Satellite Imagery) with one-click toggling.
+  - **Temple Centerpiece Marker**: Added a prominent gold temple marker (🛕) at Sri Sri Radha Govinda Mandir (ISKCON Durgapur City Center) with a "Recenter Temple" compass button.
+  - **Status-Coded Vector Pins**: Replaced blurry default PNG pins with lightweight glowing vector markers color-coded by spiritual status: Saffron for Initiated, Indigo for Sheltered, Emerald for Aspiring.
+  - **Crash Prevention**: Patched potential `TypeError: d.id.split is not a function` when devotee IDs are numeric integers.
+  - **Live Search & Autocomplete**: Added a floating devotee search bar on the map that smoothly pans/flies the camera directly to any devotee's pin.
+  - **Status & Counselor Filters**: Added instant status filter pills and counselor dropdown filter with live devotee count badges.
+  - **Interactive Popups**: Popups now display the devotee's spiritual status, counselor, area, a 1-click WhatsApp chat button, and a link to view their full profile.
+
 ### Complete White Text & Icon Glare Extinction (সাদা টেক্সট, সাদা আইকন ও সার্চ/ইনপুট বক্সের তীব্র সাদা আলো দূরীকরণ)
 - **Taming Harsh 100% Pure White Text (`src/index.css`)**:
   - Overrode `.text-white`, `.dark:text-white`, `.text-slate-100`, `.dark:text-slate-100`, and `.dark:text-slate-200` to a soothing warm sage mist (`#c4d7d3`), eliminating severe contrast glare (halation) against the `#213738` background.

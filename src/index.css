@@ -403,3 +403,84 @@ tbody tr:hover > td.sticky {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important;
 }
 
+/* ==========================================================================
+   Leaflet Map: Eye Comfort Theme & Dark Mode Styling
+   ========================================================================== */
+.leaflet-container {
+  background-color: #162627 !important;
+  font-family: inherit !important;
+}
+
+/* Zoom (+/-) Buttons */
+.leaflet-bar {
+  border: 1px solid #37595b !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45) !important;
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background-color: #1d3334 !important;
+  color: #c4d7d3 !important;
+  border-bottom: 1px solid #2d4d4f !important;
+  line-height: 30px !important;
+  width: 34px !important;
+  height: 34px !important;
+}
+
+.leaflet-bar a:hover {
+  background-color: #274345 !important;
+  color: #fbbf24 !important;
+}
+
+.leaflet-bar a.leaflet-disabled {
+  background-color: #152526 !important;
+  color: #557975 !important;
+}
+
+/* Popup Bubble Wrapper */
+.leaflet-popup-content-wrapper {
+  background-color: #243e40 !important;
+  color: #c4d7d3 !important;
+  border: 1px solid #385c5e !important;
+  border-radius: 0.85rem !important;
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.65) !important;
+  padding: 0 !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  line-height: 1.4 !important;
+  color: #c4d7d3 !important;
+}
+
+.leaflet-popup-tip {
+  background-color: #243e40 !important;
+  border: 1px solid #385c5e !important;
+}
+
+.leaflet-popup-close-button {
+  color: #8faea8 !important;
+  padding: 6px 8px !important;
+  font-size: 16px !important;
+  transition: color 0.15s ease;
+}
+
+.leaflet-popup-close-button:hover {
+  color: #fb7185 !important;
+}
+
+/* Attribution Banner */
+.leaflet-control-attribution {
+  background-color: rgba(20, 35, 36, 0.88) !important;
+  color: #729691 !important;
+  border-top-left-radius: 0.5rem;
+  padding: 2px 8px !important;
+  font-size: 10px !important;
+}
+
+.leaflet-control-attribution a {
+  color: #9cbdb6 !important;
+}
+
