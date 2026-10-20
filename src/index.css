@@ -7,20 +7,20 @@
   --primary: 211 100% 35%;
   --primary-foreground: 210 40% 98%;
   
-  --background: 35 20% 97.5%;
-  --foreground: 222 47% 11%;
+  --background: 183 26% 17.5%; /* #213738 Deep Soothing Pine Teal */
+  --foreground: 180 20% 95%;   /* #edf5f5 Soft Light Mint Text */
 
-  --card: 40 25% 99%;
-  --card-foreground: 222 47% 11%;
+  --card: 183 24% 21%;         /* #294445 Soft Elevated Spruce Card */
+  --card-foreground: 180 20% 95%;
 
-  --muted: 36 20% 95%;
-  --muted-foreground: 215 16% 47%;
+  --muted: 183 22% 23%;        /* #2d4a4c Inset Well */
+  --muted-foreground: 183 15% 70%; /* #9eb6b5 Muted Sage Text */
 
-  --accent: 36 20% 95%;
-  --accent-foreground: 222 47% 11%;
+  --accent: 183 22% 23%;
+  --accent-foreground: 180 20% 95%;
 
-  --border: 214 25% 90%;
-  --input: 214 25% 90%;
+  --border: 183 20% 28%;       /* #37595b Elegant Teal Border */
+  --input: 183 20% 28%;
   
   --radius: 0.5rem;
 }
@@ -124,33 +124,18 @@
   @apply bg-card text-card-foreground rounded-lg border border-border shadow-sm transition-all;
 }
 
-/* Custom Scrollbar (Simplified) */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-slate-100 dark:bg-slate-900;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 dark:bg-slate-700 rounded-full hover:bg-slate-400 dark:hover:bg-slate-600;
-}
-
-/* Eye Protect Mode & Dark Mode Global Adaptations */
-.eye-protect .sidebar,
-.dark .sidebar {
+/* Sidebar & Scrollbar Global Theme for #213738 Canvas */
+.sidebar,
+aside {
   background-color: #172728 !important;
   border-color: #274345 !important;
 }
 
-.eye-protect ::-webkit-scrollbar-track,
-.dark ::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background-color: #1b2e2f;
 }
 
-.eye-protect ::-webkit-scrollbar-thumb,
-.dark ::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
   background-color: #3b5f61;
+  border-radius: 9999px;
 }

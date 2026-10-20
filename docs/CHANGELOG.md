@@ -2,6 +2,15 @@
 
 ## [2026-10-20]
 
+### Full-Site Canvas Migration to Deep Soothing Pine Teal `#213738` (অপশন খ: সমগ্র সাইটের ডিফল্ট ব্যাকগ্রাউন্ড `#213738`-এ রূপান্তর)
+- **Universal Root Background (`src/index.css`)**:
+  - Established `--background: 183 26% 17.5%` (`#213738`) directly within `:root`, ensuring that every page across the entire application defaults immediately to `#213738` without requiring any manual toggle.
+  - Set universal elevated card surfaces (`--card: 183 24% 21%` / `#294445`), subtle borders (`--border: 183 20% 28%` / `#37595b`), and soft light mint typography (`--foreground: 180 20% 95%` / `#edf5f5`).
+  - Standardized sidebar (`#172728`), borders (`#274345`), and custom scrollbars (`#1b2e2f` / `#3b5f61`) globally.
+- **Layout Canvas Resilience (`src/components/layout/Layout.jsx`)**:
+  - Configured outer shell with `bg-[#213738] bg-background text-foreground`, eliminating any flash of grey or white during initial page paint.
+
+
 ### Eye Protection Color Customization: Deep Soothing Pine Teal `#213738` (চোখের সুরক্ষায় স্পেশাল ডিপ স্প্রুস/পাইন টিল ব্যাকগ্রাউন্ড)
 - **Background Color Specification (`#213738`)**:
   - Configured `--background: 183 26% 17.5%` (`#213738`) across both `.dark` and `.eye-protect` themes in `src/index.css`.
