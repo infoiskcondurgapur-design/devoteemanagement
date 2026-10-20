@@ -55,7 +55,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                     className={clsx(
                         "p-2 rounded-full transition-all relative flex items-center justify-center",
                         eyeProtectMode
-                            ? "bg-amber-100 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 ring-2 ring-amber-400/40 shadow-sm"
+                            ? "bg-amber-500/20 text-amber-300 ring-2 ring-amber-400/50 shadow-sm"
                             : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                     title={eyeProtectMode ? "চোখের সুরক্ষা সক্রিয় (Eye Comfort ON - Click to disable)" : "চোখের সুরক্ষা অন করুন (Enable Eye Comfort Mode)"}

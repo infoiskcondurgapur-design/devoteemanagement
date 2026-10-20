@@ -26,56 +26,56 @@
 }
 
 .dark {
-  --background: 224 14% 10%;
-  --foreground: 210 40% 98%;
+  --background: 183 26% 17.5%; /* #213738 Deep Soothing Pine Teal */
+  --foreground: 180 20% 95%;   /* #edf5f5 Soft Light Mint Text */
 
-  --card: 224 14% 13%;
-  --card-foreground: 210 40% 98%;
+  --card: 183 24% 21%;         /* #294445 Soft Elevated Spruce Card */
+  --card-foreground: 180 20% 95%;
 
-  --muted: 220 12% 18%;
-  --muted-foreground: 215 20% 65%;
+  --muted: 183 22% 23%;        /* #2d4a4c Inset Well */
+  --muted-foreground: 183 15% 70%; /* #9eb6b5 Muted Sage Text */
 
-  --accent: 220 12% 18%;
-  --accent-foreground: 210 40% 98%;
+  --accent: 183 22% 23%;
+  --accent-foreground: 180 20% 95%;
 
-  --border: 220 12% 20%;
-  --input: 220 12% 20%;
+  --border: 183 20% 28%;       /* #37595b Elegant Teal Border */
+  --input: 183 20% 28%;
 }
 
-/* Dedicated Eye Comfort Mode (Anti-Glare / Warm Reading Spectrum) */
+/* Dedicated Eye Comfort Mode (Anti-Glare / #213738 Deep Soothing Spectrum) */
 .eye-protect {
-  --background: 38 28% 94%;       /* #F5F1E8 Warm Sandstone Paper */
-  --foreground: 24 12% 16%;       /* #2B2623 Soft Charcoal Ink */
+  --background: 183 26% 17.5%; /* #213738 Requested Eye Protect Background */
+  --foreground: 180 20% 95%;   /* #edf5f5 Soft Light Mint Text */
 
-  --card: 40 35% 98%;             /* #FDFBF6 Warm Ivory Card */
-  --card-foreground: 24 12% 16%;
+  --card: 183 24% 21%;         /* #294445 Soft Elevated Spruce Card */
+  --card-foreground: 180 20% 95%;
 
-  --muted: 36 22% 91%;            /* #ECE6D8 Warm Muted Wells */
-  --muted-foreground: 25 8% 44%;  /* #746E65 Soft Muted Text */
+  --muted: 183 22% 23%;        /* #2d4a4c Inset Well */
+  --muted-foreground: 183 15% 70%; /* #9eb6b5 Muted Sage Text */
 
-  --accent: 36 24% 90%;
-  --accent-foreground: 24 12% 16%;
+  --accent: 183 22% 23%;
+  --accent-foreground: 180 20% 95%;
 
-  --border: 36 20% 86%;           /* #DED7C9 Warm Sand Border */
-  --input: 36 20% 86%;
+  --border: 183 20% 28%;       /* #37595b Elegant Teal Border */
+  --input: 183 20% 28%;
 }
 
 .eye-protect.dark,
 .dark.eye-protect {
-  --background: 228 10% 9%;       /* #141519 Deep Twilight Obsidian */
-  --foreground: 36 25% 91%;       /* #EDE8DF Warm Candlelight Text */
+  --background: 183 26% 17.5%; /* #213738 */
+  --foreground: 180 20% 95%;
 
-  --card: 228 12% 13%;            /* #1C1E24 Warm Charcoal Card */
-  --card-foreground: 36 25% 91%;
+  --card: 183 24% 21%;
+  --card-foreground: 180 20% 95%;
 
-  --muted: 228 10% 17%;           /* #25272F Muted Well */
-  --muted-foreground: 35 12% 66%; /* #ABA69B Warm Muted Text */
+  --muted: 183 22% 23%;
+  --muted-foreground: 183 15% 70%;
 
-  --accent: 228 10% 17%;
-  --accent-foreground: 36 25% 91%;
+  --accent: 183 22% 23%;
+  --accent-foreground: 180 20% 95%;
 
-  --border: 225 10% 21%;          /* #31333C Soft Dark Border */
-  --input: 225 10% 21%;
+  --border: 183 20% 28%;
+  --input: 183 20% 28%;
 }
 
 @layer base {
@@ -138,26 +138,19 @@
   @apply bg-slate-300 dark:bg-slate-700 rounded-full hover:bg-slate-400 dark:hover:bg-slate-600;
 }
 
-/* Eye Protect Mode Global Adaptations */
-.eye-protect .sidebar {
-  background-color: #1c1917 !important;
-  border-color: #2e2823 !important;
+/* Eye Protect Mode & Dark Mode Global Adaptations */
+.eye-protect .sidebar,
+.dark .sidebar {
+  background-color: #172728 !important;
+  border-color: #274345 !important;
 }
 
-.eye-protect ::-webkit-scrollbar-track {
-  background-color: #f2ece1;
+.eye-protect ::-webkit-scrollbar-track,
+.dark ::-webkit-scrollbar-track {
+  background-color: #1b2e2f;
 }
 
-.dark.eye-protect ::-webkit-scrollbar-track,
-.eye-protect.dark ::-webkit-scrollbar-track {
-  background-color: #15161b;
-}
-
-.eye-protect ::-webkit-scrollbar-thumb {
-  background-color: #d1c7b7;
-}
-
-.dark.eye-protect ::-webkit-scrollbar-thumb,
-.eye-protect.dark ::-webkit-scrollbar-thumb {
-  background-color: #383a45;
+.eye-protect ::-webkit-scrollbar-thumb,
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #3b5f61;
 }

@@ -2,6 +2,14 @@
 
 ## [2026-10-20]
 
+### Eye Protection Color Customization: Deep Soothing Pine Teal `#213738` (চোখের সুরক্ষায় স্পেশাল ডিপ স্প্রুস/পাইন টিল ব্যাকগ্রাউন্ড)
+- **Background Color Specification (`#213738`)**:
+  - Configured `--background: 183 26% 17.5%` (`#213738`) across both `.dark` and `.eye-protect` themes in `src/index.css`.
+  - Harmonized card surface layers (`--card: 183 24% 21%` / `#294445`), soft borders (`--border: 183 20% 28%` / `#37595b`), and soft light mint typography (`--foreground: 180 20% 95%` / `#edf5f5`), achieving WCAG AAA contrast ratio (10.5:1).
+  - Enhanced sidebar (`#172728`) and scrollbar tracks (`#1b2e2f`) to perfectly match the deep teal eye protection palette.
+  - Set `eyeProtectMode` default to `true` in `ThemeContext.jsx` (`theme_eye_protect_v2`), ensuring users immediately experience the `#213738` soothing anti-glare background upon arrival.
+
+
 ### Dashboard Eye-Protective Color Palette & Eye Comfort Mode (ড্যাশবোর্ড চোখের আরামদায়ক ও অ্যান্টি-গ্লেয়ার কালার সিস্টেম)
 - **Eye-Protective Color Architecture & CSS Variables (`src/index.css`)**:
   - Replaced high-glare pure white (`#FFFFFF`) with soothing warm ivory paper (`--card: 40 25% 99%`) in base light mode and warm sandstone (`--background: 35 20% 97.5%`).

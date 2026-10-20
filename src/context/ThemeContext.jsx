@@ -21,7 +21,12 @@ export const ThemeProvider = ({ children }) => {
     });
 
     const [eyeProtectMode, setEyeProtectMode] = useState(() => {
-        const saved = localStorage.getItem('theme_eye_protect');
+        const saved = localStorage.getItem('theme_eye_protect_v2');
+        if (saved === null) {
+            localStorage.setItem('theme_eye_protect_v2', 'true');
+            localStorage.setItem('theme_eye_protect', 'true');
+            return true;
+        }
         return saved === 'true';
     });
 
@@ -46,6 +51,7 @@ export const ThemeProvider = ({ children }) => {
 
     useEffect(() => {
         localStorage.setItem('theme_eye_protect', eyeProtectMode);
+        localStorage.setItem('theme_eye_protect_v2', eyeProtectMode);
         if (eyeProtectMode) {
             document.documentElement.classList.add('eye-protect');
         } else {

@@ -95,12 +95,12 @@ const Dashboard = () => {
                         className={clsx(
                             "px-3.5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold border transition-all shadow-sm",
                             eyeProtectMode
-                                ? "bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-800/80 ring-1 ring-amber-400/40"
+                                ? "bg-amber-500/20 text-amber-300 border-amber-400/40 ring-1 ring-amber-400/30 shadow-sm"
                                 : "bg-card text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground"
                         )}
                         title={eyeProtectMode ? "চোখের সুরক্ষা মোড সক্রিয় (Eye Comfort ON - Click to disable)" : "চোখের সুরক্ষা অন করুন (Enable Eye Comfort Mode)"}
                     >
-                        <Glasses className={clsx("w-4 h-4", eyeProtectMode ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground")} />
+                        <Glasses className={clsx("w-4 h-4", eyeProtectMode ? "text-amber-400" : "text-muted-foreground")} />
                         <span className="hidden sm:inline">{eyeProtectMode ? 'Eye Comfort ON' : 'Eye Comfort'}</span>
                     </button>
 
