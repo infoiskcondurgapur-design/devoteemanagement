@@ -2,6 +2,18 @@
 
 ## [2026-10-20]
 
+### Devotee Table Row Hover & Checkbox Theme Fix (টেবিল রো হোভারের উগ্র সাদা ব্যাকগ্রাউন্ড ও সাদা চেকবক্স দূরীকরণ)
+- **Table Hover Glare Extinguished (`src/index.css`)**:
+  - Overrode all Tailwind `.hover\:bg-slate-50:hover`, `.hover\:bg-gray-50:hover`, and default `tbody tr:hover` to `#263f41` (soft elevated spruce), preventing table rows from flashing blinding white when hovered.
+  - Aligned sticky column backgrounds (`td.sticky`) to seamlessly transition during row hover.
+- **Custom Eye-Comfort Checkbox Theme (`src/index.css`)**:
+  - Styled native `input[type="checkbox"]` with custom pine-slate background (`#172728`) and subtle border (`#3b5f61`), completely removing browser default white square boxes.
+  - Styled checked and indeterminate states with ISKCON saffron/orange (`#ea580c`) and crisp vector checkmarks.
+- **Devotee List Table Refinements (`src/pages/devotees/DevoteeList.jsx`)**:
+  - Migrated table header to `#1b2e2f` with muted sage typography (`#86a09c`).
+  - Updated status pill badges (Active/Pending) to dark emerald and amber wells (`bg-emerald-950/60`, `bg-amber-950/60`).
+  - Added clean `<User />` vector fallback for avatar images with `#37595b` borders, replacing white rings and broken image boxes.
+
 ### Eye-Strain Elimination: Softer Text Luminance & Glare-Free Icon Wells (উগ্র সাদা টেক্সট ও সাদা আইকন বক্সের আলোক হ্রাস করে আরামদায়ক শান্ত কালারে রূপান্তর)
 - **Soft Soothing Typography (`src/index.css`)**:
   - Replaced piercing 95% high-luminance white (`--foreground: 180 20% 95%`) with comfortable warm sage mist (`--foreground: 180 12% 80%` / `#c2d4d0`), eliminating text halation and photopic glare on the dark `#213738` pine-teal canvas.
