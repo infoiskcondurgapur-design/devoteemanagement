@@ -2,6 +2,11 @@
 
 ## [2026-10-20]
 
+### Bug Fix: Missing User Icon Import in DevoteeList (কম্পোনেন্ট রেন্ডার ক্র্যাশ সমাধান)
+- **Resolved ReferenceError (`src/pages/devotees/DevoteeList.jsx`)**:
+  - Fixed missing `User` icon import from `lucide-react` which triggered the React `ErrorBoundary` ("Something went wrong. The component failed to render").
+  - Cleaned up unused `setSearchParams` hook variable.
+
 ### Devotee Table Row Hover & Checkbox Theme Fix (টেবিল রো হোভারের উগ্র সাদা ব্যাকগ্রাউন্ড ও সাদা চেকবক্স দূরীকরণ)
 - **Table Hover Glare Extinguished (`src/index.css`)**:
   - Overrode all Tailwind `.hover\:bg-slate-50:hover`, `.hover\:bg-gray-50:hover`, and default `tbody tr:hover` to `#263f41` (soft elevated spruce), preventing table rows from flashing blinding white when hovered.
