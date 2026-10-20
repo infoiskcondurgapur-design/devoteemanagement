@@ -207,7 +207,7 @@ const DevoteeList = () => {
         } catch { return dateStr; }
     };
 
-    const selectClass = "px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none";
+    const selectClass = "px-3 py-2 bg-card border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none";
 
     return (
         <div className="space-y-6">
@@ -215,15 +215,15 @@ const DevoteeList = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-3">
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Devotees</h1>
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${isLiveConnected ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'}`}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <h1 className="text-2xl font-bold text-foreground">Devotees</h1>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/40 text-emerald-300 border border-emerald-800/60">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                             {isLiveConnected ? 'Live Sync' : 'Auto Sync Active'}
                         </span>
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400">
+                    <p className="text-muted-foreground">
                         Total {totalCount} devotees
-                        {hasActiveFilters && <span className="text-orange-600 font-medium"> (filtered)</span>}
+                        {hasActiveFilters && <span className="text-orange-400 font-medium"> (filtered)</span>}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -234,16 +234,16 @@ const DevoteeList = () => {
                             toast.info('Devotee list refreshed');
                         }}
                         title="Refresh list"
-                        className="p-2 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+                        className="p-2 border border-border rounded-xl bg-card hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-colors"
                     >
                         <RefreshCw className="w-5 h-5" />
                     </button>
                     <Link 
                         to="/devotees/bulk-upload"
-                        className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm font-medium"
+                        className="flex items-center gap-2 bg-card border border-border text-foreground px-4 py-2 rounded-xl hover:bg-muted/70 transition-colors shadow-sm font-medium"
                         title="Bulk Upload Devotees from Excel or CSV"
                     >
-                        <Upload className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                        <Upload className="w-5 h-5 text-orange-400" />
                         <span>Bulk Upload</span>
                     </Link>
                     <Link to="/devotees/new" className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-xl hover:bg-orange-700 transition-colors shadow-lg shadow-orange-900/20">
@@ -257,20 +257,20 @@ const DevoteeList = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
                 <div className="flex items-center gap-4 flex-1 w-full">
                     <div className="relative flex-1 max-w-md group">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500 group-focus-within:text-orange-500 transition-colors" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-orange-500 transition-colors" />
                         <input
                             type="text"
                             placeholder="Search devotees by name (e.g. Deb), phone, or DOB..."
                             value={searchTerm}
                             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                            className={`w-full pl-10 pr-24 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all shadow-sm ${isSearching ? 'border-orange-300' : ''}`}
+                            className={`w-full pl-10 pr-24 py-2.5 bg-card border border-border text-foreground placeholder:text-muted-foreground rounded-xl focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all shadow-sm ${isSearching ? 'border-orange-400' : ''}`}
                         />
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                             {searchTerm && (
                                 <button
                                     type="button"
                                     onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
-                                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
+                                    className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted/70 rounded-lg transition-all"
                                     title="Clear search"
                                 >
                                     <X className="w-4 h-4" />
@@ -293,7 +293,7 @@ const DevoteeList = () => {
                                         };
                                         recognition.start();
                                     }}
-                                    className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
+                                    className="p-1.5 text-muted-foreground hover:text-orange-400 hover:bg-orange-950/40 rounded-lg transition-all"
                                     title="Voice Search"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
@@ -307,8 +307,8 @@ const DevoteeList = () => {
                         className={clsx(
                             "flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium transition-colors",
                             showFilters || hasActiveFilters
-                                ? "bg-orange-50 border-orange-300 text-orange-700"
-                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:bg-slate-900/50 hover:text-slate-900"
+                                ? "bg-orange-950/40 border-orange-800/80 text-orange-300"
+                                : "bg-card border-border text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                         )}
                     >
                         <Filter className="w-4 h-4" />
@@ -340,27 +340,27 @@ const DevoteeList = () => {
 
             {/* ✅ Filter Panel */}
             {showFilters && (
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm animate-in slide-in-from-top-2 duration-200">
+                <div className="bg-card border border-border rounded-xl p-5 shadow-sm animate-in slide-in-from-top-2 duration-200">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                            <Filter className="w-4 h-4 text-orange-500" />
+                        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                            <Filter className="w-4 h-4 text-orange-400" />
                             Filter Devotees
                         </h3>
                         {hasActiveFilters && (
-                            <button onClick={clearFilters} className="text-xs text-red-500 hover:text-red-700 font-medium flex items-center gap-1">
+                            <button onClick={clearFilters} className="text-xs text-rose-400 hover:text-rose-300 font-medium flex items-center gap-1">
                                 <X className="w-3 h-3" /> Clear All
                             </button>
                         )}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                         <div className="relative">
-                            <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                            <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                             <input
                                 type="text"
                                 placeholder="Mobile number..."
                                 value={filters.contact}
                                 onChange={e => { setFilters(f => ({ ...f, contact: e.target.value })); setCurrentPage(1); }}
-                                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                                className="w-full pl-9 pr-3 py-2 bg-card border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none placeholder:text-muted-foreground"
                             />
                         </div>
                         <select value={filters.status} onChange={e => { setFilters(f => ({ ...f, status: e.target.value })); setCurrentPage(1); }} className={selectClass}>
@@ -394,12 +394,12 @@ const DevoteeList = () => {
 
             {viewMode === 'list' ? (
                 /* List View */
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                     <div ref={containerRef} className="overflow-x-auto max-h-[650px] overflow-y-auto" onScroll={handleScroll}>
                         <table className="w-full text-left relative border-collapse">
-                            <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 text-xs uppercase font-semibold sticky top-0 z-20 shadow-[0_1px_0_0_rgba(226,232,240,1)]">
+                            <thead className="bg-[#1b2e2f] text-muted-foreground text-xs uppercase font-semibold sticky top-0 z-20 border-b border-[#254042]">
                                 <tr>
-                                    <th className="px-6 py-4 w-10 bg-slate-50 dark:bg-slate-900">
+                                    <th className="px-6 py-4 w-10 bg-[#1b2e2f]">
                                         <input 
                                             type="checkbox" 
                                             checked={selectedIds.size > 0 && selectedIds.size === paginatedDevotees.length}
@@ -407,19 +407,19 @@ const DevoteeList = () => {
                                             className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-orange-600 focus:ring-orange-500"
                                         />
                                     </th>
-                                    <th className="px-6 py-4 sticky left-0 bg-slate-50 dark:bg-slate-900 z-10">Devotee</th>
-                                    <th className="px-6 py-4 bg-slate-50 dark:bg-slate-900">Status</th>
-                                    <th className="px-6 py-4 bg-slate-50 dark:bg-slate-900">Gender</th>
-                                    <th className="px-6 py-4 bg-slate-50 dark:bg-slate-900">Contact</th>
-                                    <th className="px-6 py-4 bg-slate-50 dark:bg-slate-900">DOB</th>
-                                    <th className="px-6 py-4 bg-slate-50 dark:bg-slate-900">Counselor</th>
-                                    <th className="px-6 py-4 bg-slate-50 dark:bg-slate-900 text-right sticky right-0 z-10">Actions</th>
+                                    <th className="px-6 py-4 sticky left-0 bg-[#1b2e2f] z-10">Devotee</th>
+                                    <th className="px-6 py-4 bg-[#1b2e2f]">Status</th>
+                                    <th className="px-6 py-4 bg-[#1b2e2f]">Gender</th>
+                                    <th className="px-6 py-4 bg-[#1b2e2f]">Contact</th>
+                                    <th className="px-6 py-4 bg-[#1b2e2f]">DOB</th>
+                                    <th className="px-6 py-4 bg-[#1b2e2f]">Counselor</th>
+                                    <th className="px-6 py-4 bg-[#1b2e2f] text-right sticky right-0 z-10">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-[#254042]">
                                 {topPadding > 0 && <tr style={{ height: `${topPadding}px` }}><td colSpan={8} /></tr>}
                                 {visibleItems.map(({ item: devotee }) => (
-                                    <tr key={devotee.id} className={clsx("hover:bg-slate-50 dark:bg-slate-900/50/50 transition-colors", selectedIds.has(devotee.id) && "bg-orange-50/30")}>
+                                    <tr key={devotee.id} className={clsx("hover:bg-[#263f41] transition-colors border-b border-[#254042]", selectedIds.has(devotee.id) && "bg-amber-500/15")}>
                                         <td className="px-6 py-4">
                                             <input 
                                                 type="checkbox" 
@@ -428,7 +428,7 @@ const DevoteeList = () => {
                                                 className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-orange-600 focus:ring-orange-500"
                                             />
                                         </td>
-                                        <td className="px-6 py-4 sticky left-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:bg-slate-900/50/50 z-10">
+                                        <td className="px-6 py-4 sticky left-0 bg-card group-hover:bg-[#263f41] z-10 border-b border-[#254042]">
                                             <div className="flex items-center gap-4 min-w-[200px]">
                                                 <div 
                                                     onClick={(e) => {
@@ -440,23 +440,29 @@ const DevoteeList = () => {
                                                     className={`relative group shrink-0 ${devotee.photo ? 'cursor-pointer' : ''}`}
                                                     title={devotee.photo ? "Click to view original image" : ""}
                                                 >
-                                                    <img
-                                                        src={devotee.photo || '/default-avatar.png'}
-                                                        alt={devotee.name}
-                                                        className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm transition-transform duration-200 group-hover:scale-105"
-                                                    />
+                                                    {devotee.photo ? (
+                                                        <img
+                                                            src={devotee.photo}
+                                                            alt={devotee.name}
+                                                            className="w-12 h-12 rounded-full object-cover border-2 border-[#37595b] shadow-sm transition-transform duration-200 group-hover:scale-105"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-12 h-12 rounded-full bg-[#172728] border-2 border-[#37595b] flex items-center justify-center text-[#8fa8a4] shadow-sm">
+                                                            <User className="w-6 h-6" />
+                                                        </div>
+                                                    )}
                                                     {devotee.photo && (
-                                                        <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                                        <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[#c7ded9]">
                                                             <Maximize2 className="w-4 h-4 drop-shadow" />
                                                         </div>
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <div className="font-semibold text-slate-900 dark:text-slate-100 truncate max-w-[180px]" title={devotee.name}>
+                                                    <div className="font-semibold text-foreground truncate max-w-[180px]" title={devotee.name}>
                                                         <HighlightText text={devotee.name} query={searchTerm} />
                                                     </div>
                                                     {(devotee.initiatedName || devotee.spiritualName) && (
-                                                        <div className="text-[10px] text-orange-600 dark:text-orange-400 font-medium truncate max-w-[180px]" title={devotee.initiatedName || devotee.spiritualName}>
+                                                        <div className="text-[10px] text-orange-400 font-medium truncate max-w-[180px]" title={devotee.initiatedName || devotee.spiritualName}>
                                                             <HighlightText text={devotee.initiatedName || devotee.spiritualName} query={searchTerm} />
                                                         </div>
                                                     )}
@@ -464,40 +470,46 @@ const DevoteeList = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight ${devotee.status === 'Active' ? 'bg-green-100 text-green-800' : devotee.status === 'Pending' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100'}`}>
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tight ${
+                                                devotee.status === 'Active'
+                                                    ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60'
+                                                    : devotee.status === 'Pending'
+                                                        ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60'
+                                                        : 'bg-muted text-muted-foreground border border-border'
+                                            }`}>
                                                 {devotee.status}
                                                 {devotee.source === 'Public Form' && devotee.status === 'Pending' && <span className="ml-1 normal-case font-semibold opacity-70">• Public</span>}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">{devotee.gender || '-'}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">{devotee.contact}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">{formatDate(devotee.dob)}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">{devotee.counselor || '-'}</td>
-                                        <td className="px-6 py-4 text-right sticky right-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:bg-slate-900/50/50 z-10">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{devotee.gender || '-'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{devotee.contact}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{formatDate(devotee.dob)}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{devotee.counselor || '-'}</td>
+                                        <td className="px-6 py-4 text-right sticky right-0 bg-card group-hover:bg-[#263f41] z-10 border-b border-[#254042]">
                                             <div className="flex items-center justify-end gap-2">
                                                 {devotee.status === 'Pending' && (
                                                     <button
                                                         onClick={() => approveDevotee(devotee)}
-                                                        className="p-2 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors"
+                                                        className="p-2 text-amber-400 hover:text-amber-300 hover:bg-amber-950/40 rounded-lg transition-colors"
                                                         title="Approve Registration"
                                                     >
                                                         <UserCheck className="w-4 h-4" />
                                                     </button>
                                                 )}
-                                                <Link to={`/devotees/${devotee.id}`} className="p-2 text-slate-400 dark:text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors">
+                                                <Link to={`/devotees/${devotee.id}`} className="p-2 text-muted-foreground hover:text-orange-400 hover:bg-orange-950/40 rounded-lg transition-colors">
                                                     <Eye className="w-4 h-4" />
                                                 </Link>
                                                 <button
                                                     onClick={() => { setActiveDevotee(devotee); setShowWhatsApp(true); }}
-                                                    className="p-2 text-slate-400 dark:text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                                    className="p-2 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-950/40 rounded-lg transition-colors"
                                                     title="Send WhatsApp"
                                                 >
                                                     <MessageSquare className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => navigate(`/devotees/${devotee.id}/edit`)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                                <button onClick={() => navigate(`/devotees/${devotee.id}/edit`)} className="p-2 text-muted-foreground hover:text-blue-400 hover:bg-blue-950/40 rounded-lg transition-colors">
                                                     <Edit className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => setDeleteId(devotee.id)} className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                                <button onClick={() => setDeleteId(devotee.id)} className="p-2 text-muted-foreground hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors">
                                                     <Trash className="w-4 h-4" />
                                                 </button>
                                             </div>
@@ -520,7 +532,7 @@ const DevoteeList = () => {
                 /* Grid View */
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {paginatedDevotees.map((devotee) => (
-                        <div key={devotee.id} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center">
+                        <div key={devotee.id} className="bg-card p-6 rounded-2xl border border-border shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center">
                             <div 
                                 onClick={() => {
                                     if (devotee.photo) setSelectedImageDevotee(devotee);
@@ -528,49 +540,55 @@ const DevoteeList = () => {
                                 className={`relative mb-4 group ${devotee.photo ? 'cursor-pointer' : ''}`}
                                 title={devotee.photo ? "Click to view original image" : ""}
                             >
-                                <img src={devotee.photo || '/default-avatar.png'} alt={devotee.name} className="w-24 h-24 rounded-full object-cover border-4 border-slate-50 shadow-inner transition-transform duration-200 group-hover:scale-105" />
-                                <span className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-white ${devotee.status === 'Active' ? 'bg-green-500' : devotee.status === 'Pending' ? 'bg-amber-400' : 'bg-slate-400'}`}></span>
+                                {devotee.photo ? (
+                                    <img src={devotee.photo} alt={devotee.name} className="w-24 h-24 rounded-full object-cover border-4 border-[#37595b] shadow-inner transition-transform duration-200 group-hover:scale-105" />
+                                ) : (
+                                    <div className="w-24 h-24 rounded-full bg-[#172728] border-4 border-[#37595b] flex items-center justify-center text-[#8fa8a4] shadow-inner">
+                                        <User className="w-10 h-10" />
+                                    </div>
+                                )}
+                                <span className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-card ${devotee.status === 'Active' ? 'bg-emerald-500' : devotee.status === 'Pending' ? 'bg-amber-400' : 'bg-slate-400'}`}></span>
                                 {devotee.photo && (
-                                    <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                    <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-[#c7ded9]">
                                         <Maximize2 className="w-5 h-5 drop-shadow" />
                                     </div>
                                 )}
                             </div>
-                            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-lg mb-1">
+                            <h3 className="font-bold text-foreground text-lg mb-1">
                                 <HighlightText text={devotee.name} query={searchTerm} />
                             </h3>
                             {(devotee.initiatedName || devotee.spiritualName) && (
-                                <p className="text-sm text-orange-600 dark:text-orange-400 font-medium mb-3">
+                                <p className="text-sm text-orange-400 font-medium mb-3">
                                     <HighlightText text={devotee.initiatedName || devotee.spiritualName} query={searchTerm} />
                                 </p>
                             )}
-                            <div className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                            <div className="text-sm text-muted-foreground mb-6">
                                 <p>{devotee.contact}</p>
                                 <p className="text-xs mt-1">{devotee.gender} • {devotee.counselor}</p>
                             </div>
-                            <div className="flex items-center gap-2 mt-auto w-full pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center gap-2 mt-auto w-full pt-4 border-t border-border">
                                 {devotee.status === 'Pending' && (
-                                    <button onClick={() => approveDevotee(devotee)} className="flex-1 p-2 text-amber-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors flex justify-center" title="Approve Registration">
+                                    <button onClick={() => approveDevotee(devotee)} className="flex-1 p-2 text-amber-400 hover:text-amber-300 hover:bg-amber-950/40 rounded-lg transition-colors flex justify-center" title="Approve Registration">
                                         <UserCheck className="w-4 h-4" />
                                     </button>
                                 )}
-                                <Link to={`/devotees/${devotee.id}`} className="flex-1 p-2 text-slate-500 dark:text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors flex justify-center">
+                                <Link to={`/devotees/${devotee.id}`} className="flex-1 p-2 text-muted-foreground hover:text-orange-400 hover:bg-orange-950/40 rounded-lg transition-colors flex justify-center">
                                     <Eye className="w-4 h-4" />
                                 </Link>
-                                <button onClick={() => { setActiveDevotee(devotee); setShowWhatsApp(true); }} className="flex-1 p-2 text-slate-500 dark:text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors flex justify-center">
+                                <button onClick={() => { setActiveDevotee(devotee); setShowWhatsApp(true); }} className="flex-1 p-2 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-950/40 rounded-lg transition-colors flex justify-center">
                                     <MessageSquare className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => navigate(`/devotees/${devotee.id}/edit`)} className="flex-1 p-2 text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex justify-center">
+                                <button onClick={() => navigate(`/devotees/${devotee.id}/edit`)} className="flex-1 p-2 text-muted-foreground hover:text-blue-400 hover:bg-blue-950/40 rounded-lg transition-colors flex justify-center">
                                     <Edit className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => setDeleteId(devotee.id)} className="flex-1 p-2 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors flex justify-center">
+                                <button onClick={() => setDeleteId(devotee.id)} className="flex-1 p-2 text-muted-foreground hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors flex justify-center">
                                     <Trash className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
                     ))}
                     {paginatedDevotees.length === 0 && (
-                        <div className="col-span-4 py-16 text-center text-slate-400 dark:text-slate-500 text-sm">
+                        <div className="col-span-4 py-16 text-center text-muted-foreground text-sm">
                             {hasActiveFilters ? 'No devotees match the current filters.' : 'No devotees found.'}
                         </div>
                     )}
@@ -579,17 +597,17 @@ const DevoteeList = () => {
 
             {/* ✅ Pagination Controls */}
             {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-6 py-3 shadow-sm">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-card border border-border rounded-xl px-6 py-3 shadow-sm">
                     <div className="flex items-center gap-6">
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Showing <span className="font-semibold text-slate-700 dark:text-slate-200">{(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalCount)}</span> of <span className="font-semibold text-slate-700 dark:text-slate-200">{totalCount}</span> devotees
+                        <p className="text-sm text-muted-foreground">
+                            Showing <span className="font-semibold text-foreground">{(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalCount)}</span> of <span className="font-semibold text-foreground">{totalCount}</span> devotees
                         </p>
                         <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500">Show:</span>
+                            <span className="text-xs text-muted-foreground">Show:</span>
                             <select
                                 value={pageSize}
                                 onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
-                                className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs text-slate-700 dark:text-slate-200 outline-none focus:ring-1 focus:ring-orange-500"
+                                className="px-2 py-1 bg-[#1b2e2f] border border-[#2d4d4f] text-foreground rounded-lg text-xs outline-none focus:ring-1 focus:ring-orange-500"
                             >
                                 <option value={25}>25</option>
                                 <option value={50}>50</option>
