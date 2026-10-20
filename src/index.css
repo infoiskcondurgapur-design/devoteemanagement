@@ -7,39 +7,75 @@
   --primary: 211 100% 35%;
   --primary-foreground: 210 40% 98%;
   
-  --background: 210 40% 98%;
+  --background: 35 20% 97.5%;
   --foreground: 222 47% 11%;
 
-  --card: 0 0% 100%;
+  --card: 40 25% 99%;
   --card-foreground: 222 47% 11%;
 
-  --muted: 210 40% 96%;
+  --muted: 36 20% 95%;
   --muted-foreground: 215 16% 47%;
 
-  --accent: 210 40% 96%;
+  --accent: 36 20% 95%;
   --accent-foreground: 222 47% 11%;
 
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
+  --border: 214 25% 90%;
+  --input: 214 25% 90%;
   
   --radius: 0.5rem;
 }
 
 .dark {
-  --background: 222 47% 11%;
+  --background: 224 14% 10%;
   --foreground: 210 40% 98%;
 
-  --card: 222 47% 11%;
+  --card: 224 14% 13%;
   --card-foreground: 210 40% 98%;
 
-  --muted: 217 33% 17%;
+  --muted: 220 12% 18%;
   --muted-foreground: 215 20% 65%;
 
-  --accent: 217 33% 17%;
+  --accent: 220 12% 18%;
   --accent-foreground: 210 40% 98%;
 
-  --border: 217 32% 17%;
-  --input: 217 32% 17%;
+  --border: 220 12% 20%;
+  --input: 220 12% 20%;
+}
+
+/* Dedicated Eye Comfort Mode (Anti-Glare / Warm Reading Spectrum) */
+.eye-protect {
+  --background: 38 28% 94%;       /* #F5F1E8 Warm Sandstone Paper */
+  --foreground: 24 12% 16%;       /* #2B2623 Soft Charcoal Ink */
+
+  --card: 40 35% 98%;             /* #FDFBF6 Warm Ivory Card */
+  --card-foreground: 24 12% 16%;
+
+  --muted: 36 22% 91%;            /* #ECE6D8 Warm Muted Wells */
+  --muted-foreground: 25 8% 44%;  /* #746E65 Soft Muted Text */
+
+  --accent: 36 24% 90%;
+  --accent-foreground: 24 12% 16%;
+
+  --border: 36 20% 86%;           /* #DED7C9 Warm Sand Border */
+  --input: 36 20% 86%;
+}
+
+.eye-protect.dark,
+.dark.eye-protect {
+  --background: 228 10% 9%;       /* #141519 Deep Twilight Obsidian */
+  --foreground: 36 25% 91%;       /* #EDE8DF Warm Candlelight Text */
+
+  --card: 228 12% 13%;            /* #1C1E24 Warm Charcoal Card */
+  --card-foreground: 36 25% 91%;
+
+  --muted: 228 10% 17%;           /* #25272F Muted Well */
+  --muted-foreground: 35 12% 66%; /* #ABA69B Warm Muted Text */
+
+  --accent: 228 10% 17%;
+  --accent-foreground: 36 25% 91%;
+
+  --border: 225 10% 21%;          /* #31333C Soft Dark Border */
+  --input: 225 10% 21%;
 }
 
 @layer base {
@@ -95,9 +131,33 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-slate-100;
+  @apply bg-slate-100 dark:bg-slate-900;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 rounded-full hover:bg-slate-400;
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full hover:bg-slate-400 dark:hover:bg-slate-600;
+}
+
+/* Eye Protect Mode Global Adaptations */
+.eye-protect .sidebar {
+  background-color: #1c1917 !important;
+  border-color: #2e2823 !important;
+}
+
+.eye-protect ::-webkit-scrollbar-track {
+  background-color: #f2ece1;
+}
+
+.dark.eye-protect ::-webkit-scrollbar-track,
+.eye-protect.dark ::-webkit-scrollbar-track {
+  background-color: #15161b;
+}
+
+.eye-protect ::-webkit-scrollbar-thumb {
+  background-color: #d1c7b7;
+}
+
+.dark.eye-protect ::-webkit-scrollbar-thumb,
+.eye-protect.dark ::-webkit-scrollbar-thumb {
+  background-color: #383a45;
 }

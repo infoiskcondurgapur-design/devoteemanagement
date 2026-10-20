@@ -20,6 +20,11 @@ export const ThemeProvider = ({ children }) => {
         return localStorage.getItem('theme_primary_color') || '#ea580c'; // Default ISKCON Orange
     });
 
+    const [eyeProtectMode, setEyeProtectMode] = useState(() => {
+        const saved = localStorage.getItem('theme_eye_protect');
+        return saved === 'true';
+    });
+
     // Color options for the user
     const colorThemes = [
         { name: 'Orange', value: '#ea580c' },
@@ -40,20 +45,30 @@ export const ThemeProvider = ({ children }) => {
     }, [darkMode]);
 
     useEffect(() => {
+        localStorage.setItem('theme_eye_protect', eyeProtectMode);
+        if (eyeProtectMode) {
+            document.documentElement.classList.add('eye-protect');
+        } else {
+            document.documentElement.classList.remove('eye-protect');
+        }
+    }, [eyeProtectMode]);
+
+    useEffect(() => {
         localStorage.setItem('theme_primary_color', primaryColor);
         // Apply primary color to CSS variable
         document.documentElement.style.setProperty('--primary-color', primaryColor);
-
-        // Convert hex to RGB for alpha transparency support in Tailwind if needed
-        // but since we aren't using Tailwind, we'll just use it in CSS.
     }, [primaryColor]);
 
     const toggleDarkMode = () => setDarkMode(prev => !prev);
+    const toggleEyeProtect = () => setEyeProtectMode(prev => !prev);
 
     return (
         <ThemeContext.Provider value={{
             darkMode,
             toggleDarkMode,
+            eyeProtectMode,
+            toggleEyeProtect,
+            setEyeProtectMode,
             primaryColor,
             setPrimaryColor,
             colorThemes

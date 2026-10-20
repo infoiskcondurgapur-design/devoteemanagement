@@ -2,6 +2,28 @@
 
 ## [2026-10-20]
 
+### Dashboard Eye-Protective Color Palette & Eye Comfort Mode (ড্যাশবোর্ড চোখের আরামদায়ক ও অ্যান্টি-গ্লেয়ার কালার সিস্টেম)
+- **Eye-Protective Color Architecture & CSS Variables (`src/index.css`)**:
+  - Replaced high-glare pure white (`#FFFFFF`) with soothing warm ivory paper (`--card: 40 25% 99%`) in base light mode and warm sandstone (`--background: 35 20% 97.5%`).
+  - Added dedicated `.eye-protect` and `.eye-protect.dark` warm reading spectrum tokens with soft sandstone paper (`#F5F1E8`), soft charcoal ink (`#2B2623`), warm sand borders (`#DED7C9`), and twilight warm obsidian (`#141519`).
+  - Added customized eye-protect dark scrollbar tracks and soft espresso sidebar theme (`.eye-protect .sidebar`).
+- **ThemeContext Eye Comfort State (`src/context/ThemeContext.jsx`)**:
+  - Added `eyeProtectMode` state with automatic persistence to `localStorage` (`theme_eye_protect`).
+  - Dynamically attaches and detaches `.eye-protect` class to `document.documentElement`.
+  - Exposed `eyeProtectMode` and `toggleEyeProtect` via `useTheme()` across the entire app.
+- **Top Navigation Header Eye Comfort Toggle (`src/components/layout/Header.jsx`)**:
+  - Added dedicated Eye Comfort button with `Glasses` icon, active pulse indicator badge, and tooltip beside the Dark Mode switch.
+  - Converted Header from hardcoded slate to semantic `bg-card border-border text-foreground`.
+- **Layout Theme Dynamic Adaptation (`src/components/layout/Layout.jsx`)**:
+  - Replaced hardcoded `bg-[#f4f6f8] dark:bg-[#0a0f1d]` with `bg-background text-foreground transition-colors duration-300`, guaranteeing smooth, flicker-free background transitions across all themes.
+- **Dashboard Glare-Free Transformation (`src/pages/Dashboard.jsx`)**:
+  - Converted `StatCard` to `bg-card text-card-foreground border-border` with soft charcoal digits and warm amber hover accents.
+  - Added interactive "Eye Comfort" quick-toggle button in the Dashboard top header alongside "Refresh" and "New Devotee".
+  - Transformed Occasions Panel (Birthdays, Anniversaries, Upcoming Major Events) and Weekly Calendar tracker to warm semantic tokens (`bg-card`, `border-border`, `bg-muted/40`).
+- **Vaishnava Calendar Hub Alignment (`src/components/dashboard/EkadashiWidget.jsx`)**:
+  - Migrated hardcoded cards and countdown wells to `bg-card`, `border-border`, and `bg-muted/40`, perfectly blending with devotional Vedic temple tones.
+
+
 ### Tour Participant Date of Birth (DOB) Integration (ট্যুর পার্টিসিপেন্ট জন্মতারিখ অপশন ও কলাম)
 - **Zero-Data-Loss Schema Migration (`ALTER TABLE tour_enrollments ADD COLUMN dob TEXT`)**:
   - Added `dob TEXT` column to `tour_enrollments` in SQLite (`whatsapp-bot/devotee_mgmt.db`) and PostgreSQL (`api/_src/database.mjs` & `api/_src/schema.mjs`).

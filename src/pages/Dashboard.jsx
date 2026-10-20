@@ -1,29 +1,28 @@
 import React, { useState, useMemo } from 'react';
 import { formatDate } from '../lib/dateUtils';
 import { useNavigate } from 'react-router-dom';
-import { Users, Calendar, Plus, Crown, Shield, User, Heart, Cake, Download, TrendingUp, Sparkles, Activity, RefreshCw, ChevronRight, MapPin, Maximize2 } from 'lucide-react';
+import { Users, Calendar, Plus, Crown, Shield, User, Heart, Cake, Download, TrendingUp, Sparkles, Activity, RefreshCw, ChevronRight, MapPin, Maximize2, Glasses, MessageSquare } from 'lucide-react';
 import clsx from 'clsx';
 import { useDevotees } from '../context/DevoteeContext';
 import { useToast } from '../components/Toast';
+import { useTheme } from '../context/ThemeContext';
 import ErrorBoundary from '../components/ErrorBoundary';
 import WhatsAppModal from '../components/WhatsAppModal';
 import ImageModal from '../components/ImageModal';
 import EkadashiWidget from '../components/dashboard/EkadashiWidget';
-import { MessageSquare } from 'lucide-react';
-import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 
 const StatCard = ({ title, value, label, icon: Icon, _delay }) => {
     return (
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-200">
+        <div className="bg-card text-card-foreground p-6 rounded-xl border border-border shadow-sm hover:shadow-md transition-all duration-200">
             <div className="flex items-start justify-between">
                 <div className="space-y-2">
-                    <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">{title}</p>
-                    <h3 className="text-3xl font-bold text-slate-900 tracking-tight">
+                    <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">{title}</p>
+                    <h3 className="text-3xl font-bold text-foreground tracking-tight">
                         {value}
                     </h3>
-                    {label && <p className="text-slate-500 dark:text-slate-400 text-[11px] font-medium leading-tight max-w-[140px]">{label}</p>}
+                    {label && <p className="text-muted-foreground text-[11px] font-medium leading-tight max-w-[140px]">{label}</p>}
                 </div>
-                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 text-slate-400 dark:text-slate-500 group-hover:text-corporate-600 transition-colors">
+                <div className="p-3 rounded-lg bg-muted/60 text-muted-foreground group-hover:text-amber-600 transition-colors">
                     <Icon className="w-6 h-6" />
                 </div>
             </div>
@@ -34,6 +33,7 @@ const StatCard = ({ title, value, label, icon: Icon, _delay }) => {
 const Dashboard = () => {
     const navigate = useNavigate();
     const { getDashboardStats, fetchStats, lastUpdated, events, fetchEvents: fetchDashboardEvents } = useDevotees();
+    const { eyeProtectMode, toggleEyeProtect } = useTheme();
     const toast = useToast();
     const statsData = getDashboardStats();
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -79,16 +79,31 @@ const Dashboard = () => {
             {/* Header Section */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
                 <div className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
                         Overview
                     </h1>
-                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm font-medium">
-                        <Activity className="w-4 h-4 text-corporate-600" />
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
+                        <Activity className="w-4 h-4 text-corporate-600 dark:text-amber-500" />
                         <span>System synchronized {lastUpdated.toLocaleTimeString()}</span>
                     </div>
                 </div>
                 
-                <div className="flex gap-3">
+                <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+                    {/* Eye Comfort Quick Toggle */}
+                    <button
+                        onClick={toggleEyeProtect}
+                        className={clsx(
+                            "px-3.5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold border transition-all shadow-sm",
+                            eyeProtectMode
+                                ? "bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-800/80 ring-1 ring-amber-400/40"
+                                : "bg-card text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground"
+                        )}
+                        title={eyeProtectMode ? "চোখের সুরক্ষা মোড সক্রিয় (Eye Comfort ON - Click to disable)" : "চোখের সুরক্ষা অন করুন (Enable Eye Comfort Mode)"}
+                    >
+                        <Glasses className={clsx("w-4 h-4", eyeProtectMode ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground")} />
+                        <span className="hidden sm:inline">{eyeProtectMode ? 'Eye Comfort ON' : 'Eye Comfort'}</span>
+                    </button>
+
                     <button
                         onClick={async () => {
                             setIsRefreshing(true);
@@ -97,20 +112,20 @@ const Dashboard = () => {
                             toast.success('System Refreshed');
                         }}
                         className={clsx(
-                            "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-5 py-2.5 rounded-lg flex items-center gap-2.5 text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:bg-slate-900/50 transition-all shadow-sm",
+                            "bg-card border border-border px-4 sm:px-5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold text-foreground hover:bg-muted/60 transition-all shadow-sm",
                             isRefreshing && "opacity-50 pointer-events-none"
                         )}
                     >
-                        <RefreshCw className={clsx("w-4 h-4 text-corporate-600", isRefreshing && "animate-spin")} />
-                        {isRefreshing ? 'Updating...' : 'Refresh'}
+                        <RefreshCw className={clsx("w-4 h-4 text-corporate-600 dark:text-amber-500", isRefreshing && "animate-spin")} />
+                        <span>{isRefreshing ? 'Updating...' : 'Refresh'}</span>
                     </button>
                     
                     <button 
                         onClick={() => navigate('/devotees/new')} 
-                        className="bg-corporate-600 px-6 py-2.5 rounded-lg flex items-center gap-2.5 text-sm font-bold text-white shadow-md hover:bg-corporate-700 transition-all"
+                        className="bg-corporate-600 hover:bg-corporate-700 px-5 sm:px-6 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold text-white shadow-md transition-all"
                     >
                         <Plus className="w-5 h-5" />
-                        New Devotee
+                        <span>New Devotee</span>
                     </button>
                 </div>
             </div>
@@ -128,10 +143,10 @@ const Dashboard = () => {
                 {/* Main Content Area */}
                 <div className="lg:col-span-8 space-y-8">
                     {/* Occasions Panel */}
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50/50">
-                            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-3">
-                                <div className="p-2 bg-pink-50 rounded-lg">
+                    <div className="bg-card text-card-foreground rounded-xl border border-border shadow-md overflow-hidden">
+                        <div className="p-6 border-b border-border flex items-center justify-between bg-muted/30">
+                            <h2 className="text-lg font-bold text-foreground flex items-center gap-3">
+                                <div className="p-2 bg-pink-50 dark:bg-pink-950/40 rounded-lg">
                                     <Calendar className="w-5 h-5 text-pink-500" />
                                 </div>
                                 Occasions & Today's Events
@@ -145,7 +160,7 @@ const Dashboard = () => {
                                     <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                                         <Cake className="w-4 h-4 text-pink-500" /> Birthdays
                                     </h3>
-                                    <span className="bg-pink-500/10 text-pink-600 text-[11px] font-black px-2.5 py-1 rounded-full border border-pink-500/20">
+                                    <span className="bg-pink-500/10 text-pink-600 dark:text-pink-400 text-[11px] font-black px-2.5 py-1 rounded-full border border-pink-500/20">
                                         {statsData.birthdaysToday.length}
                                     </span>
                                 </div>
@@ -153,10 +168,10 @@ const Dashboard = () => {
                                 {statsData.birthdaysToday.length > 0 ? (
                                     <div className="space-y-4 max-h-[340px] overflow-y-auto pr-3 custom-scrollbar">
                                         {statsData.birthdaysToday.map((d) => (
-                                            <div key={d.id} className="group flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-pink-200 transition-all">
+                                            <div key={d.id} className="group flex items-center gap-4 p-3 bg-muted/40 rounded-xl border border-border hover:border-pink-300 dark:hover:border-pink-800/80 transition-all">
                                                 <div 
                                                     onClick={() => d.photo && setSelectedImageDevotee(d)}
-                                                    className={`w-10 h-10 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm relative group/img ${d.photo ? 'cursor-pointer' : ''}`}
+                                                    className={`w-10 h-10 rounded-lg overflow-hidden bg-card shrink-0 border border-border shadow-sm relative group/img ${d.photo ? 'cursor-pointer' : ''}`}
                                                     title={d.photo ? "Click to view original image" : ""}
                                                 >
                                                     <img src={d.photo || '/default-avatar.png'} alt="" className="w-full h-full object-cover transition-transform group-hover/img:scale-105" />
@@ -167,12 +182,12 @@ const Dashboard = () => {
                                                     )}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">{d.name}</p>
-                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate italic">{d.initiatedName || 'Aspirant'}</p>
+                                                    <p className="font-bold text-foreground text-sm truncate">{d.name}</p>
+                                                    <p className="text-[10px] text-muted-foreground font-medium truncate italic">{d.initiatedName || 'Aspirant'}</p>
                                                 </div>
                                                 <button
                                                     onClick={() => { setActiveDevotee(d); setShowWhatsApp(true); }}
-                                                    className="p-2 text-slate-400 dark:text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                                                    className="p-2 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition-all"
                                                 >
                                                     <MessageSquare className="w-5 h-5" />
                                                 </button>
@@ -180,8 +195,8 @@ const Dashboard = () => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="text-center py-10 bg-slate-50 dark:bg-slate-900/50 rounded-xl border-dashed border-2 border-slate-200 dark:border-slate-700">
-                                        <p className="text-xs text-slate-400 dark:text-slate-500 font-bold">No birthdays today</p>
+                                    <div className="text-center py-10 bg-muted/20 rounded-xl border-dashed border-2 border-border">
+                                        <p className="text-xs text-muted-foreground font-bold">No birthdays today</p>
                                     </div>
                                 )}
                             </div>
@@ -192,7 +207,7 @@ const Dashboard = () => {
                                     <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                                         <Heart className="w-4 h-4 text-rose-500" /> Anniversaries
                                     </h3>
-                                    <span className="bg-rose-500/10 text-rose-600 text-[11px] font-black px-2.5 py-1 rounded-full border border-rose-500/20">
+                                    <span className="bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[11px] font-black px-2.5 py-1 rounded-full border border-rose-500/20">
                                         {statsData.anniversariesToday.length}
                                     </span>
                                 </div>
@@ -200,10 +215,10 @@ const Dashboard = () => {
                                 {statsData.anniversariesToday.length > 0 ? (
                                     <div className="space-y-4 max-h-[340px] overflow-y-auto pr-3 custom-scrollbar">
                                         {statsData.anniversariesToday.map((d) => (
-                                            <div key={d.id} className="group flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-rose-200 transition-all">
+                                            <div key={d.id} className="group flex items-center gap-4 p-3 bg-muted/40 rounded-xl border border-border hover:border-rose-300 dark:hover:border-rose-800/80 transition-all">
                                                 <div 
                                                     onClick={() => d.photo && setSelectedImageDevotee(d)}
-                                                    className={`w-10 h-10 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shrink-0 border border-slate-200 dark:border-slate-700 shadow-sm relative group/img ${d.photo ? 'cursor-pointer' : ''}`}
+                                                    className={`w-10 h-10 rounded-lg overflow-hidden bg-card shrink-0 border border-border shadow-sm relative group/img ${d.photo ? 'cursor-pointer' : ''}`}
                                                     title={d.photo ? "Click to view original image" : ""}
                                                 >
                                                     <img src={d.photo || '/default-avatar.png'} alt="" className="w-full h-full object-cover transition-transform group-hover/img:scale-105" />
@@ -214,12 +229,12 @@ const Dashboard = () => {
                                                     )}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">{d.name}</p>
-                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate italic">{d.initiatedName || 'Devotee'}</p>
+                                                    <p className="font-bold text-foreground text-sm truncate">{d.name}</p>
+                                                    <p className="text-[10px] text-muted-foreground font-medium truncate italic">{d.initiatedName || 'Devotee'}</p>
                                                 </div>
                                                 <button
                                                     onClick={() => { setActiveDevotee(d); setShowWhatsApp(true); }}
-                                                    className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                                                    className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-all"
                                                 >
                                                     <Heart className="w-5 h-5 fill-current" />
                                                 </button>
@@ -227,23 +242,23 @@ const Dashboard = () => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="text-center py-10 bg-slate-50 dark:bg-slate-900/50 rounded-xl border-dashed border-2 border-slate-200 dark:border-slate-700">
-                                        <p className="text-xs text-slate-400 dark:text-slate-500 font-bold">No anniversaries today</p>
+                                    <div className="text-center py-10 bg-muted/20 rounded-xl border-dashed border-2 border-border">
+                                        <p className="text-xs text-muted-foreground font-bold">No anniversaries today</p>
                                     </div>
                                 )}
                             </div>
                         </div>
 
                         {/* Upcoming Events Section */}
-                        <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50/30">
+                        <div className="p-6 border-t border-border bg-muted/20">
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                                        <Calendar className="w-4 h-4 text-indigo-600" />
+                                <h3 className="text-sm font-bold text-foreground flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
+                                        <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                                     </div>
                                     Upcoming Major Events
                                 </h3>
-                                <button onClick={() => navigate('/events')} className="text-[11px] font-black text-corporate-600 hover:underline transition-all uppercase tracking-wider">
+                                <button onClick={() => navigate('/events')} className="text-[11px] font-black text-corporate-600 dark:text-amber-500 hover:underline transition-all uppercase tracking-wider">
                                     View Schedule &rarr;
                                 </button>
                             </div>
@@ -251,20 +266,20 @@ const Dashboard = () => {
                             {upcomingEventsList.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {upcomingEventsList.map(event => (
-                                        <div key={event.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-5 rounded-xl shadow-sm hover:shadow-md transition-all">
+                                        <div key={event.id} className="bg-card border border-border p-5 rounded-xl shadow-sm hover:shadow-md transition-all">
                                             <div className="flex justify-between items-start mb-3">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-1 rounded-full border border-indigo-200/50 dark:border-indigo-900/50">
                                                     {event.eventType}
                                                 </span>
                                             </div>
-                                            <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm mb-3 truncate leading-tight">{event.name}</h4>
+                                            <h4 className="font-bold text-foreground text-sm mb-3 truncate leading-tight">{event.name}</h4>
                                             <div className="space-y-2">
-                                                <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                                                <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
                                                     <Calendar className="w-3.5 h-3.5 text-indigo-400" />
                                                     {formatDate(event.eventDate)}
                                                 </div>
                                                 {event.location && (
-                                                    <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                                                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
                                                         <MapPin className="w-3.5 h-3.5 text-rose-400" />
                                                         <span className="truncate">{event.location}</span>
                                                     </div>
@@ -274,8 +289,8 @@ const Dashboard = () => {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-8 bg-slate-50 dark:bg-slate-900/50 rounded-xl border-dashed border-2 border-slate-200 dark:border-slate-700">
-                                    <p className="text-xs text-slate-400 dark:text-slate-500 font-bold">No upcoming events found</p>
+                                <div className="text-center py-8 bg-muted/20 rounded-xl border-dashed border-2 border-border">
+                                    <p className="text-xs text-muted-foreground font-bold">No upcoming events found</p>
                                 </div>
                             )}
                         </div>
@@ -290,21 +305,20 @@ const Dashboard = () => {
                         <EkadashiWidget />
                     </ErrorBoundary>
 
-
                     {/* Upcoming Birthdays Weekly Tracker */}
                     <ErrorBoundary>
                         {upcomingBirthdays.length > 0 && (
-                            <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-md">
-                                <h4 className="font-bold text-slate-800 dark:text-slate-100 text-[10px] uppercase tracking-widest mb-6 flex items-center gap-3">
+                            <div className="bg-card text-card-foreground p-6 rounded-xl border border-border shadow-md">
+                                <h4 className="font-bold text-foreground text-[10px] uppercase tracking-widest mb-6 flex items-center gap-3">
                                     <Cake className="w-4 h-4 text-indigo-500" />
                                     Weekly Calendar
                                 </h4>
                                 <div className="space-y-3 max-h-[280px] overflow-y-auto pr-2">
                                     {upcomingBirthdays.map((dev, i) => (
-                                        <div key={i} className="group flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-corporate-200 transition-all">
+                                        <div key={i} className="group flex items-center gap-3 p-3 bg-muted/40 rounded-xl border border-border hover:border-amber-300 dark:hover:border-amber-800/80 transition-all">
                                             <div 
                                                 onClick={() => dev.photo && setSelectedImageDevotee(dev)}
-                                                className={`w-10 h-10 rounded-lg overflow-hidden bg-white dark:bg-slate-900 shrink-0 shadow-sm border border-slate-200 dark:border-slate-700 relative group/img ${dev.photo ? 'cursor-pointer' : ''}`}
+                                                className={`w-10 h-10 rounded-lg overflow-hidden bg-card shrink-0 shadow-sm border border-border relative group/img ${dev.photo ? 'cursor-pointer' : ''}`}
                                                 title={dev.photo ? "Click to view original image" : ""}
                                             >
                                                 <img src={dev.photo || '/default-avatar.png'} alt="" className="w-full h-full object-cover transition-transform group-hover/img:scale-105" />
@@ -315,8 +329,8 @@ const Dashboard = () => {
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-[12px] font-bold text-slate-800 dark:text-slate-100 truncate">{dev.name}</p>
-                                                <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter">{dev.upcomingLabel}</p>
+                                                <p className="text-[12px] font-bold text-foreground truncate">{dev.name}</p>
+                                                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">{dev.upcomingLabel}</p>
                                             </div>
                                         </div>
                                     ))}
