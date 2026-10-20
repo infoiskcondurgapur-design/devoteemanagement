@@ -50,6 +50,11 @@ export const initDb = async () => {
     } catch (e) {
         // Silently continue if table not yet populated
     }
+    try {
+        await pool.query('ALTER TABLE tour_enrollments ADD COLUMN IF NOT EXISTS "leader" TEXT');
+    } catch (e) {
+        // Silently continue if table not yet populated
+    }
     console.log('[DB] PostgreSQL schema initialized');
     return { success: true };
 };
@@ -1076,15 +1081,15 @@ export const deleteTour = async (id) => {
 export const enrollInTour = async (data) => {
     const effectiveDevoteeId = data.devoteeId || `GUEST_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const res = await runAsync(
-        'INSERT INTO tour_enrollments (tourId, devoteeId, guestName, guestContact, bookingDate, status, totalPaid, paymentStatus) VALUES (?,?,?,?,?,?,?,?) RETURNING id',
-        [data.tourId, effectiveDevoteeId, data.guestName || null, data.guestContact || null, data.bookingDate || new Date().toISOString().slice(0, 10), 'Reserved', 0, 'Due']
+        'INSERT INTO tour_enrollments (tourId, devoteeId, guestName, guestContact, bookingDate, status, leader, totalPaid, paymentStatus) VALUES (?,?,?,?,?,?,?,?,?) RETURNING id',
+        [data.tourId, effectiveDevoteeId, data.guestName || null, data.guestContact || null, data.bookingDate || new Date().toISOString().slice(0, 10), data.status || 'Reserved', data.leader || null, 0, 'Due']
     );
     return { id: res.lastID };
 };
 
 export const getTourEnrollments = async (tourId) => {
     return allAsync(
-        `SELECT te.*, d.name as devoteeName, d.spiritualName, d.initiatedName, d.contact, d.photo, d.whatsapp,
+        `SELECT te.*, d.name as devoteeName, d.spiritualName, d.initiatedName, d.contact, d.photo, d.whatsapp, d.counselor as devoteeCounselor,
                 (SELECT COALESCE(SUM(CASE WHEN tp.amount < 0 THEN -tp.amount ELSE 0 END), 0) FROM tour_payments tp WHERE tp.enrollmentId = te.id) as totalRefunded,
                 (SELECT COALESCE(SUM(CASE WHEN tp.amount > 0 THEN tp.amount ELSE 0 END), 0) FROM tour_payments tp WHERE tp.enrollmentId = te.id) as totalReceived
          FROM tour_enrollments te
@@ -1095,7 +1100,7 @@ export const getTourEnrollments = async (tourId) => {
 };
 
 export const updateTourEnrollment = async (id, data) => {
-    const validCols = ['status', 'totalPaid', 'paymentStatus'];
+    const validCols = ['status', 'totalPaid', 'paymentStatus', 'leader'];
     const keys = Object.keys(data).filter(k => validCols.includes(k));
     if (keys.length === 0) return { success: true };
     const sets = keys.map(k => `${k} = ?`).join(', ');

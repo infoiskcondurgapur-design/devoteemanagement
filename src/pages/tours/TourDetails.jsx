@@ -6,7 +6,7 @@ import {
     Plus, Trash2, Edit, CheckCircle, X, Search,
     ArrowLeft, MoreVertical, IndianRupee, Plane,
     History, Check, ExternalLink, PersonStanding,
-    MessageSquare, Download, Filter as FilterIcon, Printer, Phone, RotateCcw
+    MessageSquare, Download, Filter as FilterIcon, Printer, Phone, RotateCcw, Crown
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useDevotees } from '../../context/DevoteeContext';
@@ -50,6 +50,11 @@ const TourDetails = () => {
     // Filters
     const [statusFilter, setStatusFilter] = useState('All');
     const [paymentFilter, setPaymentFilter] = useState('All');
+    const [leaderFilter, setLeaderFilter] = useState('All');
+
+    // Inline Leader Editing State
+    const [editingLeaderId, setEditingLeaderId] = useState(null);
+    const [editingLeaderValue, setEditingLeaderValue] = useState('');
 
     const fetchTourData = useCallback(async () => {
         try {
@@ -78,6 +83,20 @@ const TourDetails = () => {
             if (response.success) {
                 toast.success('Status updated');
                 fetchTourData();
+            }
+        } catch {
+            toast.error('Update failed');
+        }
+    };
+
+    const updateEnrollmentLeader = async (enrollmentId, leader) => {
+        try {
+            const response = await apiService.put(`/api/tours/enroll/${enrollmentId}`, { leader: leader?.trim() || null });
+            if (response.success) {
+                toast.success('Leader updated');
+                fetchTourData();
+            } else {
+                toast.error(response.error || 'Failed to update leader');
             }
         } catch {
             toast.error('Update failed');
@@ -158,6 +177,7 @@ const TourDetails = () => {
         try {
             const data = activeEnrollments.map(en => ({
                 'Name': (en.devoteeId && !en.devoteeId.startsWith('GUEST_')) ? (en.initiatedName || en.devoteeName) : en.guestName,
+                'Leader': en.leader || en.devoteeCounselor || '—',
                 'Status': en.status,
                 'Payment': en.paymentStatus,
                 'Paid (Rs.)': en.totalPaid,
@@ -219,6 +239,7 @@ const TourDetails = () => {
                 `• Destination: ${tour?.destination || '—'}\n` +
                 `• Dates: ${formatDateRange(tour?.startDate, tour?.endDate)}\n` +
                 `• Booking Status: ${en.status}\n` +
+                (en.leader ? `• Leader / Guide: ${en.leader}\n` : '') +
                 `• Tour Fees: ₹${tourFee.toLocaleString('en-IN')}\n` +
                 `• Total Paid: ₹${totalPaid.toLocaleString('en-IN')}\n` +
                 `• Balance Due: ₹${(dueAmount > 0 ? dueAmount : 0).toLocaleString('en-IN')}\n\n` +
@@ -282,6 +303,27 @@ const TourDetails = () => {
         }
     };
 
+    const uniqueLeaders = useMemo(() => {
+        const set = new Set();
+        enrollments.forEach(e => {
+            if (e.leader && typeof e.leader === 'string' && e.leader.trim()) {
+                set.add(e.leader.trim());
+            }
+        });
+        return Array.from(set).sort();
+    }, [enrollments]);
+
+    const allLeaderOptions = useMemo(() => {
+        const set = new Set(uniqueLeaders);
+        (devotees || []).forEach(d => {
+            if (d.counselor && typeof d.counselor === 'string') {
+                const c = d.counselor.trim();
+                if (c) set.add(c);
+            }
+        });
+        return Array.from(set).sort();
+    }, [uniqueLeaders, devotees]);
+
     const filteredEnrollments = useMemo(() => {
         return enrollments.filter(e => {
             const searchLower = searchTerm.toLowerCase().trim();
@@ -296,13 +338,17 @@ const TourDetails = () => {
             const initName = (e.initiatedName || '').toLowerCase();
             const guestName = (e.guestName || '').toLowerCase();
             const devId = String(e.devoteeId || '').toLowerCase();
+            const leaderName = (e.leader || '').toLowerCase();
+            const counselorName = (e.devoteeCounselor || '').toLowerCase();
 
             const matchesSearch = !searchTerm || tokens.every(tok => 
                 devName.includes(tok) || 
                 initName.includes(tok) || 
                 guestName.includes(tok) || 
                 (devId.includes(tok) && !devId.startsWith('guest_')) || 
-                contactStr.includes(tok)
+                contactStr.includes(tok) ||
+                leaderName.includes(tok) ||
+                counselorName.includes(tok)
             );
 
             if (!matchesSearch) return false;
@@ -313,6 +359,14 @@ const TourDetails = () => {
                 if (!cleanContact.includes(cleanFilter)) return false;
             }
 
+            if (leaderFilter !== 'All') {
+                if (leaderFilter === 'Unassigned') {
+                    if (e.leader && e.leader.trim()) return false;
+                } else {
+                    if ((e.leader || '').trim().toLowerCase() !== leaderFilter.trim().toLowerCase()) return false;
+                }
+            }
+
             if (statusFilter !== 'All' && e.status !== statusFilter) return false;
             if (paymentFilter !== 'All') {
                 if (paymentFilter === 'Paid' && e.paymentStatus !== 'Completed') return false;
@@ -321,13 +375,14 @@ const TourDetails = () => {
             }
             return true;
         });
-    }, [enrollments, searchTerm, mobileFilter, statusFilter, paymentFilter]);
+    }, [enrollments, searchTerm, mobileFilter, leaderFilter, statusFilter, paymentFilter]);
 
-    const hasActiveFilters = !!(searchTerm || mobileFilter || statusFilter !== 'All' || paymentFilter !== 'All');
+    const hasActiveFilters = !!(searchTerm || mobileFilter || leaderFilter !== 'All' || statusFilter !== 'All' || paymentFilter !== 'All');
 
     const handleClearFilters = () => {
         setSearchTerm('');
         setMobileFilter('');
+        setLeaderFilter('All');
         setStatusFilter('All');
         setPaymentFilter('All');
     };
@@ -523,6 +578,18 @@ const TourDetails = () => {
                             <option value="Partial">Partial Pay</option>
                             <option value="Nil">Unpaid / Nil</option>
                         </select>
+                        <select
+                            value={leaderFilter}
+                            onChange={(e) => setLeaderFilter(e.target.value)}
+                            className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500 transition-all max-w-[150px] truncate"
+                            title="Filter by Leader"
+                        >
+                            <option value="All">All Leaders</option>
+                            <option value="Unassigned">Without Leader</option>
+                            {uniqueLeaders.map(l => (
+                                <option key={l} value={l}>Leader: {l}</option>
+                            ))}
+                        </select>
 
                         {hasActiveFilters && (
                             <button
@@ -559,6 +626,7 @@ const TourDetails = () => {
                                 <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
                                     <tr>
                                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Devotee</th>
+                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Leader</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Booking Status</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Payments</th>
                                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Contact</th>
@@ -578,14 +646,90 @@ const TourDetails = () => {
                                                     </div>
                                                     <div>
                                                         <p className="font-bold text-slate-900 text-sm leading-tight">
-                                                            {(en.devoteeId && !en.devoteeId.startsWith('GUEST_')) ? (en.initiatedName || en.devoteeName) : en.guestName}
-                                                            {(!en.devoteeId || en.devoteeId.startsWith('GUEST_')) && (
-                                                                <span className="ml-2 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-[8px] font-black uppercase tracking-widest">Walk-in</span>
-                                                            )}
-                                                        </p>
-                                                        <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Booked: {formatDate(en.bookingDate)}</p>
+                                                             {(en.devoteeId && !en.devoteeId.startsWith('GUEST_')) ? (en.initiatedName || en.devoteeName) : en.guestName}
+                                                             {(!en.devoteeId || en.devoteeId.startsWith('GUEST_')) && (
+                                                                 <span className="ml-2 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-[8px] font-black uppercase tracking-widest">Walk-in</span>
+                                                             )}
+                                                         </p>
+                                                         <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Booked: {formatDate(en.bookingDate)}</p>
+                                                     </div>
+                                                 </div>
+                                            </td>
+                                            {/* Leader Column */}
+                                            <td className="px-6 py-4">
+                                                {editingLeaderId === en.id ? (
+                                                    <div className="flex items-center gap-1.5 min-w-[170px]">
+                                                        <input
+                                                            list="tour-leader-options"
+                                                            autoFocus
+                                                            value={editingLeaderValue}
+                                                            onChange={(e) => setEditingLeaderValue(e.target.value)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    updateEnrollmentLeader(en.id, editingLeaderValue);
+                                                                    setEditingLeaderId(null);
+                                                                } else if (e.key === 'Escape') {
+                                                                    setEditingLeaderId(null);
+                                                                }
+                                                            }}
+                                                            placeholder="Leader name..."
+                                                            className="px-2.5 py-1 text-xs border border-orange-300 dark:border-orange-700 rounded-lg outline-none focus:ring-2 focus:ring-orange-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 w-36 shadow-sm"
+                                                        />
+                                                        <button
+                                                            onClick={() => {
+                                                                updateEnrollmentLeader(en.id, editingLeaderValue);
+                                                                setEditingLeaderId(null);
+                                                            }}
+                                                            className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded transition-colors"
+                                                            title="Save"
+                                                        >
+                                                            <Check size={14} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setEditingLeaderId(null)}
+                                                            className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                                                            title="Cancel"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
                                                     </div>
-                                                </div>
+                                                ) : en.leader ? (
+                                                    <div className="inline-flex items-center gap-1.5 group/leader">
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border border-orange-200/70 dark:border-orange-800/60 text-xs font-bold shadow-xs">
+                                                            <Crown size={12} className="text-orange-500 shrink-0" />
+                                                            <span className="truncate max-w-[130px]" title={en.leader}>{en.leader}</span>
+                                                        </span>
+                                                        {isAdmin && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingLeaderId(en.id);
+                                                                    setEditingLeaderValue(en.leader || '');
+                                                                }}
+                                                                className="opacity-0 group-hover/leader:opacity-100 p-1 text-slate-400 hover:text-orange-600 transition-all rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                                                                title="Change Leader"
+                                                            >
+                                                                <Edit size={12} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-1.5">
+                                                        {isAdmin ? (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingLeaderId(en.id);
+                                                                    setEditingLeaderValue(en.devoteeCounselor || '');
+                                                                }}
+                                                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:text-orange-600 border border-dashed border-slate-300 dark:border-slate-700 hover:border-orange-400 px-2 py-0.5 rounded-lg transition-colors"
+                                                                title={en.devoteeCounselor ? `Quick assign Counselor (${en.devoteeCounselor})` : "Assign a Leader"}
+                                                            >
+                                                                <Plus size={11} /> {en.devoteeCounselor ? en.devoteeCounselor : 'Assign Leader'}
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-slate-300 text-xs font-medium">—</span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <select
@@ -725,6 +869,7 @@ const TourDetails = () => {
                                     <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
                                         <tr>
                                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Devotee</th>
+                                            <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Leader</th>
                                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Booking Status</th>
                                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Payments</th>
                                             <th className="px-6 py-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Contact</th>
@@ -749,6 +894,11 @@ const TourDetails = () => {
                                                             <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Booked: {formatDate(en.bookingDate)}</p>
                                                         </div>
                                                     </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+                                                        {en.leader || en.devoteeCounselor || '—'}
+                                                    </span>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <select
@@ -954,6 +1104,13 @@ const TourDetails = () => {
                 onConfirm={handleConfirmCancelRefund}
                 isExistingCancelled={isRefundOnlyAction}
             />
+
+            {/* Datalist for Leader autocomplete suggestions */}
+            <datalist id="tour-leader-options">
+                {allLeaderOptions.map(l => (
+                    <option key={l} value={l} />
+                ))}
+            </datalist>
         </div>
     );
 };

@@ -335,6 +335,30 @@ Pending rows are excluded from `GET /api/devotees/stats`, weekly/birthday/annive
 
 ---
 
+### 7. Tour Endpoints (`/api/tours`)
+
+#### `POST /api/tours/enroll`
+- **Purpose**: Book/enroll a participant into a tour (existing devotee or walk-in) with optional leader assignment.
+- **Request Body**:
+  ```json
+  {
+    "tourId": 1,
+    "devoteeId": "uuid-or-empty",
+    "guestName": "Walk-in Pilgrim",
+    "guestContact": "9876543210",
+    "bookingDate": "2026-10-20",
+    "leader": "HG Radheshyam Das"
+  }
+  ```
+- **Response (200)**: `{ "success": true, "id": 145 }`
+
+#### `PUT /api/tours/enroll/:id`
+- **Purpose**: Update participant status or assign/change their group/bus leader without altering payments.
+- **Request Body**: `{ "leader": "HG Chaitanya Charan Das" }` or `{ "status": "Confirmed" }`
+- **Response (200)**: `{ "success": true }`
+
+---
+
 
 ## Status Codes
 - **200 — Success**: The action executed successfully.

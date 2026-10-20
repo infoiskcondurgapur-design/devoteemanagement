@@ -163,7 +163,7 @@ Records outflows and transactions.
 
 ### 9. `tours`, `tour_enrollments` & `tour_payments`
 - **tours**: Details pilgrim tours (name, destination, fee).
-- **tour_enrollments**: Connects devoteeId with booking dates and guest information.
+- **tour_enrollments**: Connects devoteeId with booking dates, guest information, and assigned group/bus leader (`leader`).
 - **tour_payments**: Payment details linked to specific tour bookings (`enrollmentId`, `amount`, `paymentDate`, `paymentMode`, `reference`).
 
 ---

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { X, Search, IndianRupee, Save, MessageSquare, CheckCircle2, UserCheck, User, Globe, Smartphone, Copy, ExternalLink } from 'lucide-react';
+import { X, Search, IndianRupee, Save, MessageSquare, CheckCircle2, UserCheck, User, Globe, Smartphone, Copy, ExternalLink, Crown } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 import TourReceipt from '../tours/TourReceipt';
 import WhatsAppModal from '../WhatsAppModal';
@@ -32,6 +32,7 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
         guestName: '',
         guestContact: '',
         mobile: '',
+        leader: '',
         paidAmount: '',
         dueAmount: 0,
         bookingDate: new Date().toISOString().split('T')[0],
@@ -57,12 +58,31 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
         return searchDevoteesByName(devotees, devoteeSearch, { limit: 20 });
     }, [devotees, devoteeSearch]);
 
+    // Known leaders suggestions from counselors and tour enrollments
+    const leaderSuggestions = useMemo(() => {
+        const leadersSet = new Set();
+        (devotees || []).forEach(d => {
+            if (d.counselor && typeof d.counselor === 'string') {
+                const c = d.counselor.trim();
+                if (c) leadersSet.add(c);
+            }
+        });
+        (tour?.enrollments || []).forEach(en => {
+            if (en.leader && typeof en.leader === 'string') {
+                const l = en.leader.trim();
+                if (l) leadersSet.add(l);
+            }
+        });
+        return Array.from(leadersSet).sort();
+    }, [devotees, tour?.enrollments]);
+
     const handleSelectDevotee = (dev) => {
         setFormData(prev => ({
             ...prev,
             devoteeId: dev.id,
             devoteeName: dev.initiatedName || dev.name,
             mobile: dev.contact || dev.whatsapp || '',
+            leader: prev.leader || dev.counselor || '',
         }));
         setDevoteeSearch(dev.initiatedName || dev.name);
         setShowDropdown(false);
@@ -88,6 +108,7 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
             const enrollPayload = {
                 tourId: tour.id,
                 bookingDate: formData.bookingDate,
+                leader: formData.leader?.trim() || null,
                 ...(isWalkin
                     ? { guestName: formData.guestName, guestContact: formData.guestContact }
                     : { devoteeId: formData.devoteeId }
@@ -123,6 +144,7 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
                 bookingDate: formData.bookingDate,
                 mode: formData.mode,
                 reference: formData.reference,
+                leader: formData.leader?.trim() || null,
                 mobile: phone,
                 devoteeName: isWalkin ? null : formData.devoteeName,
                 guestName: isWalkin ? formData.guestName : null,
@@ -169,6 +191,7 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
             `• *Booking ID:* #YATRA-${String(booking.enrollmentId).padStart(5, '0')}\n` +
             `• *Tour / Yatra:* ${booking.tourName}\n` +
             (booking.destination ? `• *Destination:* ${booking.destination}\n` : '') +
+            (booking.leader ? `• *Leader / Guide:* ${booking.leader}\n` : '') +
             `• *Booking Date:* ${booking.bookingDate}\n\n` +
             `💳 *Payment Summary:*\n` +
             `• *Tour Fees:* ₹${Number(booking.tourFees || 0).toLocaleString('en-IN')}\n` +
@@ -527,15 +550,41 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Reference / Note</label>
-                        <input
-                            name="reference"
-                            value={formData.reference}
-                            onChange={handleChange}
-                            placeholder="Transaction ID, Cheque number, or notes..."
-                            className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm"
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                                    Leader / Guide
+                                </label>
+                                <span className="text-[10px] text-slate-400 font-medium">Optional</span>
+                            </div>
+                            <div className="relative">
+                                <input
+                                    list="tour-leader-suggestions"
+                                    name="leader"
+                                    value={formData.leader}
+                                    onChange={handleChange}
+                                    placeholder="Enter or pick leader..."
+                                    className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                                />
+                                <datalist id="tour-leader-suggestions">
+                                    {leaderSuggestions.map(l => (
+                                        <option key={l} value={l} />
+                                    ))}
+                                </datalist>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">Reference / Note</label>
+                            <input
+                                name="reference"
+                                value={formData.reference}
+                                onChange={handleChange}
+                                placeholder="Transaction ID, Cheque number, notes..."
+                                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none text-sm"
+                            />
+                        </div>
                     </div>
 
                     <div className="flex gap-3 pt-1">

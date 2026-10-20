@@ -1,6 +1,32 @@
 # CHANGELOG
 
-## [2026-10-17]
+## [2026-10-20]
+
+### Tour Participant Leader Column Option (ট্যুর পার্টিসিপেন্ট লিডার কলাম ও ম্যানেজমেন্ট)
+- **Zero-Data-Loss Schema Migration (`ALTER TABLE tour_enrollments ADD COLUMN leader TEXT`)**:
+  - Successfully altered `tour_enrollments` in SQLite (`whatsapp-bot/devotee_mgmt.db`) and PostgreSQL (`api/_src/database.mjs` & `api/_src/schema.mjs`) to include the `leader` column.
+  - Confirmed 100% preservation of all existing 125 tour enrollments, 130 payment records, and tours without any data loss or truncation.
+  - Integrated safe auto-healing routine in `healSchema()` across SQLite and PostgreSQL to ensure any future cold starts or database merges maintain the `leader` column.
+- **Add Participant Form Leader Integration (`src/components/tours/AddParticipantForm.jsx`)**:
+  - Added dedicated **Leader / Guide** input field to the booking modal.
+  - Auto-suggests known counselors and leaders from the devotee database and existing tour enrollments via an interactive datalist.
+  - Automatically pre-populates with devotee's counselor when an existing devotee is selected.
+  - Supports custom leader entry for both devotees and walk-in participants.
+  - Enhanced booking confirmation receipts and WhatsApp broadcast messages to display the assigned Group Leader.
+- **Tour Details Leader Management (`src/pages/tours/TourDetails.jsx`)**:
+  - Added **Leader** column to the Participant List table between Devotee and Booking Status.
+  - Styled with a crown badge displaying the Leader's name.
+  - Inline Leader assignment and editing: Admins can assign or change leaders on the fly with 1 click without leaving the table.
+  - Unassigned participants with an existing DMS counselor display a 1-click `+ {counselorName}` quick assign shortcut.
+  - Added **Leader Filter** dropdown in the toolbar (`All Leaders`, `Without Leader`, and filter by specific leader).
+  - Multi-token participant search matches leader and counselor names.
+  - Excel export (`handleExportExcel`) includes the 'Leader' column for all active participants.
+  - Cancelled participants table updated with the Leader column for visual consistency.
+- **Verification & Deployment**:
+  - Unit test `test/tour_leader.test.mjs` created and passing.
+  - All 23 backend regression tests and unit tests passing.
+  - Production Vite build passing in 35.21s.
+  - Deployed to Vercel production: `https://devoteemanagement.vercel.app`.
 
 ### Full-Stack Performance Optimization & Latency Resolution (ওয়েবসাইটের গতি ও পারফরম্যান্স উন্নয়ন)
 - **18.9 MB Database Photo Payload Reduction (98% Payload Drop)**:

@@ -237,6 +237,7 @@ export const TABLES = {
         "guestContact" TEXT,
         "bookingDate" TEXT NOT NULL,
         status TEXT DEFAULT 'Reserved',
+        "leader" TEXT,
         "totalPaid" NUMERIC DEFAULT 0,
         "paymentStatus" TEXT DEFAULT 'Due',
         "createdAt" TEXT DEFAULT NOW(),

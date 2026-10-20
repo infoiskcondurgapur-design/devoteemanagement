@@ -51,6 +51,12 @@ const TourReceipt = React.forwardRef(({ booking }, ref) => {
                                     <span className="text-slate-500 dark:text-slate-400">Destination</span>
                                     <span className="font-bold text-slate-800 dark:text-slate-100">{booking.destination || '—'}</span>
                                 </div>
+                                {booking.leader && (
+                                    <div className="flex justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+                                        <span className="text-slate-500 dark:text-slate-400">Leader / Guide</span>
+                                        <span className="font-bold text-slate-800 dark:text-slate-100">{booking.leader}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
                                     <span className="text-slate-500 dark:text-slate-400">Payment Mode</span>
                                     <span className="font-bold text-slate-800 dark:text-slate-100">{booking.mode}</span>
