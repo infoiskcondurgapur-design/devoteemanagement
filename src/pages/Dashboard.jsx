@@ -17,12 +17,12 @@ const StatCard = ({ title, value, label, icon: Icon, _delay }) => {
             <div className="flex items-start justify-between">
                 <div className="space-y-2">
                     <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">{title}</p>
-                    <h3 className="text-3xl font-bold text-foreground tracking-tight">
+                    <h3 className="text-3xl font-bold text-[#c7ded9] tracking-tight">
                         {value}
                     </h3>
                     {label && <p className="text-muted-foreground text-[11px] font-medium leading-tight max-w-[140px]">{label}</p>}
                 </div>
-                <div className="p-3 rounded-lg bg-muted/60 text-muted-foreground group-hover:text-amber-600 transition-colors">
+                <div className="p-3 rounded-lg bg-[#1d3233] text-[#86a09c] border border-[#2d4d4f] group-hover:text-amber-500 transition-colors">
                     <Icon className="w-6 h-6" />
                 </div>
             </div>
@@ -79,11 +79,11 @@ const Dashboard = () => {
             {/* Header Section */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
                 <div className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+                    <h1 className="text-3xl font-bold tracking-tight text-[#c7ded9] flex items-center gap-3">
                         Overview
                     </h1>
                     <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
-                        <Activity className="w-4 h-4 text-corporate-600 dark:text-amber-500" />
+                        <Activity className="w-4 h-4 text-emerald-400" />
                         <span>System synchronized {lastUpdated.toLocaleTimeString()}</span>
                     </div>
                 </div>
@@ -96,7 +96,7 @@ const Dashboard = () => {
                             "px-3.5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold border transition-all shadow-sm",
                             eyeProtectMode
                                 ? "bg-amber-500/20 text-amber-300 border-amber-400/40 ring-1 ring-amber-400/30 shadow-sm"
-                                : "bg-card text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground"
+                                : "bg-card text-muted-foreground border-border hover:bg-muted/60 hover:text-[#c7ded9]"
                         )}
                         title={eyeProtectMode ? "চোখের সুরক্ষা মোড সক্রিয় (Eye Comfort ON - Click to disable)" : "চোখের সুরক্ষা অন করুন (Enable Eye Comfort Mode)"}
                     >
@@ -112,17 +112,17 @@ const Dashboard = () => {
                             toast.success('System Refreshed');
                         }}
                         className={clsx(
-                            "bg-card border border-border px-4 sm:px-5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold text-foreground hover:bg-muted/60 transition-all shadow-sm",
+                            "bg-card border border-border px-4 sm:px-5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold text-[#c7ded9] hover:bg-muted/60 transition-all shadow-sm",
                             isRefreshing && "opacity-50 pointer-events-none"
                         )}
                     >
-                        <RefreshCw className={clsx("w-4 h-4 text-corporate-600 dark:text-amber-500", isRefreshing && "animate-spin")} />
+                        <RefreshCw className={clsx("w-4 h-4 text-emerald-400", isRefreshing && "animate-spin")} />
                         <span>{isRefreshing ? 'Updating...' : 'Refresh'}</span>
                     </button>
                     
                     <button 
                         onClick={() => navigate('/devotees/new')} 
-                        className="bg-corporate-600 hover:bg-corporate-700 px-5 sm:px-6 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold text-white shadow-md transition-all"
+                        className="bg-corporate-600 hover:bg-corporate-700 px-5 sm:px-6 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold text-[#e0edeb] shadow-md transition-all"
                     >
                         <Plus className="w-5 h-5" />
                         <span>New Devotee</span>
@@ -145,9 +145,9 @@ const Dashboard = () => {
                     {/* Occasions Panel */}
                     <div className="bg-card text-card-foreground rounded-xl border border-border shadow-md overflow-hidden">
                         <div className="p-6 border-b border-border flex items-center justify-between bg-muted/30">
-                            <h2 className="text-lg font-bold text-foreground flex items-center gap-3">
-                                <div className="p-2 bg-pink-50 dark:bg-pink-950/40 rounded-lg">
-                                    <Calendar className="w-5 h-5 text-pink-500" />
+                            <h2 className="text-lg font-bold text-[#c7ded9] flex items-center gap-3">
+                                <div className="p-2 bg-pink-950/40 border border-pink-900/50 rounded-lg text-pink-300">
+                                    <Calendar className="w-5 h-5" />
                                 </div>
                                 Occasions & Today's Events
                             </h2>
@@ -158,9 +158,9 @@ const Dashboard = () => {
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                                        <Cake className="w-4 h-4 text-pink-500" /> Birthdays
+                                        <Cake className="w-4 h-4 text-pink-400" /> Birthdays
                                     </h3>
-                                    <span className="bg-pink-500/10 text-pink-600 dark:text-pink-400 text-[11px] font-black px-2.5 py-1 rounded-full border border-pink-500/20">
+                                    <span className="bg-pink-950/40 text-pink-300 text-[11px] font-black px-2.5 py-1 rounded-full border border-pink-900/50">
                                         {statsData.birthdaysToday.length}
                                     </span>
                                 </div>
@@ -171,23 +171,29 @@ const Dashboard = () => {
                                             <div key={d.id} className="group flex items-center gap-4 p-3 bg-muted/40 rounded-xl border border-border hover:border-pink-300 dark:hover:border-pink-800/80 transition-all">
                                                 <div 
                                                     onClick={() => d.photo && setSelectedImageDevotee(d)}
-                                                    className={`w-10 h-10 rounded-lg overflow-hidden bg-card shrink-0 border border-border shadow-sm relative group/img ${d.photo ? 'cursor-pointer' : ''}`}
+                                                    className={`w-10 h-10 rounded-lg overflow-hidden bg-[#1d3334] shrink-0 border border-border shadow-sm relative group/img ${d.photo ? 'cursor-pointer' : ''}`}
                                                     title={d.photo ? "Click to view original image" : ""}
                                                 >
-                                                    <img src={d.photo || '/default-avatar.png'} alt="" className="w-full h-full object-cover transition-transform group-hover/img:scale-105" />
+                                                    {d.photo ? (
+                                                        <img src={d.photo} alt="" className="w-full h-full object-cover transition-transform group-hover/img:scale-105" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-[#8fa8a4]">
+                                                            <User className="w-5 h-5" />
+                                                        </div>
+                                                    )}
                                                     {d.photo && (
-                                                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-[#c7ded9]">
                                                             <Maximize2 className="w-3.5 h-3.5 drop-shadow" />
                                                         </div>
                                                     )}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="font-bold text-foreground text-sm truncate">{d.name}</p>
+                                                    <p className="font-bold text-[#c7ded9] text-sm truncate">{d.name}</p>
                                                     <p className="text-[10px] text-muted-foreground font-medium truncate italic">{d.initiatedName || 'Aspirant'}</p>
                                                 </div>
                                                 <button
                                                     onClick={() => { setActiveDevotee(d); setShowWhatsApp(true); }}
-                                                    className="p-2 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition-all"
+                                                    className="p-2 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-950/40 rounded-lg transition-all"
                                                 >
                                                     <MessageSquare className="w-5 h-5" />
                                                 </button>
@@ -205,9 +211,9 @@ const Dashboard = () => {
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                                        <Heart className="w-4 h-4 text-rose-500" /> Anniversaries
+                                        <Heart className="w-4 h-4 text-rose-400" /> Anniversaries
                                     </h3>
-                                    <span className="bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[11px] font-black px-2.5 py-1 rounded-full border border-rose-500/20">
+                                    <span className="bg-rose-950/40 text-rose-300 text-[11px] font-black px-2.5 py-1 rounded-full border border-rose-900/50">
                                         {statsData.anniversariesToday.length}
                                     </span>
                                 </div>
@@ -218,23 +224,29 @@ const Dashboard = () => {
                                             <div key={d.id} className="group flex items-center gap-4 p-3 bg-muted/40 rounded-xl border border-border hover:border-rose-300 dark:hover:border-rose-800/80 transition-all">
                                                 <div 
                                                     onClick={() => d.photo && setSelectedImageDevotee(d)}
-                                                    className={`w-10 h-10 rounded-lg overflow-hidden bg-card shrink-0 border border-border shadow-sm relative group/img ${d.photo ? 'cursor-pointer' : ''}`}
+                                                    className={`w-10 h-10 rounded-lg overflow-hidden bg-[#1d3334] shrink-0 border border-border shadow-sm relative group/img ${d.photo ? 'cursor-pointer' : ''}`}
                                                     title={d.photo ? "Click to view original image" : ""}
                                                 >
-                                                    <img src={d.photo || '/default-avatar.png'} alt="" className="w-full h-full object-cover transition-transform group-hover/img:scale-105" />
+                                                    {d.photo ? (
+                                                        <img src={d.photo} alt="" className="w-full h-full object-cover transition-transform group-hover/img:scale-105" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-[#8fa8a4]">
+                                                            <User className="w-5 h-5" />
+                                                        </div>
+                                                    )}
                                                     {d.photo && (
-                                                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-[#c7ded9]">
                                                             <Maximize2 className="w-3.5 h-3.5 drop-shadow" />
                                                         </div>
                                                     )}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="font-bold text-foreground text-sm truncate">{d.name}</p>
+                                                    <p className="font-bold text-[#c7ded9] text-sm truncate">{d.name}</p>
                                                     <p className="text-[10px] text-muted-foreground font-medium truncate italic">{d.initiatedName || 'Devotee'}</p>
                                                 </div>
                                                 <button
                                                     onClick={() => { setActiveDevotee(d); setShowWhatsApp(true); }}
-                                                    className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-all"
+                                                    className="p-2 text-rose-400 hover:bg-rose-950/40 rounded-lg transition-all"
                                                 >
                                                     <Heart className="w-5 h-5 fill-current" />
                                                 </button>
@@ -252,13 +264,13 @@ const Dashboard = () => {
                         {/* Upcoming Events Section */}
                         <div className="p-6 border-t border-border bg-muted/20">
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-sm font-bold text-foreground flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center">
-                                        <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                <h3 className="text-sm font-bold text-[#c7ded9] flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-indigo-950/50 border border-indigo-900/50 flex items-center justify-center text-indigo-300">
+                                        <Calendar className="w-4 h-4" />
                                     </div>
                                     Upcoming Major Events
                                 </h3>
-                                <button onClick={() => navigate('/events')} className="text-[11px] font-black text-corporate-600 dark:text-amber-500 hover:underline transition-all uppercase tracking-wider">
+                                <button onClick={() => navigate('/events')} className="text-[11px] font-black text-corporate-400 hover:underline transition-all uppercase tracking-wider">
                                     View Schedule &rarr;
                                 </button>
                             </div>
@@ -268,11 +280,11 @@ const Dashboard = () => {
                                     {upcomingEventsList.map(event => (
                                         <div key={event.id} className="bg-card border border-border p-5 rounded-xl shadow-sm hover:shadow-md transition-all">
                                             <div className="flex justify-between items-start mb-3">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-1 rounded-full border border-indigo-200/50 dark:border-indigo-900/50">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-indigo-300 bg-indigo-950/50 px-2.5 py-1 rounded-full border border-indigo-900/60">
                                                     {event.eventType}
                                                 </span>
                                             </div>
-                                            <h4 className="font-bold text-foreground text-sm mb-3 truncate leading-tight">{event.name}</h4>
+                                            <h4 className="font-bold text-[#c7ded9] text-sm mb-3 truncate leading-tight">{event.name}</h4>
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
                                                     <Calendar className="w-3.5 h-3.5 text-indigo-400" />
@@ -309,8 +321,8 @@ const Dashboard = () => {
                     <ErrorBoundary>
                         {upcomingBirthdays.length > 0 && (
                             <div className="bg-card text-card-foreground p-6 rounded-xl border border-border shadow-md">
-                                <h4 className="font-bold text-foreground text-[10px] uppercase tracking-widest mb-6 flex items-center gap-3">
-                                    <Cake className="w-4 h-4 text-indigo-500" />
+                                <h4 className="font-bold text-[#c7ded9] text-[10px] uppercase tracking-widest mb-6 flex items-center gap-3">
+                                    <Cake className="w-4 h-4 text-indigo-400" />
                                     Weekly Calendar
                                 </h4>
                                 <div className="space-y-3 max-h-[280px] overflow-y-auto pr-2">
@@ -318,18 +330,24 @@ const Dashboard = () => {
                                         <div key={i} className="group flex items-center gap-3 p-3 bg-muted/40 rounded-xl border border-border hover:border-amber-300 dark:hover:border-amber-800/80 transition-all">
                                             <div 
                                                 onClick={() => dev.photo && setSelectedImageDevotee(dev)}
-                                                className={`w-10 h-10 rounded-lg overflow-hidden bg-card shrink-0 shadow-sm border border-border relative group/img ${dev.photo ? 'cursor-pointer' : ''}`}
+                                                className={`w-10 h-10 rounded-lg overflow-hidden bg-[#1d3334] shrink-0 shadow-sm border border-border relative group/img ${dev.photo ? 'cursor-pointer' : ''}`}
                                                 title={dev.photo ? "Click to view original image" : ""}
                                             >
-                                                <img src={dev.photo || '/default-avatar.png'} alt="" className="w-full h-full object-cover transition-transform group-hover/img:scale-105" />
+                                                {dev.photo ? (
+                                                    <img src={dev.photo} alt="" className="w-full h-full object-cover transition-transform group-hover/img:scale-105" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-[#8fa8a4]">
+                                                        <User className="w-5 h-5" />
+                                                    </div>
+                                                )}
                                                 {dev.photo && (
-                                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-[#c7ded9]">
                                                         <Maximize2 className="w-3.5 h-3.5 drop-shadow" />
                                                     </div>
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-[12px] font-bold text-foreground truncate">{dev.name}</p>
+                                                <p className="text-[12px] font-bold text-[#c7ded9] truncate">{dev.name}</p>
                                                 <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">{dev.upcomingLabel}</p>
                                             </div>
                                         </div>

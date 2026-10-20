@@ -35,10 +35,10 @@ const EkadashiWidget = () => {
                             <div className={clsx(
                                 "w-9 h-9 rounded-xl flex items-center justify-center text-lg font-bold shadow-sm",
                                 isTodayEkadashi
-                                    ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20"
+                                    ? "bg-orange-950/50 text-orange-400 border border-orange-900/50"
                                     : isTodayParana
-                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                                        : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                        ? "bg-emerald-950/50 text-emerald-400 border border-emerald-900/50"
+                                        : "bg-amber-950/50 text-amber-400 border border-amber-900/50"
                             )}>
                                 {isTodayEkadashi ? '📿' : isTodayParana ? '⏰' : '🌸'}
                             </div>
@@ -56,12 +56,12 @@ const EkadashiWidget = () => {
                         <span className={clsx(
                             "text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border flex items-center gap-1.5",
                             isTodayEkadashi
-                                ? "bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-900 animate-pulse"
+                                ? "bg-orange-950/60 text-orange-300 border-orange-900/80 animate-pulse"
                                 : isTodayParana
-                                    ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900"
+                                    ? "bg-emerald-950/60 text-emerald-300 border-emerald-900/80"
                                     : daysRemaining === 1
-                                        ? "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900"
-                                        : "bg-muted text-muted-foreground border-border"
+                                        ? "bg-amber-950/60 text-amber-300 border-amber-900/80"
+                                        : "bg-[#1f3738] text-teal-300 border-[#2f5254]"
                         )}>
                             <span className={clsx(
                                 "w-1.5 h-1.5 rounded-full",
@@ -158,7 +158,7 @@ const EkadashiWidget = () => {
                         <button
                             type="button"
                             onClick={() => setShowModal(true)}
-                            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 transition-all shadow-sm"
+                            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 border border-emerald-800/80 transition-all shadow-sm"
                         >
                             <Share2 className="w-3.5 h-3.5" />
                             <span>WhatsApp রিমাইন্ডার</span>
@@ -167,7 +167,7 @@ const EkadashiWidget = () => {
                         <button
                             type="button"
                             onClick={() => navigate('/calendar')}
-                            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold bg-muted hover:bg-muted/80 text-foreground transition-all border border-border"
+                            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold bg-[#1f3738] hover:bg-[#274446] text-[#c2d4d0] transition-all border border-[#2f5254]"
                         >
                             <span>সম্পূর্ণ ক্যালেন্ডার</span>
                             <ChevronRight className="w-3.5 h-3.5" />
