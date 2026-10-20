@@ -34,24 +34,24 @@ const Sidebar = ({ isOpen, toggle }) => {
 
     return (
         <aside className={clsx(
-            "fixed left-0 top-0 h-screen w-64 bg-corporate-700 dark:bg-slate-950 border-r border-corporate-800 dark:border-slate-800 flex flex-col z-50 overflow-hidden text-white transition-transform duration-300 ease-in-out",
+            "fixed left-0 top-0 h-screen w-64 bg-[#142324] border-r border-[#243e40] flex flex-col z-50 overflow-hidden text-[#cde0dc] transition-transform duration-300 ease-in-out",
             isOpen ? "translate-x-0" : "-translate-x-full"
         )}>
             
             {/* Logo Area */}
-            <div className="h-20 flex items-center justify-between px-6 border-b border-corporate-600/30 dark:border-slate-800/80">
+            <div className="h-20 flex items-center justify-between px-6 border-b border-[#243e40]">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-corporate-600 dark:bg-slate-800 flex items-center justify-center text-white font-bold shadow-lg">
+                    <div className="w-10 h-10 rounded-lg bg-[#243f41] border border-[#385b5d] flex items-center justify-center text-amber-300 font-bold shadow-md">
                         <Share2 size={20} />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold tracking-tight text-white line-height-1">Devotee</h1>
-                        <p className="text-[10px] uppercase tracking-widest text-blue-200/60 font-bold">Management</p>
+                        <h1 className="text-xl font-bold tracking-tight text-[#cde0dc] line-height-1">Devotee</h1>
+                        <p className="text-[10px] uppercase tracking-widest text-[#86a09c] font-bold">Management</p>
                     </div>
                 </div>
                 <button
                     onClick={toggle}
-                    className="p-1.5 text-blue-200/50 hover:text-white hover:bg-corporate-600/40 dark:hover:bg-slate-800 rounded-lg transition-all"
+                    className="p-1.5 text-muted-foreground hover:text-[#cde0dc] hover:bg-[#203638] rounded-lg transition-all"
                     title="Collapse Menu"
                 >
                     <ChevronLeft size={18} />
@@ -61,7 +61,7 @@ const Sidebar = ({ isOpen, toggle }) => {
             {/* Navigation */}
             <nav className="flex-1 py-4 space-y-1 overflow-y-auto px-3 relative">
                 <div className="pb-4">
-                    <p className="px-3 text-[10px] font-bold text-blue-200/40 uppercase tracking-wider mb-4">Main Menu</p>
+                    <p className="px-3 text-[10px] font-bold text-[#6d8e89] uppercase tracking-wider mb-4">Main Menu</p>
                     {navItems.map((item) => (
                         <NavLink
                             key={item.path}
@@ -70,12 +70,12 @@ const Sidebar = ({ isOpen, toggle }) => {
                                 clsx(
                                     'group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium mb-1',
                                     isActive
-                                        ? 'bg-corporate-600 dark:bg-slate-800 text-white shadow-md'
-                                        : 'text-blue-100/70 hover:bg-corporate-600/30 dark:hover:bg-slate-800 hover:text-white'
+                                        ? 'bg-[#243f41] text-amber-300 font-bold border-l-4 border-amber-400 shadow-sm'
+                                        : 'text-[#8fa8a4] hover:bg-[#1f3536] hover:text-[#c4d7d3]'
                                 )
                             }
                         >
-                            <item.icon className={clsx("w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity")} />
+                            <item.icon className="w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity" />
                             <span>{item.name}</span>
                         </NavLink>
                     ))}
@@ -83,11 +83,11 @@ const Sidebar = ({ isOpen, toggle }) => {
             </nav>
 
             {/* Bottom Actions */}
-            <div className="p-4 border-t border-corporate-600/30 dark:border-slate-800/80 bg-corporate-800/50 dark:bg-slate-900 space-y-2">
+            <div className="p-4 border-t border-[#243e40] bg-[#101e1f] space-y-2">
                 {isInstallable && (
                     <button
                         onClick={installApp}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 text-orange-400 hover:bg-orange-500/10 rounded-lg transition-all duration-200 group"
+                        className="w-full flex items-center gap-3 px-3 py-2.5 text-amber-400 hover:bg-amber-500/10 rounded-lg transition-all duration-200 group"
                     >
                         <Download className="w-5 h-5 opacity-80 group-hover:opacity-100 animate-bounce" />
                         <span className="text-sm font-medium">Install App</span>
@@ -95,13 +95,13 @@ const Sidebar = ({ isOpen, toggle }) => {
                 )}
 
                 {/* Small User Info */}
-                <div className="mt-4 px-3 flex items-center gap-3 pt-4 border-t border-corporate-600/20 dark:border-slate-800/80">
-                    <div className="w-8 h-8 rounded-lg bg-corporate-600 dark:bg-slate-800 border border-corporate-500/30 dark:border-slate-700 flex items-center justify-center text-[10px] font-black text-white">
+                <div className="mt-4 px-3 flex items-center gap-3 pt-4 border-t border-[#243e40]">
+                    <div className="w-8 h-8 rounded-lg bg-[#243f41] border border-[#385b5d] flex items-center justify-center text-[10px] font-black text-amber-300 shadow-sm">
                         {(currentUser?.fullName || currentUser?.displayName || currentUser?.name || currentUser?.username || 'U').charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold truncate text-white">{currentUser?.fullName || currentUser?.displayName || currentUser?.name || currentUser?.username || 'User'}</p>
-                        <p className="text-[10px] text-blue-200/50 truncate capitalize font-bold">{currentUser?.role || 'Viewer'}</p>
+                        <p className="text-xs font-bold truncate text-[#c4d7d3]">{currentUser?.fullName || currentUser?.displayName || currentUser?.name || currentUser?.username || 'User'}</p>
+                        <p className="text-[10px] text-muted-foreground truncate capitalize font-bold">{currentUser?.role || 'Viewer'}</p>
                     </div>
                 </div>
             </div>

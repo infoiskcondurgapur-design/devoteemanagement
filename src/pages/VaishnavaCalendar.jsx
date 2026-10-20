@@ -178,27 +178,27 @@ const VaishnavaCalendar = () => {
     return (
         <div className="space-y-6 pb-20">
             {/* Top Header Card */}
-            <div className="bg-gradient-to-r from-orange-600 via-amber-600 to-yellow-600 rounded-2xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-                {/* Background decorative mandalas/circles */}
-                <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-                <div className="absolute left-1/3 bottom-0 w-48 h-48 bg-amber-400/20 rounded-full blur-xl pointer-events-none" />
+            <div className="bg-gradient-to-r from-[#3e2417] via-[#2f241a] to-[#1c3031] rounded-2xl p-6 sm:p-8 text-[#cde0dc] border border-[#4d3826] shadow-xl relative overflow-hidden">
+                {/* Background decorative subtle warm blur circles */}
+                <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-64 h-64 bg-amber-600/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute left-1/3 bottom-0 w-48 h-48 bg-orange-600/10 rounded-full blur-xl pointer-events-none" />
 
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                            <span className="px-3 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-white text-[11px] font-black uppercase tracking-widest border border-white/20 flex items-center gap-1.5">
-                                <Sparkles className="w-3 h-3 text-yellow-200" />
+                            <span className="px-3 py-0.5 rounded-full bg-[#1e2f30]/80 text-amber-300 text-[11px] font-black uppercase tracking-widest border border-amber-900/40 flex items-center gap-1.5 shadow-sm">
+                                <Sparkles className="w-3 h-3 text-amber-400" />
                                 শ্রীমায়াপুর ধাম সময়ভিত্তিক ক্যালেন্ডার
                             </span>
-                            <span className="text-[11px] font-bold text-orange-100">
+                            <span className="text-[11px] font-bold text-amber-200/80">
                                 IST (UTC+05:30)
                             </span>
                         </div>
-                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white flex items-center gap-3 font-bangla">
+                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-[#edd8bd] flex items-center gap-3 font-bangla">
                             <span>বৈষ্ণব ক্যালেন্ডার ও উৎসব হাব</span>
                             <span className="text-2xl">📿</span>
                         </h1>
-                        <p className="text-xs sm:text-sm text-orange-100 max-w-2xl font-medium leading-relaxed font-bangla">
+                        <p className="text-xs sm:text-sm text-[#9db7b1] max-w-2xl font-medium leading-relaxed font-bangla">
                             শ্রীশ্রী চৈতন্য মহাপ্রভু ও শ্রীল প্রভুপাদের পদাঙ্ক অনুসরণে একাদশী উপবাস, পারণ সময়সূচী, আবির্ভাব-তিরোভাব তিথি এবং হোয়াটসঅ্যাপ নোটিফিকেশন সমন্বিত কেন্দ্র।
                         </p>
                     </div>
@@ -208,9 +208,9 @@ const VaishnavaCalendar = () => {
                         <button
                             type="button"
                             onClick={() => setShowGuidelinesModal(true)}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 backdrop-blur-md text-white rounded-xl text-xs font-bold border border-white/20 transition-all shadow-sm"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-[#1d3032]/80 hover:bg-[#253e40] text-[#cde0dc] rounded-xl text-xs font-bold border border-[#385c5e] transition-all shadow-sm"
                         >
-                            <Utensils className="w-4 h-4 text-yellow-300" />
+                            <Utensils className="w-4 h-4 text-amber-400" />
                             <span>অনুকূল ও প্রতিকূল খাদ্য বিধি</span>
                         </button>
 
@@ -218,7 +218,7 @@ const VaishnavaCalendar = () => {
                             type="button"
                             onClick={handleBulkSync}
                             disabled={isSyncing}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-white text-orange-700 hover:bg-orange-50 rounded-xl text-xs font-black shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-amber-600/90 hover:bg-amber-600 text-amber-50 rounded-xl text-xs font-black shadow-md hover:shadow-lg transition-all border border-amber-500/50 disabled:opacity-50"
                         >
                             <CalendarCheck className={clsx("w-4 h-4", isSyncing && "animate-spin")} />
                             <span>{isSyncing ? 'সিঙ্ক হচ্ছে...' : 'ইভেন্টে যোগ করুন (Sync)'}</span>
@@ -227,53 +227,53 @@ const VaishnavaCalendar = () => {
                 </div>
 
                 {/* Live Countdown Mini Banner inside Header */}
-                <div className="mt-6 pt-5 border-t border-white/20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-white">
-                    <div className="bg-black/20 backdrop-blur-md p-3.5 rounded-xl border border-white/10 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-lg font-bold">
+                <div className="mt-6 pt-5 border-t border-[#3a4e50] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-[#cde0dc]">
+                    <div className="bg-[#142324]/80 p-3.5 rounded-xl border border-[#274143] flex items-center gap-3 shadow-sm">
+                        <div className="w-10 h-10 rounded-lg bg-amber-950/50 border border-amber-900/50 flex items-center justify-center text-lg font-bold text-amber-300">
                             🌸
                         </div>
                         <div>
-                            <span className="text-[10px] uppercase font-bold text-orange-200 block">
+                            <span className="text-[10px] uppercase font-bold text-amber-300/80 block">
                                 {ekadashiInfo.isTodayEkadashi ? 'আজ একাদশী ব্রত' : 'পরবর্তী একাদশী'}
                             </span>
-                            <p className="font-bold text-sm text-white">
+                            <p className="font-bold text-sm text-[#edd8bd]">
                                 {ekadashiInfo.nextEkadashi?.bengaliName}
                             </p>
-                            <p className="text-[11px] text-orange-200 font-medium">
+                            <p className="text-[11px] text-[#8faea8] font-medium">
                                 {ekadashiInfo.nextEkadashi?.date} ({ekadashiInfo.daysRemaining === 0 ? 'আজ' : `${ekadashiInfo.daysRemaining} দিন বাকি`})
                             </p>
                         </div>
                     </div>
 
-                    <div className="bg-black/20 backdrop-blur-md p-3.5 rounded-xl border border-white/10 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-lg font-bold">
+                    <div className="bg-[#142324]/80 p-3.5 rounded-xl border border-[#274143] flex items-center gap-3 shadow-sm">
+                        <div className="w-10 h-10 rounded-lg bg-amber-950/50 border border-amber-900/50 flex items-center justify-center text-lg font-bold text-amber-300">
                             ⏰
                         </div>
                         <div>
-                            <span className="text-[10px] uppercase font-bold text-orange-200 block">
+                            <span className="text-[10px] uppercase font-bold text-amber-300/80 block">
                                 পারণ সময়সূচী (Fast Breaking)
                             </span>
-                            <p className="font-bold text-sm text-white">
+                            <p className="font-bold text-sm text-[#edd8bd]">
                                 {ekadashiInfo.nextEkadashi?.paranaTime || 'শাস্ত্রীয় সময় অনুযায়ী'}
                             </p>
-                            <p className="text-[11px] text-orange-200 font-medium">
+                            <p className="text-[11px] text-[#8faea8] font-medium">
                                 {ekadashiInfo.nextEkadashi?.paranaDate} (মায়াপুর সময়)
                             </p>
                         </div>
                     </div>
 
-                    <div className="bg-black/20 backdrop-blur-md p-3.5 rounded-xl border border-white/10 flex items-center justify-between sm:col-span-2 lg:col-span-1">
+                    <div className="bg-[#142324]/80 p-3.5 rounded-xl border border-[#274143] flex items-center justify-between sm:col-span-2 lg:col-span-1 shadow-sm">
                         <div>
-                            <span className="text-[10px] uppercase font-bold text-orange-200 block">
+                            <span className="text-[10px] uppercase font-bold text-amber-300/80 block">
                                 হোয়াটসঅ্যাপ রিমাইন্ডার
                             </span>
-                            <p className="text-xs text-white font-medium">
+                            <p className="text-xs text-[#8faea8] font-medium">
                                 ভক্তদের মাঝে বার্তা পাঠান
                             </p>
                         </div>
                         <button
                             onClick={() => setSelectedEventForModal(ekadashiInfo.nextEkadashi)}
-                            className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold shadow-md flex items-center gap-1.5 transition-colors"
+                            className="px-3 py-1.5 bg-emerald-800/80 hover:bg-emerald-700 text-emerald-100 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1.5 transition-colors border border-emerald-700/50"
                         >
                             <Share2 className="w-3.5 h-3.5" />
                             <span>নোটিফিকেশন</span>
@@ -283,16 +283,16 @@ const VaishnavaCalendar = () => {
             </div>
 
             {/* Navigation & Filters Bar */}
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div className="bg-card p-5 rounded-2xl border border-border shadow-sm space-y-4">
                 
                 {/* Year Selector & Search */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                     {/* Year Selector */}
                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                             বর্ষপঞ্জি:
                         </span>
-                        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                        <div className="flex bg-[#182a2b] border border-border p-1 rounded-xl">
                             {[2026, 2027].map(yr => (
                                 <button
                                     key={yr}
@@ -301,8 +301,8 @@ const VaishnavaCalendar = () => {
                                     className={clsx(
                                         "px-4 py-1.5 rounded-lg text-xs font-black transition-all",
                                         selectedYear === yr
-                                            ? "bg-orange-500 text-white shadow-sm"
-                                            : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                                            ? "bg-amber-600 text-amber-50 shadow-sm"
+                                            : "text-muted-foreground hover:text-foreground"
                                     )}
                                 >
                                     {yr}
@@ -313,18 +313,18 @@ const VaishnavaCalendar = () => {
 
                     {/* Search Input */}
                     <div className="relative flex-1 max-w-md">
-                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="একাদশী, উৎসব বা মাহাত্ম্য খুঁজুন (বাংলা / English)..."
-                            className="w-full text-xs pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 text-slate-800 dark:text-slate-100"
+                            className="w-full text-xs pl-9 pr-4 py-2.5 bg-[#1a2c2d] border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-foreground placeholder:text-muted-foreground"
                         />
                         {searchQuery && (
                             <button
                                 onClick={() => setSearchQuery('')}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                             >
                                 <X size={14} />
                             </button>
@@ -338,10 +338,10 @@ const VaishnavaCalendar = () => {
                         type="button"
                         onClick={() => setSelectedMonth(0)}
                         className={clsx(
-                            "px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all",
+                            "px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all border",
                             selectedMonth === 0 && !searchQuery
-                                ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm"
-                                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                                ? "bg-amber-600 text-amber-50 border-amber-500 shadow-sm"
+                                : "bg-[#182a2b] text-muted-foreground hover:text-foreground border-border/60"
                         )}
                     >
                         সব মাস (Full Year)
@@ -352,10 +352,10 @@ const VaishnavaCalendar = () => {
                             type="button"
                             onClick={() => { setSelectedMonth(m.num); setSearchQuery(''); }}
                             className={clsx(
-                                "px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all",
+                                "px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all border",
                                 selectedMonth === m.num && !searchQuery
-                                    ? "bg-orange-500 text-white shadow-sm"
-                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                                    ? "bg-amber-600 text-amber-50 border-amber-500 shadow-sm"
+                                    : "bg-[#182a2b] text-muted-foreground hover:text-foreground border-border/60"
                             )}
                         >
                             {m.nameBn} ({m.nameEn})
@@ -364,7 +364,7 @@ const VaishnavaCalendar = () => {
                 </div>
 
                 {/* Category Filters */}
-                <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 overflow-x-auto">
+                <div className="flex items-center gap-2 pt-2 border-t border-border overflow-x-auto">
                     {[
                         { id: 'all', label: 'সব তিথি ও উৎসব' },
                         { id: 'ekadashi', label: 'একাদশী ব্রত 📿' },
@@ -378,14 +378,14 @@ const VaishnavaCalendar = () => {
                             className={clsx(
                                 "px-3.5 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all border",
                                 filterCategory === cat.id
-                                    ? "bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-800"
-                                    : "border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                                    ? "bg-amber-950/60 text-amber-300 border-amber-800 shadow-sm"
+                                    : "border-border text-muted-foreground hover:text-foreground"
                             )}
                         >
                             {cat.label}
                         </button>
                     ))}
-                    <span className="text-xs text-slate-400 ml-auto shrink-0 font-medium">
+                    <span className="text-xs text-muted-foreground ml-auto shrink-0 font-medium">
                         মোট {filteredEvents.length} টি অনুষ্ঠান
                     </span>
                 </div>
@@ -403,10 +403,10 @@ const VaishnavaCalendar = () => {
                             <div
                                 key={event.id}
                                 className={clsx(
-                                    "bg-white dark:bg-slate-900 rounded-2xl border transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between overflow-hidden group",
+                                    "bg-card rounded-2xl border transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between overflow-hidden group",
                                     isEkadashi
-                                        ? "border-orange-200 dark:border-orange-900/60 hover:border-orange-400"
-                                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300"
+                                        ? "border-amber-900/50 hover:border-amber-700/80"
+                                        : "border-border hover:border-[#385c5e]"
                                 )}
                             >
                                 <div className="p-5 space-y-4">
@@ -415,19 +415,19 @@ const VaishnavaCalendar = () => {
                                         {/* Date Block */}
                                         <div className="flex items-center gap-3">
                                             <div className={clsx(
-                                                "w-12 h-12 rounded-xl flex flex-col items-center justify-center shadow-sm shrink-0",
+                                                "w-12 h-12 rounded-xl flex flex-col items-center justify-center shadow-sm shrink-0 border",
                                                 isEkadashi
-                                                    ? "bg-orange-500 text-white"
-                                                    : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                                                    ? "bg-[#1d3334] text-amber-300 border-[#2e5052]"
+                                                    : "bg-[#182a2b] text-[#cde0dc] border-[#274345]"
                                             )}>
                                                 <span className="text-lg font-black leading-none">{dateInfo.day}</span>
                                                 <span className="text-[10px] font-bold uppercase tracking-wider">{dateInfo.monthBn}</span>
                                             </div>
                                             <div>
-                                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block">
+                                                <span className="text-xs font-bold text-foreground block">
                                                     {dateInfo.dayNameBn} ({dateInfo.dayNameEn})
                                                 </span>
-                                                <span className="text-[11px] text-slate-400 font-medium">
+                                                <span className="text-[11px] text-muted-foreground font-medium">
                                                     {event.date}
                                                 </span>
                                             </div>
@@ -436,14 +436,14 @@ const VaishnavaCalendar = () => {
                                         {/* Paksha Badge */}
                                         <div className="flex flex-col items-end gap-1">
                                             <span className={clsx(
-                                                "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                                                "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border",
                                                 event.paksha === 'Gaura'
-                                                    ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                                                    : "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300"
+                                                    ? "bg-amber-950/60 text-amber-300 border-amber-900/40"
+                                                    : "bg-indigo-950/60 text-indigo-300 border-indigo-900/40"
                                             )}>
                                                 {event.paksha === 'Gaura' ? 'গৌর পক্ষ 🌕' : 'কৃষ্ণ পক্ষ 🌑'}
                                             </span>
-                                            <span className="text-[10px] text-slate-400 capitalize">
+                                            <span className="text-[10px] text-muted-foreground capitalize">
                                                 {event.type}
                                             </span>
                                         </div>
@@ -451,26 +451,26 @@ const VaishnavaCalendar = () => {
 
                                     {/* Event Title */}
                                     <div>
-                                        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 leading-snug group-hover:text-orange-600 transition-colors font-bangla">
+                                        <h3 className="text-base font-bold text-foreground leading-snug group-hover:text-amber-300 transition-colors font-bangla">
                                             {event.bengaliName}
                                         </h3>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium italic mt-0.5">
+                                        <p className="text-xs text-muted-foreground font-medium italic mt-0.5">
                                             {event.name}
                                         </p>
                                     </div>
 
                                     {/* Fasting & Rules Banner */}
                                     {event.fasting && (
-                                        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/60 p-2.5 rounded-xl space-y-1.5 text-xs">
-                                            <div className="flex items-center justify-between font-bold text-amber-900 dark:text-amber-200">
+                                        <div className="bg-amber-950/30 border border-amber-900/40 p-2.5 rounded-xl space-y-1.5 text-xs">
+                                            <div className="flex items-center justify-between font-bold text-amber-300">
                                                 <span className="flex items-center gap-1.5 font-bangla">
-                                                    <Flame className="w-3.5 h-3.5 text-orange-500" />
+                                                    <Flame className="w-3.5 h-3.5 text-amber-400" />
                                                     {event.fastingType || 'উপবাস ব্রত'}
                                                 </span>
                                             </div>
                                             {event.paranaTime && (
-                                                <div className="text-[11px] text-amber-800 dark:text-amber-300 font-medium flex items-center gap-1 pt-1 border-t border-amber-200/50 dark:border-amber-900/40">
-                                                    <Clock className="w-3 h-3 text-amber-600" />
+                                                <div className="text-[11px] text-amber-300/80 font-medium flex items-center gap-1 pt-1 border-t border-amber-900/40">
+                                                    <Clock className="w-3 h-3 text-amber-400" />
                                                     <span className="font-bangla">পারণ: {event.paranaTime}</span>
                                                 </div>
                                             )}
@@ -479,18 +479,18 @@ const VaishnavaCalendar = () => {
 
                                     {/* Mahatmya Preview */}
                                     {event.mahatmyaBn && (
-                                        <div className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 italic font-bangla">
+                                        <div className="text-xs text-muted-foreground line-clamp-3 bg-[#18292a] p-2.5 rounded-xl border border-border/60 italic font-bangla">
                                             "{event.mahatmyaBn}"
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Card Footer Actions */}
-                                <div className="p-3 bg-slate-50 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+                                <div className="p-3 bg-[#18292a] border-t border-border flex items-center justify-between gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setSelectedEventForModal(event)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 transition-colors"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-300 bg-emerald-950/50 hover:bg-emerald-900/60 border border-emerald-900/50 transition-colors shadow-sm"
                                     >
                                         <Share2 className="w-3.5 h-3.5" />
                                         <span>WhatsApp</span>
@@ -501,13 +501,13 @@ const VaishnavaCalendar = () => {
                                         onClick={() => handleSyncSingleEvent(event)}
                                         disabled={isSynced}
                                         className={clsx(
-                                            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                                            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm",
                                             isSynced
-                                                ? "text-slate-400 bg-slate-100 dark:bg-slate-800 cursor-default"
-                                                : "text-orange-700 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/60 dark:text-orange-300 border border-orange-200 dark:border-orange-800/60"
+                                                ? "text-muted-foreground bg-[#1a2c2d] border border-border/60 cursor-default"
+                                                : "text-amber-300 bg-amber-950/50 hover:bg-amber-900/60 border border-amber-900/50"
                                         )}
                                     >
-                                        {isSynced ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <CalendarCheck className="w-3.5 h-3.5" />}
+                                        {isSynced ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <CalendarCheck className="w-3.5 h-3.5 text-amber-400" />}
                                         <span>{isSynced ? 'সিঙ্ককৃত' : 'ইভেন্টে যোগ'}</span>
                                     </button>
                                 </div>

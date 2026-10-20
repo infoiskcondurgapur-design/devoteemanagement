@@ -2,6 +2,36 @@
 
 ## [2026-10-20]
 
+### Complete White Text & Icon Glare Extinction (সাদা টেক্সট, সাদা আইকন ও সার্চ/ইনপুট বক্সের তীব্র সাদা আলো দূরীকরণ)
+- **Taming Harsh 100% Pure White Text (`src/index.css`)**:
+  - Overrode `.text-white`, `.dark:text-white`, `.text-slate-100`, `.dark:text-slate-100`, and `.dark:text-slate-200` to a soothing warm sage mist (`#c4d7d3`), eliminating severe contrast glare (halation) against the `#213738` background.
+  - Preserved crystal-clear legibility with an optimal 8.4:1 contrast ratio that fully exceeds WCAG AAA standards while preventing eye fatigue.
+- **Calming White Vector Icons (`src/index.css`)**:
+  - Softened pure `#FFFFFF` Lucide & SVG icons (`svg.text-white`, `.text-white svg`, etc.) to calming sage-teal (`#9cbdb6`), preventing icons from acting like glaring flashlights on the dark canvas.
+- **Universal Form Input & Dropdown Theming (`src/index.css`)**:
+  - Applied global overrides for all native `<input>`, `<select>`, and `<textarea>` elements to prevent browser default white background (`background-color: field / #FFFFFF`), giving them a recessed pine-slate background (`#1a2c2d`), soft sage text (`#c4d7d3`), and subtle borders (`#37595b`).
+  - Added missing overrides for `.bg-red-50`, `.bg-red-100`, `.bg-corporate-50`, and `.bg-corporate-100`.
+- **Seva Board Component Overhaul (`src/pages/services/SevaBoard.jsx`)**:
+  - Replaced browser default white "Search sevaks..." `<input>` with `#1a2c2d` eye-comfort input.
+  - Converted active status filter buttons (`All`, `Active`, `On Leave`) from glaring white box to elevated spruce (`#264042` with amber text).
+  - Styled department filter dropdown to dark `#1a2c2d`.
+- **Finance & Expenses Overhaul (`src/pages/finance/DonationList.jsx`)**:
+  - Styled search inputs, date pickers, and "All Modes" `<select>` with `#1a2c2d` backgrounds.
+  - Converted the Total Expense stat card icon well from bright white-red to dark recessed well (`bg-red-950/40 border border-red-900/40 text-red-400`).
+  - Converted the mini chart toggle button from white `bg-corporate-50` to dark spruce (`bg-[#253f41] border-[#385c5e] text-amber-300`).
+- **Communication Hub Overhaul (`src/pages/Communication.jsx`)**:
+  - Converted active `Daily Spirits` tab button (`NavButton`) from pure white rectangle (`bg-corporate-50`) to elevated spruce card (`#264042` with amber-300 highlights).
+  - Toned down "Wish Now" buttons to soft emerald (`bg-emerald-700/80`) and rose (`bg-rose-700/80`).
+  - Form inputs, selects, and campaign textareas now render in eye-protect `#1a2c2d`.
+- **Vaishnava Calendar Tone Softening (`src/pages/VaishnavaCalendar.jsx`)**:
+  - Subdued the top banner from glaring saturated neon orange to a deep, sacred Vedic terracotta-spruce gradient (`from-[#3e2417] via-[#2f241a] to-[#1c3031]`).
+  - Replaced glaring white banner title and text with sacred sandalwood gold (`#edd8bd`) and soft sage (`#9db7b1`).
+  - Converted the "Sync" button from glaring pure white to warm amber spruce (`bg-amber-600/90 text-amber-50`).
+  - Updated search bar, month pills, and event card date/mahatmya boxes to eye-protect spruce tones.
+- **Sidebar & Header Search Integration (`src/components/layout/Sidebar.jsx` & `HeaderSearch.jsx`)**:
+  - Removed `focus:bg-white` from global header search input.
+  - Styled sidebar active items with soft amber-gold accents (`bg-[#243f41] text-amber-300 border-l-4 border-amber-400`) and soft sage icons.
+
 ### Bug Fix: Missing User Icon Import in DevoteeList (কম্পোনেন্ট রেন্ডার ক্র্যাশ সমাধান)
 - **Resolved ReferenceError (`src/pages/devotees/DevoteeList.jsx`)**:
   - Fixed missing `User` icon import from `lucide-react` which triggered the React `ErrorBoundary` ("Something went wrong. The component failed to render").

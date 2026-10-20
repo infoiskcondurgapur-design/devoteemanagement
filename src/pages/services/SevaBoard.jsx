@@ -239,18 +239,18 @@ const SevaBoard = () => {
             </div>
 
             {/* Filters & Search */}
-            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-card p-4 rounded-xl border border-border shadow-sm">
                 <div className="flex flex-wrap gap-2">
                     <select value={filterDept} onChange={e => setFilterDept(e.target.value)}
-                        className="border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-corporate-500">
+                        className="border border-border rounded-lg px-3 py-1.5 text-sm font-medium text-foreground bg-[#1a2c2d] focus:outline-none focus:ring-2 focus:ring-teal-500">
                         <option value="All">All Departments</option>
                         {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
                     </select>
-                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                    <div className="flex bg-[#172829] border border-border rounded-lg p-1">
                         {['All', 'Active', 'On Leave'].map(s => (
                             <button key={s} onClick={() => setFilterStatus(s)}
                                 className={clsx('px-3 py-1 text-sm font-bold rounded-md transition-all uppercase tracking-wider', 
-                                    filterStatus === s ? 'bg-white dark:bg-slate-900 text-corporate-600 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200')}>
+                                    filterStatus === s ? 'bg-[#264042] text-amber-300 border border-[#385b5d] shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
                                 {s}
                             </button>
                         ))}
@@ -258,13 +258,13 @@ const SevaBoard = () => {
                 </div>
                 
                 <div className="relative w-full md:w-64">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                     <input 
                         type="text" 
                         value={searchTerm} 
                         onChange={e => setSearchTerm(e.target.value)} 
                         placeholder="Search sevaks..."
-                        className="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-corporate-500"
+                        className="w-full pl-9 pr-4 py-2 bg-[#1a2c2d] border border-border text-foreground placeholder:text-muted-foreground rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                 </div>
             </div>

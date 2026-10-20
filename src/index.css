@@ -147,6 +147,28 @@ aside {
   color: hsl(var(--foreground));
 }
 
+/* Eye Comfort: Soften blinding pure white text (#FFFFFF) to soothing sage mist */
+.text-white:not(.keep-white),
+.dark\:text-white:not(.keep-white),
+.text-slate-100,
+.text-slate-50,
+.text-gray-100,
+.text-gray-50,
+.dark\:text-slate-100,
+.dark\:text-slate-50,
+.dark\:text-slate-200 {
+  color: #c4d7d3 !important;
+}
+
+/* Eye Comfort: Soften harsh white icons from glaring #FFFFFF to calming sage teal */
+svg.text-white:not(.keep-white),
+.text-white:not(.keep-white) > svg,
+.text-white:not(.keep-white) svg,
+.dark\:text-white:not(.keep-white) > svg,
+.dark\:text-white:not(.keep-white) svg {
+  color: #9cbdb6 !important;
+}
+
 .text-slate-900,
 .text-slate-800,
 .text-gray-900,
@@ -175,6 +197,33 @@ aside {
 .bg-gray-50,
 .bg-gray-100 {
   background-color: hsl(var(--muted)) !important;
+}
+
+/* Native Form Elements: Zero white background default */
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+select,
+textarea {
+  background-color: #1a2c2d !important;
+  color: #c4d7d3 !important;
+  border-color: #37595b !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):focus,
+select:focus,
+textarea:focus {
+  border-color: #4e7d80 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(78, 125, 128, 0.25) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6d8e89 !important;
+}
+
+select option {
+  background-color: #1a2c2d !important;
+  color: #c4d7d3 !important;
 }
 
 /* Eye Comfort: Map pastel 50 & 100 classes to soft dark-tinted wells so they never render as blinding white boxes */
@@ -214,6 +263,18 @@ aside {
   background-color: rgba(136, 19, 55, 0.25) !important;
   color: #fb7185 !important;
   border-color: rgba(244, 63, 94, 0.3) !important;
+}
+
+.bg-red-50, .bg-red-100 {
+  background-color: rgba(136, 19, 55, 0.25) !important;
+  color: #fb7185 !important;
+  border-color: rgba(190, 24, 93, 0.3) !important;
+}
+
+.bg-corporate-50, .bg-corporate-100 {
+  background-color: #243e40 !important;
+  color: #a5c3e1 !important;
+  border-color: #37595b !important;
 }
 
 .bg-purple-50, .bg-purple-100 {

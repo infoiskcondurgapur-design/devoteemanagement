@@ -163,20 +163,20 @@ const FinanceDashboard = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Finance & Expenses</h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Track all temple transactions</p>
+                    <h1 className="text-2xl font-bold text-foreground">Finance & Expenses</h1>
+                    <p className="text-sm text-muted-foreground mt-0.5">Track all temple transactions</p>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={() => setShowCharts(!showCharts)} className={clsx("p-2.5 border rounded-lg transition-colors", showCharts ? "bg-corporate-50 border-corporate-200 text-corporate-600" : "border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:bg-slate-900/50")}>
+                    <button onClick={() => setShowCharts(!showCharts)} className={clsx("p-2.5 border rounded-lg transition-colors", showCharts ? "bg-[#253f41] border-[#385c5e] text-amber-300 shadow-sm" : "bg-card border-border text-muted-foreground hover:bg-muted")}>
                         <TrendingUp size={15} />
                     </button>
-                    <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:bg-slate-900/50 transition-colors">
+                    <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 border border-border bg-card rounded-lg text-foreground text-sm font-medium hover:bg-muted transition-colors shadow-sm">
                         <Download size={15} /> Export
                     </button>
-                    <button onClick={fetchAll} className="p-2.5 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:bg-slate-900/50 transition-colors">
+                    <button onClick={fetchAll} className="p-2.5 border border-border bg-card rounded-lg text-muted-foreground hover:bg-muted transition-colors shadow-sm">
                         <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
                     </button>
-                    <Link to="/finance/new" className="flex items-center gap-2 px-4 py-2 bg-corporate-600 text-white rounded-lg text-sm font-semibold hover:bg-corporate-700 transition-colors shadow-sm">
+                    <Link to="/finance/new" className="flex items-center gap-2 px-4 py-2 bg-corporate-700 text-[#dff0ec] border border-corporate-600/40 rounded-lg text-sm font-semibold hover:bg-corporate-800 transition-colors shadow-sm">
                         <Plus size={15} /> New Transaction
                     </Link>
                 </div>
@@ -185,15 +185,15 @@ const FinanceDashboard = () => {
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
-                    { label: 'Total Income', value: `₹${(stats.totalIncome || 0).toLocaleString('en-IN')}`, icon: ArrowUpCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                    { label: 'Total Expense', value: `₹${(stats.totalExpenses || 0).toLocaleString('en-IN')}`, icon: ArrowDownCircle, color: 'text-red-600', bg: 'bg-red-50' },
-                    { label: 'Net Balance', value: `₹${(stats.netBalance || 0).toLocaleString('en-IN')}`, icon: Wallet, color: 'text-blue-600', bg: 'bg-blue-50' },
-                    { label: 'Income (Month)', value: `₹${(stats.totalIncomeThisMonth || 0).toLocaleString('en-IN')}`, icon: Calendar, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                    { label: 'Total Income', value: `₹${(stats.totalIncome || 0).toLocaleString('en-IN')}`, icon: ArrowUpCircle, color: 'text-emerald-400', bg: 'bg-emerald-950/40 border border-emerald-900/40' },
+                    { label: 'Total Expense', value: `₹${(stats.totalExpenses || 0).toLocaleString('en-IN')}`, icon: ArrowDownCircle, color: 'text-rose-400', bg: 'bg-red-950/40 border border-red-900/40' },
+                    { label: 'Net Balance', value: `₹${(stats.netBalance || 0).toLocaleString('en-IN')}`, icon: Wallet, color: 'text-blue-400', bg: 'bg-blue-950/40 border border-blue-900/40' },
+                    { label: 'Income (Month)', value: `₹${(stats.totalIncomeThisMonth || 0).toLocaleString('en-IN')}`, icon: Calendar, color: 'text-indigo-400', bg: 'bg-indigo-950/40 border border-indigo-900/40' },
                 ].map((s, i) => (
-                    <div key={i} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 flex items-center gap-3">
+                    <div key={i} className="bg-card rounded-xl border border-border shadow-sm p-4 flex items-center gap-3">
                         <div className={`p-2.5 rounded-lg ${s.bg} ${s.color} shrink-0`}><s.icon size={18} /></div>
                         <div className="min-w-0">
-                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide truncate">{s.label}</p>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide truncate">{s.label}</p>
                             <p className={`text-lg font-bold ${s.color} truncate`}>{s.value}</p>
                         </div>
                     </div>
@@ -201,27 +201,27 @@ const FinanceDashboard = () => {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-slate-200 dark:border-slate-700">
+            <div className="flex border-b border-border">
                 <button 
                     onClick={() => setActiveTab('income')}
-                    className={clsx("px-8 py-3 font-bold text-sm transition-all relative", activeTab === 'income' ? "text-corporate-600" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200")}
+                    className={clsx("px-8 py-3 font-bold text-sm transition-all relative", activeTab === 'income' ? "text-amber-300" : "text-muted-foreground hover:text-foreground")}
                 >
                     Income (Donations)
-                    {activeTab === 'income' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-corporate-600" />}
+                    {activeTab === 'income' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-400" />}
                 </button>
                 <button 
                     onClick={() => setActiveTab('expense')}
-                    className={clsx("px-8 py-3 font-bold text-sm transition-all relative", activeTab === 'expense' ? "text-corporate-600" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200")}
+                    className={clsx("px-8 py-3 font-bold text-sm transition-all relative", activeTab === 'expense' ? "text-amber-300" : "text-muted-foreground hover:text-foreground")}
                 >
                     Expenses
-                    {activeTab === 'expense' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-corporate-600" />}
+                    {activeTab === 'expense' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-400" />}
                 </button>
                 <button 
                     onClick={() => setActiveTab('analytics')}
-                    className={clsx("px-8 py-3 font-bold text-sm transition-all relative", activeTab === 'analytics' ? "text-corporate-600" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-200")}
+                    className={clsx("px-8 py-3 font-bold text-sm transition-all relative", activeTab === 'analytics' ? "text-amber-300" : "text-muted-foreground hover:text-foreground")}
                 >
                     Analytics & Forecasting
-                    {activeTab === 'analytics' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-corporate-600" />}
+                    {activeTab === 'analytics' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-400" />}
                 </button>
             </div>
 
@@ -230,34 +230,34 @@ const FinanceDashboard = () => {
             ) : (
                 <>
                     {/* Table Area */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
                 {/* Filters */}
-                <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-4">
+                <div className="p-4 border-b border-border flex flex-wrap items-center gap-4">
                     <div className="relative flex-1 min-w-[200px]">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Search ${activeTab}...`}
-                            className="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-corporate-500" />
+                            className="w-full pl-9 pr-4 py-2 bg-[#1a2c2d] border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-teal-500" />
                     </div>
                     
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1">
-                            <Calendar size={14} className="text-slate-400 dark:text-slate-500" />
-                            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent text-xs outline-none" />
-                            <span className="text-slate-300">to</span>
-                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent text-xs outline-none" />
+                        <div className="flex items-center gap-2 bg-[#1a2c2d] border border-border rounded-lg px-2 py-1">
+                            <Calendar size={14} className="text-muted-foreground" />
+                            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent text-xs text-foreground outline-none" />
+                            <span className="text-muted-foreground text-xs">to</span>
+                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent text-xs text-foreground outline-none" />
                         </div>
                         
                         <select value={filterMode} onChange={e => setFilterMode(e.target.value)}
-                            className="border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-corporate-500">
+                            className="bg-[#1a2c2d] border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500">
                             <option value="">All Modes</option>
                             {['Cash', 'UPI', 'Bank Transfer', 'Cheque'].map(m => <option key={m}>{m}</option>)}
                         </select>
                     </div>
 
-                    <div className={clsx("ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg border", activeTab === 'income' ? "bg-emerald-50 border-emerald-100" : "bg-red-50 border-red-100")}>
-                        <p className={clsx("text-[10px] font-black uppercase tracking-widest", activeTab === 'income' ? "text-emerald-600" : "text-red-600")}>Total</p>
-                        <div className={clsx("w-px h-3 mx-1", activeTab === 'income' ? "bg-emerald-200" : "bg-red-200")}></div>
-                        <p className={clsx("text-sm font-black", activeTab === 'income' ? "text-emerald-700" : "text-red-700")}>₹{totalFiltered.toLocaleString('en-IN')}</p>
+                    <div className={clsx("ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg border", activeTab === 'income' ? "bg-emerald-950/40 border-emerald-900/50" : "bg-red-950/40 border-red-900/50")}>
+                        <p className={clsx("text-[10px] font-black uppercase tracking-widest", activeTab === 'income' ? "text-emerald-400" : "text-rose-400")}>Total</p>
+                        <div className={clsx("w-px h-3 mx-1", activeTab === 'income' ? "bg-emerald-900" : "bg-red-900")}></div>
+                        <p className={clsx("text-sm font-black", activeTab === 'income' ? "text-emerald-300" : "text-rose-300")}>₹{totalFiltered.toLocaleString('en-IN')}</p>
                     </div>
                 </div>
 

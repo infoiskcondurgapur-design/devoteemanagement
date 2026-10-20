@@ -94,7 +94,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                             {currentUser?.role ? `${currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)}` : 'Devotee'}
                         </p>
                     </div>
-                    <div className="w-9 h-9 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-full flex items-center justify-center font-bold border-2 border-card shadow-sm">
+                    <div className="w-9 h-9 bg-[#243f41] text-amber-300 rounded-full flex items-center justify-center font-bold border border-[#385b5d] shadow-sm">
                         {(currentUser?.fullName || currentUser?.displayName || currentUser?.name || currentUser?.username || 'D').charAt(0).toUpperCase()}
                     </div>
                 </div>

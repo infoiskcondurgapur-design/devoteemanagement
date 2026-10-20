@@ -104,11 +104,11 @@ const HeaderSearch = () => {
             {/* Search Input Box */}
             <div className={`
                 ${isMobileExpanded 
-                    ? 'fixed inset-x-2 top-2 z-50 flex items-center bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-top-2' 
+                    ? 'fixed inset-x-2 top-2 z-50 flex items-center bg-card p-2 rounded-2xl shadow-2xl border border-border animate-in fade-in slide-in-from-top-2' 
                     : 'hidden sm:flex relative items-center'
                 }
             `}>
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                 <input
                     ref={inputRef}
                     type="text"
@@ -123,7 +123,7 @@ const HeaderSearch = () => {
                     }}
                     onKeyDown={handleKeyDown}
                     placeholder="Search devotees by name (e.g. Deb)..."
-                    className="w-full sm:w-72 md:w-80 pl-9 pr-14 py-2 bg-slate-100 dark:bg-slate-800 border border-transparent dark:border-slate-700/60 rounded-full text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white dark:focus:bg-slate-850 transition-all shadow-sm"
+                    className="w-full sm:w-72 md:w-80 pl-9 pr-14 py-2 bg-[#1a2c2d] border border-border rounded-full text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-[#1a2c2d] transition-all shadow-sm"
                 />
 
                 {/* Right controls inside input */}
@@ -132,13 +132,13 @@ const HeaderSearch = () => {
                         <button
                             type="button"
                             onClick={handleClear}
-                            className="p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                            className="p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-[#203638] transition-colors"
                             title="Clear search"
                         >
                             <X className="w-3.5 h-3.5" />
                         </button>
                     ) : (
-                        <span className="hidden md:inline-block text-[10px] font-medium text-slate-400 dark:text-slate-500 bg-slate-200/70 dark:bg-slate-700/70 px-1.5 py-0.5 rounded border border-slate-300/60 dark:border-slate-600/60 pointer-events-none">
+                        <span className="hidden md:inline-block text-[10px] font-medium text-muted-foreground bg-[#142324] px-1.5 py-0.5 rounded border border-border pointer-events-none">
                             Ctrl K
                         </span>
                     )}
@@ -150,7 +150,7 @@ const HeaderSearch = () => {
                                 setIsMobileExpanded(false);
                                 setIsOpen(false);
                             }}
-                            className="sm:hidden p-1 text-slate-500 hover:text-slate-700"
+                            className="sm:hidden p-1 text-muted-foreground hover:text-foreground"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -161,7 +161,7 @@ const HeaderSearch = () => {
             {/* Live Search Floating Dropdown */}
             {isOpen && query.trim() && (
                 <div className={`
-                    absolute z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150
+                    absolute z-50 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150
                     ${isMobileExpanded 
                         ? 'fixed top-16 inset-x-2 max-h-[70vh]' 
                         : 'top-full mt-2 left-0 sm:right-auto w-[92vw] sm:w-[420px] max-h-[480px]'
@@ -169,11 +169,11 @@ const HeaderSearch = () => {
                     flex flex-col
                 `}>
                     {/* Results Header */}
-                    <div className="px-4 py-2.5 bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <div className="px-4 py-2.5 bg-[#18292a] border-b border-border flex items-center justify-between text-xs text-muted-foreground">
                         <span className="font-semibold flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                             {results.length > 0 ? (
-                                <>Found <strong className="text-slate-800 dark:text-slate-200">{results.length}</strong> matches (case-insensitive)</>
+                                <>Found <strong className="text-foreground">{results.length}</strong> matches (case-insensitive)</>
                             ) : (
                                 <>No matching devotees</>
                             )}
@@ -193,8 +193,8 @@ const HeaderSearch = () => {
                                         onMouseEnter={() => setActiveIndex(index)}
                                         className={`px-4 py-3 cursor-pointer flex items-center gap-3 transition-colors ${
                                             isSelected 
-                                                ? 'bg-orange-50 dark:bg-orange-950/30' 
-                                                : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                                                ? 'bg-[#253f41]' 
+                                                : 'hover:bg-[#1f3536]'
                                         }`}
                                     >
                                         {/* Avatar */}
@@ -203,10 +203,10 @@ const HeaderSearch = () => {
                                                 <img
                                                     src={devotee.photo}
                                                     alt={devotee.name}
-                                                    className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                                                    className="w-10 h-10 rounded-full object-cover border border-border"
                                                 />
                                             ) : (
-                                                <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-300 font-bold flex items-center justify-center text-sm border border-orange-200 dark:border-orange-800">
+                                                <div className="w-10 h-10 rounded-full bg-amber-950/40 text-amber-300 font-bold flex items-center justify-center text-sm border border-amber-900/40">
                                                     {(devotee.name || 'D').charAt(0).toUpperCase()}
                                                 </div>
                                             )}
@@ -215,7 +215,7 @@ const HeaderSearch = () => {
                                         {/* Devotee Info */}
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <div className="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate">
+                                                <div className="font-semibold text-sm text-foreground truncate">
                                                     <HighlightText text={devotee.name} query={query} />
                                                 </div>
                                                 {devotee.spiritualStatus && (
