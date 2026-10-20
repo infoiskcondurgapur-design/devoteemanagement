@@ -12,7 +12,12 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
     const [darkMode, setDarkMode] = useState(() => {
-        const saved = localStorage.getItem('theme_dark_mode');
+        const saved = localStorage.getItem('theme_dark_mode_v2');
+        if (saved === null) {
+            localStorage.setItem('theme_dark_mode_v2', 'true');
+            localStorage.setItem('theme_dark_mode', 'true');
+            return true;
+        }
         return saved === 'true';
     });
 
@@ -42,6 +47,7 @@ export const ThemeProvider = ({ children }) => {
 
     useEffect(() => {
         localStorage.setItem('theme_dark_mode', darkMode);
+        localStorage.setItem('theme_dark_mode_v2', darkMode);
         if (darkMode) {
             document.documentElement.classList.add('dark');
         } else {

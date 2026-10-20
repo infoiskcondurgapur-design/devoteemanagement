@@ -2,6 +2,15 @@
 
 ## [2026-10-20]
 
+### White Glare Elimination Across Entire App (সকল পেজে সাদা রঙের উগ্রতা দূরীকরণ ও আরামদায়ক স্প্রুস কার্ডে রূপান্তর)
+- **Universal White Card Overhaul (`src/index.css`)**:
+  - Automatically mapped all `.bg-white` card instances across Attendance, Devotees, Counseling, Events, Tours, and Modals to `hsl(var(--card))` (`#294445` elevated spruce), completely extinguishing eye-straining white rectangles on the `#213738` background.
+  - Mapped `.text-slate-900`, `.text-slate-800` to `hsl(var(--foreground))` (`#edf5f5` soft light mint), ensuring bright and effortless text legibility.
+  - Mapped `.border-slate-200` to `hsl(var(--border))` (`#37595b`) and inner lists (`.bg-slate-50`, `.bg-slate-100`) to `hsl(var(--muted))` (`#2d4a4c`).
+- **Dark Theme Initialization (`src/context/ThemeContext.jsx`)**:
+  - Initialized `theme_dark_mode_v2` to default `true` so all Tailwind `dark:` variants and icons activate hand-in-hand with the CSS layer.
+
+
 ### Full-Site Canvas Migration to Deep Soothing Pine Teal `#213738` (অপশন খ: সমগ্র সাইটের ডিফল্ট ব্যাকগ্রাউন্ড `#213738`-এ রূপান্তর)
 - **Universal Root Background (`src/index.css`)**:
   - Established `--background: 183 26% 17.5%` (`#213738`) directly within `:root`, ensuring that every page across the entire application defaults immediately to `#213738` without requiring any manual toggle.
