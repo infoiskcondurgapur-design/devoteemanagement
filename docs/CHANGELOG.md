@@ -2,6 +2,20 @@
 
 ## [2026-10-20]
 
+### Eye-Strain Elimination: Softer Text Luminance & Glare-Free Icon Wells (উগ্র সাদা টেক্সট ও সাদা আইকন বক্সের আলোক হ্রাস করে আরামদায়ক শান্ত কালারে রূপান্তর)
+- **Soft Soothing Typography (`src/index.css`)**:
+  - Replaced piercing 95% high-luminance white (`--foreground: 180 20% 95%`) with comfortable warm sage mist (`--foreground: 180 12% 80%` / `#c2d4d0`), eliminating text halation and photopic glare on the dark `#213738` pine-teal canvas.
+  - Adjusted `--muted-foreground` to a gentle pine sage (`180 10% 60%` / `#86a09c`) providing a restful 4.5:1 secondary text contrast.
+  - Bound all headings (`h1-h6`) and stat card numbers (`1039`, `14`, `5`, `1020`, `Overview`) to `#c7ded9`.
+- **Elimination of Pastel 50 & 100 Glaring White Boxes (`src/index.css`)**:
+  - Applied global theme overrides converting all `.bg-*-50` and `.bg-*-100` classes (pink, indigo, emerald, amber, orange, rose, purple, blue, teal) into soft dark-tinted recessed wells (`rgba(...)`), extinguishing over 670 potential white boxes across the application.
+  - Inverted baked white backgrounds of default avatar assets (`img[src*="default-avatar"]`).
+- **Dashboard & Widget Refinements (`src/pages/Dashboard.jsx` & `src/components/dashboard/EkadashiWidget.jsx`)**:
+  - Replaced missing avatar images with `<User />` vector icons housed in recessed spruce wells (`bg-[#1d3334] text-[#8fa8a4] border-[#37595b]`), completely removing white square avatar placeholders.
+  - Converted StatCard icon wells to dark spruce wells (`bg-[#1d3233] text-[#86a09c] border-[#2d4d4f]`).
+  - Converted Occasions & Upcoming Events calendar icons to soft tinted dark containers (`bg-pink-950/40 text-pink-300`, `bg-indigo-950/50 text-indigo-300`).
+  - Redesigned "WhatsApp রিমাইন্ডার" button in EkadashiWidget to deep emerald spruce (`bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 border-emerald-800/80`).
+
 ### White Glare Elimination Across Entire App (সকল পেজে সাদা রঙের উগ্রতা দূরীকরণ ও আরামদায়ক স্প্রুস কার্ডে রূপান্তর)
 - **Universal White Card Overhaul (`src/index.css`)**:
   - Automatically mapped all `.bg-white` card instances across Attendance, Devotees, Counseling, Events, Tours, and Modals to `hsl(var(--card))` (`#294445` elevated spruce), completely extinguishing eye-straining white rectangles on the `#213738` background.
