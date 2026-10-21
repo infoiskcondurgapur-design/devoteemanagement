@@ -214,32 +214,6 @@ const AutoRepairHub = () => {
                     </table>
                 </div>
             </div>
-
-            {/* Planned Improvements Section */}
-            <div className="mt-8 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-xl border border-slate-700 overflow-hidden text-white">
-                <div className="p-6 border-b border-slate-700/50 flex items-center gap-3">
-                    <div className="p-2 bg-orange-500/20 rounded-lg">
-                        <FiShield className="text-orange-400" />
-                    </div>
-                    <h2 className="text-xl font-bold">Planned System Improvements</h2>
-                </div>
-                <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[
-                        { title: 'Advanced QR Engine', desc: 'Migrate to core Html5Qrcode for custom-branded UI and extreme stability.', icon: '⚡' },
-                        { title: 'Access Control (RBAC)', desc: 'Multi-user authentication with Role-Based permissions (Admin, Counselor).', icon: '👤' },
-                        { title: 'Real-Time Sync', desc: 'WebSocket integration for instant dashboard updates across all users.', icon: '🔄' },
-                        { title: 'Data Scaling', desc: 'Server-side pagination and virtual lists for datasets > 10,000 devotees.', icon: '📈' },
-                        { title: 'Cloud Resilience', desc: 'Automated multi-cloud backups (Dropbox/S3) for disaster recovery.', icon: '☁️' },
-                        { title: 'Mobile PWA', desc: 'Progressive Web App support for offline access and home screen install.', icon: '📱' }
-                    ].map((item, idx) => (
-                        <div key={idx} className="bg-slate-700/30 p-4 rounded-xl border border-slate-600/50 hover:border-orange-500/50 transition-all group">
-                            <div className="text-2xl mb-2 group-hover:scale-110 transition-transform inline-block">{item.icon}</div>
-                            <h4 className="font-bold text-orange-400 text-sm uppercase tracking-wider mb-1">{item.title}</h4>
-                            <p className="text-xs text-slate-300 leading-relaxed">{item.desc}</p>
-                        </div>
-                    ))}
-                </div>
-            </div>
         </div>
     );
 };

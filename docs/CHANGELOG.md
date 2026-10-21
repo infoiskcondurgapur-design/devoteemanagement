@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [2026-10-21]
+
+### Maintenance Page Cleanup
+- **Removed Planned Improvements Card (`src/pages/maintenance/AutoRepairHub.jsx`)**:
+  - Removed the static "Planned System Improvements" block (containing cards for Advanced QR Engine, Access Control, Real-Time Sync, Data Scaling, Cloud Resilience, and Mobile PWA) to keep the system maintenance and auto-repair view focused on actual health checks, diagnostics, and issue logs.
+
 ## [2026-10-20]
 
 ### Dynamic Expense Purpose from Tours & Courses (এক্সপেন্সেস পারপাস ডেটা থেকে পুরনো ক্যাটাগরি অপসারণ ও ট্যুর/কোর্স থেকে ডায়নামিক ক্যাটাগরি সংযুক্তকরণ)
