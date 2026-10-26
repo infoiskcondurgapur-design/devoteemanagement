@@ -2,6 +2,23 @@
 
 ## [2026-10-26]
 
+### Role-Based Access Control (RBAC) Enforcement (ইউজার ও অ্যাডমিন রোল ভিত্তিক অ্যাক্সেস কন্ট্রোল বাস্তবায়ন)
+- **Dynamic Role-Based Sidebar Navigation (`src/components/layout/Sidebar.jsx`)**:
+  - Filtered navigation items according to user roles (`admin`, `counselor`, `viewer`).
+  - Restricted administrative modules (`Users & Roles`, `Settings`, `Maintenance`, `Finance`, `Reports`, `Communication`) exclusively to `admin` users.
+  - Restricted `Counseling` and `Attendance` exclusively to `admin` and `counselor` users.
+  - Regular devotee users (`viewer`) now see only relevant general congregation pages (`Dashboard`, `Devotees`, `Seva`, `Network`, `Live Map`, `Events`, `Vaishnava Calendar`, `Courses`, `Tours`).
+- **Route Guard Protection (`src/App.jsx`)**:
+  - Implemented `RequireAdmin` and `RequireCounselorOrAdmin` route guards across sensitive routes.
+  - Prevented non-admin users from bypassing the UI by directly typing URLs to `/users`, `/settings`, `/maintenance`, `/finance`, `/reports`, `/communication`, `/devotees/new`, `/devotees/bulk-upload`, `/devotees/batch-id`, `/courses/new`, `/tours/new`, and edit routes. Unauthorized visits now smoothly redirect back to the home dashboard.
+- **Admin-Only Action Buttons in Devotee Management (`src/pages/devotees/DevoteeList.jsx`)**:
+  - Hidden "Add Devotee", "Bulk Upload", "Approve", "Edit", and "Delete" actions from non-admin users in both table and grid views.
+  - Hidden batch selection checkboxes and batch action bars for non-admin users.
+  - Regular viewers can browse the community directory and click to view profiles (`<Eye />`), but cannot modify or delete congregation records.
+- **Course & Tour Protection (`CourseDetails.jsx`, `TourDetails.jsx`, `Dashboard.jsx`)**:
+  - Gated payment recording modals, status change dropdowns, participant removal, and certificate issuance behind `isAdmin` checks.
+  - Gated "New Devotee" header quick action on the Dashboard behind `isAdmin`.
+
 ### Courses Module Crash Prevention & Enhanced Error Diagnosis (কোর্স মডিউল ক্র্যাশ ফিক্স ও এরর বাউন্ডারি উন্নয়ন)
 - **Defensive Error Handling in Courses (`src/pages/courses/`)**:
   - **`CourseDetails.jsx`**: Replaced unsafe `charAt(0)` calls on potentially null devotee names (`en.devoteeName`, `d.name`) with safe fallbacks `(en.initiatedName || en.devoteeName || '?').charAt(0).toUpperCase()`. Added empty-state fallback guard when course data is missing/failed to load, preventing `Cannot read properties of null (reading 'status')`. Added defensive checks for `enrollments` and `devotees` lists.

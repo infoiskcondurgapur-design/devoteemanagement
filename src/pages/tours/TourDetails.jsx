@@ -869,7 +869,8 @@ const TourDetails = () => {
                                                             updateEnrollmentStatus(en.id, e.target.value);
                                                         }
                                                     }}
-                                                    className={`text-xs font-black uppercase tracking-widest px-2 py-1 rounded-lg outline-none border border-transparent focus:border-slate-200 dark:border-slate-700 transition-all cursor-pointer ${en.status === 'Confirmed' ? 'bg-emerald-50 text-emerald-600' :
+                                                    disabled={!isAdmin}
+                                                    className={`text-xs font-black uppercase tracking-widest px-2 py-1 rounded-lg outline-none border border-transparent focus:border-slate-200 dark:border-slate-700 transition-all ${!isAdmin ? 'cursor-default opacity-85' : 'cursor-pointer'} ${en.status === 'Confirmed' ? 'bg-emerald-50 text-emerald-600' :
                                                             en.status === 'Cancelled' ? 'bg-rose-50 text-rose-600' :
                                                                 'bg-blue-50 text-blue-600'
                                                         }`}
@@ -881,11 +882,13 @@ const TourDetails = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div
-                                                    className="flex items-center justify-between gap-4 group/pay cursor-pointer bg-slate-50 dark:bg-slate-900/50/50 p-2 rounded-xl border border-transparent hover:border-slate-200 dark:border-slate-700 transition-all"
+                                                    className={`flex items-center justify-between gap-4 group/pay bg-slate-50 dark:bg-slate-900/50/50 p-2 rounded-xl border border-transparent transition-all ${isAdmin ? 'cursor-pointer hover:border-slate-200 dark:border-slate-700' : 'cursor-default'}`}
                                                     onClick={() => {
-                                                        setSelectedEnrollment(en);
-                                                        setPaymentForm({ amount: (tour.fees || 0) - (en.totalPaid || 0), mode: 'Cash', reference: '' });
-                                                        setShowPaymentModal(true);
+                                                        if (isAdmin) {
+                                                            setSelectedEnrollment(en);
+                                                            setPaymentForm({ amount: (tour.fees || 0) - (en.totalPaid || 0), mode: 'Cash', reference: '' });
+                                                            setShowPaymentModal(true);
+                                                        }
                                                     }}
                                                 >
                                                     <div>
@@ -897,9 +900,11 @@ const TourDetails = () => {
                                                             {en.paymentStatus}
                                                         </span>
                                                     </div>
-                                                    <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover/pay:text-emerald-500 transition-colors shadow-sm">
-                                                        <Plus size={16} />
-                                                    </div>
+                                                    {isAdmin && (
+                                                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover/pay:text-emerald-500 transition-colors shadow-sm">
+                                                            <Plus size={16} />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -909,17 +914,19 @@ const TourDetails = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => {
-                                                            setCancelTargetEnrollment(en);
-                                                            setIsRefundOnlyAction(false);
-                                                            setShowCancelRefundModal(true);
-                                                        }}
-                                                        className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 transition-colors"
-                                                        title="Cancel & Refund Booking"
-                                                    >
-                                                        <RotateCcw size={16} />
-                                                    </button>
+                                                    {isAdmin && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setCancelTargetEnrollment(en);
+                                                                setIsRefundOnlyAction(false);
+                                                                setShowCancelRefundModal(true);
+                                                            }}
+                                                            className="p-2 text-slate-400 dark:text-slate-500 hover:text-rose-600 transition-colors"
+                                                            title="Cancel & Refund Booking"
+                                                        >
+                                                            <RotateCcw size={16} />
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={() => en.devoteeId && !en.devoteeId.startsWith('GUEST_') && navigate(`/devotees/${en.devoteeId}`)}
                                                         disabled={!en.devoteeId || en.devoteeId.startsWith('GUEST_')}

@@ -6,6 +6,7 @@ import clsx from 'clsx';
 import { useDevotees } from '../context/DevoteeContext';
 import { useToast } from '../components/Toast';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import ErrorBoundary from '../components/ErrorBoundary';
 import WhatsAppModal from '../components/WhatsAppModal';
 import ImageModal from '../components/ImageModal';
@@ -32,6 +33,7 @@ const StatCard = ({ title, value, label, icon: Icon, _delay }) => {
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const { isAdmin } = useAuth();
     const { getDashboardStats, fetchStats, lastUpdated, events, fetchEvents: fetchDashboardEvents } = useDevotees();
     const { eyeProtectMode, toggleEyeProtect } = useTheme();
     const toast = useToast();
@@ -120,13 +122,15 @@ const Dashboard = () => {
                         <span>{isRefreshing ? 'Updating...' : 'Refresh'}</span>
                     </button>
                     
-                    <button 
-                        onClick={() => navigate('/devotees/new')} 
-                        className="bg-corporate-600 hover:bg-corporate-700 px-5 sm:px-6 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold text-[#e0edeb] shadow-md transition-all"
-                    >
-                        <Plus className="w-5 h-5" />
-                        <span>New Devotee</span>
-                    </button>
+                    {isAdmin && (
+                        <button 
+                            onClick={() => navigate('/devotees/new')} 
+                            className="bg-corporate-600 hover:bg-corporate-700 px-5 sm:px-6 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold text-[#e0edeb] shadow-md transition-all"
+                        >
+                            <Plus className="w-5 h-5" />
+                            <span>New Devotee</span>
+                        </button>
+                    )}
                 </div>
             </div>
 

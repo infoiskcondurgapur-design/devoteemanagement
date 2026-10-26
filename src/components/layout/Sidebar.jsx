@@ -8,29 +8,36 @@ import { useTranslation } from '../../context/LanguageContext';
 import { usePWA } from '../../hooks/usePWA';
 
 const Sidebar = ({ isOpen, toggle }) => {
-    const { currentUser } = useAuth();
+    const { currentUser, isAdmin, isCounselor } = useAuth();
     const { t } = useTranslation();
     const { isInstallable, installApp } = usePWA();
 
-    const navItems = [
+    const allNavItems = [
         { name: t('dashboard'), icon: LayoutDashboard, path: '/' },
         { name: t('devotees'), icon: Users, path: '/devotees' },
-        { name: 'Counseling', icon: Users, path: '/counseling' },
-        { name: 'Attendance', icon: CalendarCheck, path: '/attendance' },
+        { name: 'Counseling', icon: Users, path: '/counseling', requires: 'counselor' },
+        { name: 'Attendance', icon: CalendarCheck, path: '/attendance', requires: 'counselor' },
         { name: t('seva'), icon: Briefcase, path: '/seva' },
-        { name: t('finance'), icon: IndianRupee, path: '/finance' },
+        { name: t('finance'), icon: IndianRupee, path: '/finance', requires: 'admin' },
         { name: 'Network', icon: Share2, path: '/network' },
         { name: 'Live Map', icon: MapPin, path: '/map' },
-        { name: 'Reports', icon: BarChart3, path: '/reports' },
-        { name: 'Communication', icon: MessageSquare, path: '/communication' },
+        { name: 'Reports', icon: BarChart3, path: '/reports', requires: 'admin' },
+        { name: 'Communication', icon: MessageSquare, path: '/communication', requires: 'admin' },
         { name: 'Events', icon: Calendar, path: '/events' },
         { name: 'Vaishnava Calendar', icon: CalendarDays, path: '/calendar' },
         { name: 'Courses', icon: GraduationCap, path: '/courses' },
         { name: 'Tours', icon: MapPin, path: '/tours' },
-        { name: 'Users & Roles', icon: Shield, path: '/users' },
-        { name: t('settings'), icon: FiTool, path: '/settings' },
-        { name: 'Maintenance', icon: FiTool, path: '/maintenance' },
+        { name: 'Users & Roles', icon: Shield, path: '/users', requires: 'admin' },
+        { name: t('settings'), icon: FiTool, path: '/settings', requires: 'admin' },
+        { name: 'Maintenance', icon: FiTool, path: '/maintenance', requires: 'admin' },
     ];
+
+    const navItems = allNavItems.filter(item => {
+        if (!item.requires) return true;
+        if (item.requires === 'admin') return isAdmin;
+        if (item.requires === 'counselor') return isAdmin || isCounselor;
+        return true;
+    });
 
     return (
         <aside className={clsx(

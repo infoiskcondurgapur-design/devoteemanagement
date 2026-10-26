@@ -9,10 +9,12 @@ import clsx from 'clsx';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import WhatsAppModal from '../../components/WhatsAppModal';
 import ImageModal from '../../components/ImageModal';
+import { useAuth } from '../../context/AuthContext';
 
 const PAGE_SIZE = 25;
 
 const DevoteeList = () => {
+    const { isAdmin } = useAuth();
     const { 
         devotees, paginatedDevotees: contextPaginatedDevotees, totalCount, filterOptions, fetchPaginatedDevotees, 
         deleteDevotee, updateDevotee, isLiveConnected, fetchDevotees
@@ -238,18 +240,22 @@ const DevoteeList = () => {
                     >
                         <RefreshCw className="w-5 h-5" />
                     </button>
-                    <Link 
-                        to="/devotees/bulk-upload"
-                        className="flex items-center gap-2 bg-card border border-border text-foreground px-4 py-2 rounded-xl hover:bg-muted/70 transition-colors shadow-sm font-medium"
-                        title="Bulk Upload Devotees from Excel or CSV"
-                    >
-                        <Upload className="w-5 h-5 text-orange-400" />
-                        <span>Bulk Upload</span>
-                    </Link>
-                    <Link to="/devotees/new" className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-xl hover:bg-orange-700 transition-colors shadow-lg shadow-orange-900/20">
-                        <Plus className="w-5 h-5" />
-                        <span>Add Devotee</span>
-                    </Link>
+                    {isAdmin && (
+                        <>
+                            <Link 
+                                to="/devotees/bulk-upload"
+                                className="flex items-center gap-2 bg-card border border-border text-foreground px-4 py-2 rounded-xl hover:bg-muted/70 transition-colors shadow-sm font-medium"
+                                title="Bulk Upload Devotees from Excel or CSV"
+                            >
+                                <Upload className="w-5 h-5 text-orange-400" />
+                                <span>Bulk Upload</span>
+                            </Link>
+                            <Link to="/devotees/new" className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-xl hover:bg-orange-700 transition-colors shadow-lg shadow-orange-900/20">
+                                <Plus className="w-5 h-5" />
+                                <span>Add Devotee</span>
+                            </Link>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -399,14 +405,16 @@ const DevoteeList = () => {
                         <table className="w-full text-left relative border-collapse">
                             <thead className="bg-[#1b2e2f] text-muted-foreground text-xs uppercase font-semibold sticky top-0 z-20 border-b border-[#254042]">
                                 <tr>
-                                    <th className="px-6 py-4 w-10 bg-[#1b2e2f]">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={selectedIds.size > 0 && selectedIds.size === paginatedDevotees.length}
-                                            onChange={toggleSelectAll}
-                                            className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-orange-600 focus:ring-orange-500"
-                                        />
-                                    </th>
+                                    {isAdmin && (
+                                        <th className="px-6 py-4 w-10 bg-[#1b2e2f]">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedIds.size > 0 && selectedIds.size === paginatedDevotees.length}
+                                                onChange={toggleSelectAll}
+                                                className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-orange-600 focus:ring-orange-500"
+                                            />
+                                        </th>
+                                    )}
                                     <th className="px-6 py-4 sticky left-0 bg-[#1b2e2f] z-10">Devotee</th>
                                     <th className="px-6 py-4 bg-[#1b2e2f]">Status</th>
                                     <th className="px-6 py-4 bg-[#1b2e2f]">Gender</th>
@@ -417,17 +425,19 @@ const DevoteeList = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#254042]">
-                                {topPadding > 0 && <tr style={{ height: `${topPadding}px` }}><td colSpan={8} /></tr>}
+                                {topPadding > 0 && <tr style={{ height: `${topPadding}px` }}><td colSpan={isAdmin ? 8 : 7} /></tr>}
                                 {visibleItems.map(({ item: devotee }) => (
                                     <tr key={devotee.id} className={clsx("hover:bg-[#263f41] transition-colors border-b border-[#254042]", selectedIds.has(devotee.id) && "bg-amber-500/15")}>
-                                        <td className="px-6 py-4">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={selectedIds.has(devotee.id)}
-                                                onChange={() => toggleSelect(devotee.id)}
-                                                className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-orange-600 focus:ring-orange-500"
-                                            />
-                                        </td>
+                                        {isAdmin && (
+                                            <td className="px-6 py-4">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={selectedIds.has(devotee.id)}
+                                                    onChange={() => toggleSelect(devotee.id)}
+                                                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-orange-600 focus:ring-orange-500"
+                                                />
+                                            </td>
+                                        )}
                                         <td className="px-6 py-4 sticky left-0 bg-card group-hover:bg-[#263f41] z-10 border-b border-[#254042]">
                                             <div className="flex items-center gap-4 min-w-[200px]">
                                                 <div 
@@ -487,7 +497,7 @@ const DevoteeList = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{devotee.counselor || '-'}</td>
                                         <td className="px-6 py-4 text-right sticky right-0 bg-card group-hover:bg-[#263f41] z-10 border-b border-[#254042]">
                                             <div className="flex items-center justify-end gap-2">
-                                                {devotee.status === 'Pending' && (
+                                                {isAdmin && devotee.status === 'Pending' && (
                                                     <button
                                                         onClick={() => approveDevotee(devotee)}
                                                         className="p-2 text-amber-400 hover:text-amber-300 hover:bg-amber-950/40 rounded-lg transition-colors"
@@ -496,30 +506,34 @@ const DevoteeList = () => {
                                                         <UserCheck className="w-4 h-4" />
                                                     </button>
                                                 )}
-                                                <Link to={`/devotees/${devotee.id}`} className="p-2 text-muted-foreground hover:text-orange-400 hover:bg-orange-950/40 rounded-lg transition-colors">
+                                                <Link to={`/devotees/${devotee.id}`} className="p-2 text-muted-foreground hover:text-orange-400 hover:bg-orange-950/40 rounded-lg transition-colors" title="View Profile">
                                                     <Eye className="w-4 h-4" />
                                                 </Link>
-                                                <button
-                                                    onClick={() => { setActiveDevotee(devotee); setShowWhatsApp(true); }}
-                                                    className="p-2 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-950/40 rounded-lg transition-colors"
-                                                    title="Send WhatsApp"
-                                                >
-                                                    <MessageSquare className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={() => navigate(`/devotees/${devotee.id}/edit`)} className="p-2 text-muted-foreground hover:text-blue-400 hover:bg-blue-950/40 rounded-lg transition-colors">
-                                                    <Edit className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={() => setDeleteId(devotee.id)} className="p-2 text-muted-foreground hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors">
-                                                    <Trash className="w-4 h-4" />
-                                                </button>
+                                                {isAdmin && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => { setActiveDevotee(devotee); setShowWhatsApp(true); }}
+                                                            className="p-2 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-950/40 rounded-lg transition-colors"
+                                                            title="Send WhatsApp"
+                                                        >
+                                                            <MessageSquare className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={() => navigate(`/devotees/${devotee.id}/edit`)} className="p-2 text-muted-foreground hover:text-blue-400 hover:bg-blue-950/40 rounded-lg transition-colors" title="Edit Devotee">
+                                                            <Edit className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={() => setDeleteId(devotee.id)} className="p-2 text-muted-foreground hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors" title="Delete Devotee">
+                                                            <Trash className="w-4 h-4" />
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
-                                {bottomPadding > 0 && <tr style={{ height: `${bottomPadding}px` }}><td colSpan={8} /></tr>}
+                                {bottomPadding > 0 && <tr style={{ height: `${bottomPadding}px` }}><td colSpan={isAdmin ? 8 : 7} /></tr>}
                                 {safeDevotees.length === 0 && (
                                     <tr>
-                                        <td colSpan={8} className="px-6 py-16 text-center text-slate-400 dark:text-slate-500 text-sm">
+                                        <td colSpan={isAdmin ? 8 : 7} className="px-6 py-16 text-center text-slate-400 dark:text-slate-500 text-sm">
                                             {hasActiveFilters ? 'No devotees match the current filters.' : 'No devotees found.'}
                                         </td>
                                     </tr>
@@ -567,23 +581,27 @@ const DevoteeList = () => {
                                 <p className="text-xs mt-1">{devotee.gender} • {devotee.counselor}</p>
                             </div>
                             <div className="flex items-center gap-2 mt-auto w-full pt-4 border-t border-border">
-                                {devotee.status === 'Pending' && (
+                                {isAdmin && devotee.status === 'Pending' && (
                                     <button onClick={() => approveDevotee(devotee)} className="flex-1 p-2 text-amber-400 hover:text-amber-300 hover:bg-amber-950/40 rounded-lg transition-colors flex justify-center" title="Approve Registration">
                                         <UserCheck className="w-4 h-4" />
                                     </button>
                                 )}
-                                <Link to={`/devotees/${devotee.id}`} className="flex-1 p-2 text-muted-foreground hover:text-orange-400 hover:bg-orange-950/40 rounded-lg transition-colors flex justify-center">
+                                <Link to={`/devotees/${devotee.id}`} className="flex-1 p-2 text-muted-foreground hover:text-orange-400 hover:bg-orange-950/40 rounded-lg transition-colors flex justify-center" title="View Profile">
                                     <Eye className="w-4 h-4" />
                                 </Link>
-                                <button onClick={() => { setActiveDevotee(devotee); setShowWhatsApp(true); }} className="flex-1 p-2 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-950/40 rounded-lg transition-colors flex justify-center">
-                                    <MessageSquare className="w-4 h-4" />
-                                </button>
-                                <button onClick={() => navigate(`/devotees/${devotee.id}/edit`)} className="flex-1 p-2 text-muted-foreground hover:text-blue-400 hover:bg-blue-950/40 rounded-lg transition-colors flex justify-center">
-                                    <Edit className="w-4 h-4" />
-                                </button>
-                                <button onClick={() => setDeleteId(devotee.id)} className="flex-1 p-2 text-muted-foreground hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors flex justify-center">
-                                    <Trash className="w-4 h-4" />
-                                </button>
+                                {isAdmin && (
+                                    <>
+                                        <button onClick={() => { setActiveDevotee(devotee); setShowWhatsApp(true); }} className="flex-1 p-2 text-muted-foreground hover:text-emerald-400 hover:bg-emerald-950/40 rounded-lg transition-colors flex justify-center" title="Send WhatsApp">
+                                            <MessageSquare className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => navigate(`/devotees/${devotee.id}/edit`)} className="flex-1 p-2 text-muted-foreground hover:text-blue-400 hover:bg-blue-950/40 rounded-lg transition-colors flex justify-center" title="Edit Devotee">
+                                            <Edit className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => setDeleteId(devotee.id)} className="flex-1 p-2 text-muted-foreground hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors flex justify-center" title="Delete Devotee">
+                                            <Trash className="w-4 h-4" />
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -688,7 +706,7 @@ const DevoteeList = () => {
             />
 
             {/* Batch Action Bar */}
-            {selectedIds.size > 0 && (
+            {isAdmin && selectedIds.size > 0 && (
                 <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-8 duration-500">
                     <div className="bg-slate-900 text-white px-8 py-4 rounded-[2rem] shadow-2xl flex items-center gap-8 border border-slate-800">
                         <div className="flex items-center gap-3 pr-8 border-r border-slate-800">

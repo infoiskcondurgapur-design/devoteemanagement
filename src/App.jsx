@@ -74,6 +74,24 @@ const RequireAuth = ({ children }) => {
   return children;
 };
 
+// Admin-only route guard: redirects non-admin users to home
+const RequireAdmin = ({ children }) => {
+  const { isAuthenticated, isAdmin, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAdmin) return <Navigate to="/" replace />;
+  return children;
+};
+
+// Counselor or Admin route guard
+const RequireCounselorOrAdmin = ({ children }) => {
+  const { isAuthenticated, isAdmin, isCounselor, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAdmin && !isCounselor) return <Navigate to="/" replace />;
+  return children;
+};
+
 function App() {
   useEffect(() => {
     dropboxAutoSyncManager.start();
@@ -106,48 +124,48 @@ function App() {
 
                               {/* Devotee Management */}
                               <Route path="devotees" element={<DevoteeList />} />
-                              <Route path="devotees/new" element={<DevoteeForm />} />
-                              <Route path="devotees/bulk-upload" element={<BulkDevoteeUpload />} />
-                              <Route path="devotees/batch-id" element={<BatchIDCardGenerator />} />
+                              <Route path="devotees/new" element={<RequireAdmin><DevoteeForm /></RequireAdmin>} />
+                              <Route path="devotees/bulk-upload" element={<RequireAdmin><BulkDevoteeUpload /></RequireAdmin>} />
+                              <Route path="devotees/batch-id" element={<RequireAdmin><BatchIDCardGenerator /></RequireAdmin>} />
                               <Route path="devotees/:id" element={<DevoteeProfile />} />
-                              <Route path="devotees/:id/edit" element={<DevoteeForm />} />
+                              <Route path="devotees/:id/edit" element={<RequireAdmin><DevoteeForm /></RequireAdmin>} />
                               <Route path="change-request/:id" element={<RequireAuth><ChangeRequestForm /></RequireAuth>} />
                               <Route path="my-requests" element={<RequireAuth><MyRequests /></RequireAuth>} />
-                              <Route path="admin/change-requests" element={<RequireAuth><AdminChangeRequests /></RequireAuth>} />
+                              <Route path="admin/change-requests" element={<RequireAdmin><AdminChangeRequests /></RequireAdmin>} />
 
                               {/* Events & Seva */}
                               <Route path="seva" element={<SevaBoard />} />
-                              <Route path="finance" element={<DonationList />} />
-                              <Route path="finance/new" element={<DonationForm />} />
+                              <Route path="finance" element={<RequireAdmin><DonationList /></RequireAdmin>} />
+                              <Route path="finance/new" element={<RequireAdmin><DonationForm /></RequireAdmin>} />
 
                               <Route path="events" element={<Events />} />
                               <Route path="calendar" element={<VaishnavaCalendar />} />
-                              <Route path="counseling" element={<CounselorDashboard />} />
+                              <Route path="counseling" element={<RequireCounselorOrAdmin><CounselorDashboard /></RequireCounselorOrAdmin>} />
                               <Route path="network" element={<NetworkGraph />} />
                               <Route path="map" element={<DevoteeMap />} />
 
                               {/* Communication & User */}
-                              <Route path="communication" element={<Communication />} />
-                              <Route path="settings" element={<Settings />} />
-                              <Route path="users" element={<UserManagement />} />
+                              <Route path="communication" element={<RequireAdmin><Communication /></RequireAdmin>} />
+                              <Route path="settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
+                              <Route path="users" element={<RequireAdmin><UserManagement /></RequireAdmin>} />
 
                               <Route path="notifications" element={<Notifications />} />
-                              <Route path="reports" element={<Reports />} />
+                              <Route path="reports" element={<RequireAdmin><Reports /></RequireAdmin>} />
                               <Route path="profile" element={<Profile />} />
-                              <Route path="maintenance" element={<AutoRepairHub />} />
-                              <Route path="attendance" element={<Attendance />} />
+                              <Route path="maintenance" element={<RequireAdmin><AutoRepairHub /></RequireAdmin>} />
+                              <Route path="attendance" element={<RequireCounselorOrAdmin><Attendance /></RequireCounselorOrAdmin>} />
 
                               {/* Courses */}
                               <Route path="courses" element={<CourseList />} />
-                              <Route path="courses/new" element={<CourseForm />} />
+                              <Route path="courses/new" element={<RequireAdmin><CourseForm /></RequireAdmin>} />
                               <Route path="courses/:id" element={<CourseDetails />} />
-                              <Route path="courses/:id/edit" element={<CourseForm />} />
+                              <Route path="courses/:id/edit" element={<RequireAdmin><CourseForm /></RequireAdmin>} />
 
                               {/* Tours */}
                               <Route path="tours" element={<TourList />} />
-                              <Route path="tours/new" element={<TourForm />} />
+                              <Route path="tours/new" element={<RequireAdmin><TourForm /></RequireAdmin>} />
                               <Route path="tours/:id" element={<TourDetails />} />
-                              <Route path="tours/:id/edit" element={<TourForm />} />
+                              <Route path="tours/:id/edit" element={<RequireAdmin><TourForm /></RequireAdmin>} />
                             </Route>
 
                             <Route path="*" element={<Navigate to="/" replace />} />

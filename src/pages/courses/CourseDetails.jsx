@@ -606,7 +606,10 @@ const CourseDetails = () => {
                                                             updateEnrollmentStatus(en.id, e.target.value);
                                                         }
                                                     }}
-                                                    className={`text-xs font-black uppercase tracking-widest px-2 py-1 rounded-lg outline-none border border-transparent focus:border-slate-200 dark:border-slate-700 transition-all cursor-pointer ${
+                                                    disabled={!isAdmin}
+                                                    className={`text-xs font-black uppercase tracking-widest px-2 py-1 rounded-lg outline-none border border-transparent focus:border-slate-200 dark:border-slate-700 transition-all ${
+                                                        !isAdmin ? 'cursor-default opacity-85' : 'cursor-pointer'
+                                                    } ${
                                                         en.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' :
                                                         en.status === 'Dropped' ? 'bg-amber-50 text-amber-600' :
                                                         en.status === 'Cancelled' ? 'bg-rose-50 text-rose-600' :
@@ -621,8 +624,10 @@ const CourseDetails = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div 
-                                                    className="flex items-center justify-between gap-4 group/pay cursor-pointer bg-slate-50 dark:bg-slate-900/50/50 p-2 rounded-xl border border-transparent hover:border-slate-200 dark:border-slate-700 transition-all"
-                                                    onClick={() => { setSelectedEnrollment(en); setShowPaymentModal(true); }}
+                                                    className={`flex items-center justify-between gap-4 group/pay bg-slate-50 dark:bg-slate-900/50/50 p-2 rounded-xl border border-transparent transition-all ${
+                                                        isAdmin ? 'cursor-pointer hover:border-slate-200 dark:border-slate-700' : 'cursor-default'
+                                                    }`}
+                                                    onClick={() => { if (isAdmin) { setSelectedEnrollment(en); setShowPaymentModal(true); } }}
                                                 >
                                                     <div>
                                                         <p className="text-xs font-black text-slate-900">₹{en.totalPaid} / ₹{course.fees}</p>
@@ -634,9 +639,11 @@ const CourseDetails = () => {
                                                             {en.paymentStatus}
                                                         </span>
                                                     </div>
-                                                    <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover/pay:text-emerald-500 transition-colors shadow-sm">
-                                                        <Plus size={16} />
-                                                    </div>
+                                                    {isAdmin && (
+                                                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-900 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover/pay:text-emerald-500 transition-colors shadow-sm">
+                                                            <Plus size={16} />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -646,8 +653,11 @@ const CourseDetails = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <button 
-                                                    onClick={() => toggleCertificate(en)}
+                                                    disabled={!isAdmin}
+                                                    onClick={() => isAdmin && toggleCertificate(en)}
                                                     className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                        !isAdmin ? 'cursor-default' : 'cursor-pointer'
+                                                    } ${
                                                         en.certificateIssued 
                                                             ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
                                                             : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-200'
