@@ -58,19 +58,21 @@ const CourseDetails = () => {
     const fetchCourseData = useCallback(async () => {
         try {
             const response = await apiService.get(`/api/courses/${id}`);
-            if (response.success) {
+            if (response && response.success && response.data) {
                 setCourse(response.data);
-                setEnrollments(response.data.enrollments || []);
+                setEnrollments(Array.isArray(response.data.enrollments) ? response.data.enrollments : []);
             } else {
                 toast.error('Failed to fetch course details');
-                navigate('/courses');
+                setCourse(null);
             }
-        } catch {
+        } catch (err) {
+            console.error('Failed to fetch course data:', err);
             toast.error('Server error');
+            setCourse(null);
         } finally {
             setLoading(false);
         }
-    }, [id, navigate, toast]);
+    }, [id, toast]);
 
     useEffect(() => {
         fetchCourseData();
@@ -380,26 +382,46 @@ const CourseDetails = () => {
         }
     };
 
-    const filteredEnrollments = enrollments.filter(e => {
+    const safeEnrollments = Array.isArray(enrollments) ? enrollments : [];
+
+    const filteredEnrollments = safeEnrollments.filter(e => {
+        if (!e) return false;
         const search = searchTerm.toLowerCase().trim();
         if (!search) return true;
         const tokens = search.split(/\s+/).filter(Boolean);
-        const name = (e.devoteeName || '').toLowerCase();
-        const initName = (e.initiatedName || '').toLowerCase();
+        const name = String(e.devoteeName || '').toLowerCase();
+        const initName = String(e.initiatedName || '').toLowerCase();
         const contact = String(e.whatsapp || e.contact || '');
         return tokens.every(tok => name.includes(tok) || initName.includes(tok) || contact.includes(tok));
     });
 
-    const activeEnrollments = filteredEnrollments.filter(e => e.status !== 'Cancelled' && e.status !== 'Dropped');
-    const cancelledEnrollments = filteredEnrollments.filter(e => e.status === 'Cancelled' || e.status === 'Dropped');
+    const activeEnrollments = filteredEnrollments.filter(e => e && e.status !== 'Cancelled' && e.status !== 'Dropped');
+    const cancelledEnrollments = filteredEnrollments.filter(e => e && (e.status === 'Cancelled' || e.status === 'Dropped'));
 
     const availableDevotees = useMemo(() => {
-        const unenrolled = devotees.filter(d => !enrollments.some(e => e.devoteeId === d.id));
+        const safeDevotees = Array.isArray(devotees) ? devotees : [];
+        const unenrolled = safeDevotees.filter(d => d && !safeEnrollments.some(e => e && String(e.devoteeId) === String(d.id)));
         if (!enrollSearch.trim()) return unenrolled.slice(0, 10);
         return searchDevoteesByName(unenrolled, enrollSearch, { limit: 10 });
-    }, [devotees, enrollments, enrollSearch]);
+    }, [devotees, safeEnrollments, enrollSearch]);
 
     if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-corporate-600"></div></div>;
+
+    if (!course) {
+        return (
+            <div className="p-8 max-w-7xl mx-auto text-center py-20">
+                <GraduationCap className="mx-auto h-16 w-16 text-slate-300 dark:text-slate-600 mb-4" />
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Course Not Found</h2>
+                <p className="text-slate-500 dark:text-slate-400 mt-2">The requested course could not be loaded or may have been deleted.</p>
+                <button
+                    onClick={() => navigate('/courses')}
+                    className="mt-6 inline-flex items-center gap-2 bg-corporate-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md hover:bg-corporate-700 transition-all"
+                >
+                    <ArrowLeft size={16} /> Back to Courses
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -564,7 +586,7 @@ const CourseDetails = () => {
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border-2 border-white shadow-sm">
-                                                        {en.photo ? <img src={en.photo} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500 font-bold">{en.devoteeName.charAt(0)}</div>}
+                                                        {en.photo ? <img src={en.photo} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500 font-bold">{(en.initiatedName || en.devoteeName || '?').charAt(0).toUpperCase()}</div>}
                                                     </div>
                                                     <div>
                                                         <p className="font-bold text-slate-900 text-sm leading-tight">{en.initiatedName || en.devoteeName}</p>
@@ -719,7 +741,7 @@ const CourseDetails = () => {
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border-2 border-white shadow-sm opacity-50">
-                                                            {en.photo ? <img src={en.photo} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500 font-bold">{en.devoteeName.charAt(0)}</div>}
+                                                            {en.photo ? <img src={en.photo} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500 font-bold">{(en.initiatedName || en.devoteeName || '?').charAt(0).toUpperCase()}</div>}
                                                         </div>
                                                         <div>
                                                             <p className="font-bold text-slate-400 dark:text-slate-500 text-sm leading-tight line-through">{en.initiatedName || en.devoteeName}</p>
@@ -827,7 +849,7 @@ const CourseDetails = () => {
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-400 dark:text-slate-500">
-                                                {d.name.charAt(0)}
+                                                {(d.initiatedName || d.name || '?').charAt(0).toUpperCase()}
                                             </div>
                                             <div>
                                                 <p className="font-bold text-slate-900 group-hover:text-corporate-700">{d.initiatedName || d.name}</p>

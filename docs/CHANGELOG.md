@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## [2026-10-26]
+
+### Courses Module Crash Prevention & Enhanced Error Diagnosis (কোর্স মডিউল ক্র্যাশ ফিক্স ও এরর বাউন্ডারি উন্নয়ন)
+- **Defensive Error Handling in Courses (`src/pages/courses/`)**:
+  - **`CourseDetails.jsx`**: Replaced unsafe `charAt(0)` calls on potentially null devotee names (`en.devoteeName`, `d.name`) with safe fallbacks `(en.initiatedName || en.devoteeName || '?').charAt(0).toUpperCase()`. Added empty-state fallback guard when course data is missing/failed to load, preventing `Cannot read properties of null (reading 'status')`. Added defensive checks for `enrollments` and `devotees` lists.
+  - **`CourseList.jsx`**: Handled non-array API responses (`Array.isArray(response.data)`), guarded search filter string operations against null names/instructors, safely calculated status stats, and provided safe null-coalescing on course cards.
+  - **`CourseForm.jsx`**: Ensured all form state fields safely initialize and populate with defensive fallbacks (`response.data.name || ''`, etc.).
+- **Diagnostic Error Boundary (`src/components/ErrorBoundary.jsx`)**:
+  - Detected Vite dynamic chunk loading errors (`Failed to fetch dynamically imported module`, `ChunkLoadError`) and rendered a friendly "App Update Available" reload banner.
+  - Added an expandable `<details>` section rendering technical error details and component stack traces in both production and development environments for rapid error diagnosis.
+
 ## [2026-10-21]
 
 ### Maintenance Page Cleanup

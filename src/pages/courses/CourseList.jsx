@@ -20,11 +20,19 @@ const CourseList = () => {
         try {
             setLoading(true);
             const response = await apiService.get('/api/courses');
-            if (response.success) {
+            if (response && response.success && Array.isArray(response.data)) {
                 setCourses(response.data);
+            } else if (Array.isArray(response)) {
+                setCourses(response);
+            } else if (response && Array.isArray(response.courses)) {
+                setCourses(response.courses);
+            } else {
+                setCourses([]);
             }
-        } catch {
+        } catch (err) {
+            console.error('Failed to fetch courses:', err);
             toast.error('Failed to fetch courses');
+            setCourses([]);
         } finally {
             setLoading(false);
         }
@@ -34,22 +42,28 @@ const CourseList = () => {
         fetchCourses();
     }, []);
 
-    const filteredCourses = courses.filter(course => {
-        const matchesSearch = course.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             (course.instructor && course.instructor.toLowerCase().includes(searchTerm.toLowerCase()));
+    const safeCourses = Array.isArray(courses) ? courses : [];
+
+    const filteredCourses = safeCourses.filter(course => {
+        if (!course) return false;
+        const name = String(course.name || '').toLowerCase();
+        const instructor = String(course.instructor || '').toLowerCase();
+        const search = searchTerm.toLowerCase().trim();
+        const matchesSearch = !search || name.includes(search) || instructor.includes(search);
         
+        const status = course.status || 'Upcoming';
         if (activeTab === 'upcoming') {
-            return matchesSearch && course.status !== 'Completed';
+            return matchesSearch && status !== 'Completed';
         } else {
-            return matchesSearch && course.status === 'Completed';
+            return matchesSearch && status === 'Completed';
         }
     });
 
     const stats = {
-        total: courses.length,
-        upcoming: courses.filter(c => c.status === 'Upcoming').length,
-        ongoing: courses.filter(c => c.status === 'Ongoing').length,
-        completed: courses.filter(c => c.status === 'Completed').length
+        total: safeCourses.length,
+        upcoming: safeCourses.filter(c => c && c.status === 'Upcoming').length,
+        ongoing: safeCourses.filter(c => c && c.status === 'Ongoing').length,
+        completed: safeCourses.filter(c => c && c.status === 'Completed').length
     };
 
     return (
@@ -128,37 +142,37 @@ const CourseList = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredCourses.map((course) => (
                         <div 
-                            key={course.id} 
-                            onClick={() => navigate(`/courses/${course.id}`)}
+                            key={course?.id || Math.random()} 
+                            onClick={() => course?.id && navigate(`/courses/${course.id}`)}
                             className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-xl hover:border-corporate-200 transition-all cursor-pointer overflow-hidden flex flex-col"
                         >
                             <div className="p-6 flex-1">
                                 <div className="flex justify-between items-start mb-4">
                                     <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${
-                                        course.status === 'Upcoming' ? 'bg-amber-50 text-amber-600' :
-                                        course.status === 'Ongoing' ? 'bg-emerald-50 text-emerald-600' :
+                                        course?.status === 'Upcoming' ? 'bg-amber-50 text-amber-600' :
+                                        course?.status === 'Ongoing' ? 'bg-emerald-50 text-emerald-600' :
                                         'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                                     }`}>
-                                        {course.status}
+                                        {course?.status || 'Upcoming'}
                                     </span>
                                     <CreditCard size={18} className="text-slate-300 group-hover:text-corporate-500 transition-colors" />
                                 </div>
                                 
-                                <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-corporate-700 transition-colors">{course.name}</h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed">{course.description || 'No description provided.'}</p>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2 group-hover:text-corporate-700 transition-colors">{course?.name || 'Untitled Course'}</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed">{course?.description || 'No description provided.'}</p>
                                 
                                 <div className="space-y-2.5">
                                     <div className="flex items-center gap-2.5 text-sm text-slate-600 dark:text-slate-300 font-medium">
                                         <Calendar size={16} className="text-slate-400 dark:text-slate-500" />
-                                        <span>{formatDateRange(course.startDate, course.endDate)}</span>
+                                        <span>{formatDateRange(course?.startDate, course?.endDate)}</span>
                                     </div>
                                     <div className="flex items-center gap-2.5 text-sm text-slate-600 dark:text-slate-300 font-medium">
                                         <Users size={16} className="text-slate-400 dark:text-slate-500" />
-                                        <span>Instructor: {course.instructor || 'Not assigned'}</span>
+                                        <span>Instructor: {course?.instructor || 'Not assigned'}</span>
                                     </div>
                                     <div className="flex items-center gap-2.5 text-sm font-bold text-corporate-600">
                                         <CreditCard size={16} />
-                                        <span>Fees: ₹{course.fees || 0}</span>
+                                        <span>Fees: ₹{course?.fees || 0}</span>
                                     </div>
                                 </div>
                             </div>

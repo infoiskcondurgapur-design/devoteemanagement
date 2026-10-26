@@ -26,6 +26,11 @@ class ErrorBoundary extends React.Component {
 
     render() {
         if (this.state.hasError) {
+            const errorMsg = this.state.error?.message || String(this.state.error || '');
+            const isChunkError = errorMsg.includes('dynamically imported module') ||
+                                 errorMsg.includes('Loading chunk') ||
+                                 this.state.error?.name === 'ChunkLoadError';
+
             return (
                 <div className="error-boundary-container" style={{
                     padding: '40px',
@@ -37,39 +42,55 @@ class ErrorBoundary extends React.Component {
                     margin: '20px',
                     color: '#fff'
                 }}>
-                    <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚠️</div>
-                    <h2 style={{ marginBottom: '10px' }}>Something went wrong</h2>
-                    <p style={{ opacity: 0.7, marginBottom: '20px' }}>
-                        The component failed to render. Don't worry, the rest of the application is still running.
+                    <div style={{ fontSize: '48px', marginBottom: '20px' }}>{isChunkError ? '🔄' : '⚠️'}</div>
+                    <h2 style={{ marginBottom: '10px' }}>
+                        {isChunkError ? 'App Update Available' : 'Something went wrong'}
+                    </h2>
+                    <p style={{ opacity: 0.8, marginBottom: '20px', maxWidth: '500px', margin: '0 auto 20px' }}>
+                        {isChunkError
+                            ? 'A new version of the application has been deployed. Please reload the page to load the latest components.'
+                            : "The component failed to render. Don't worry, the rest of the application is still running."
+                        }
                     </p>
-                    <button 
-                        onClick={() => window.location.reload()}
-                        className="vibrant-button"
-                        style={{
-                            padding: '10px 24px',
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            border: 'none',
-                            borderRadius: '8px',
-                            color: 'white',
-                            cursor: 'pointer',
-                            fontWeight: '600'
-                        }}
-                    >
-                        Reload Application
-                    </button>
-                    {import.meta.env.DEV && (
-                        <pre style={{
-                            marginTop: '20px',
-                            padding: '16px',
-                            background: 'rgba(0,0,0,0.3)',
-                            borderRadius: '8px',
-                            textAlign: 'left',
-                            fontSize: '12px',
-                            overflow: 'auto',
-                            maxHeight: '200px'
-                        }}>
-                            {this.state.error?.stack}
-                        </pre>
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                        <button 
+                            onClick={() => window.location.reload()}
+                            className="vibrant-button"
+                            style={{
+                                padding: '10px 24px',
+                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontWeight: '600'
+                            }}
+                        >
+                            {isChunkError ? 'Update & Reload' : 'Reload Application'}
+                        </button>
+                    </div>
+
+                    {this.state.error && (
+                        <details style={{ marginTop: '24px', textAlign: 'left', maxWidth: '650px', margin: '24px auto 0' }}>
+                            <summary style={{ cursor: 'pointer', opacity: 0.7, fontSize: '12px', marginBottom: '8px', textAlign: 'center' }}>
+                                View Technical Error Details
+                            </summary>
+                            <pre style={{
+                                padding: '16px',
+                                background: 'rgba(0,0,0,0.6)',
+                                borderRadius: '8px',
+                                fontSize: '11px',
+                                overflow: 'auto',
+                                maxHeight: '200px',
+                                color: '#fca5a5',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word'
+                            }}>
+                                <strong>{errorMsg}</strong>
+                                {'\n\n'}
+                                {this.state.error?.stack}
+                            </pre>
+                        </details>
                     )}
                 </div>
             );

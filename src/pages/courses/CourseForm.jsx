@@ -27,10 +27,18 @@ const CourseForm = () => {
             const fetchCourse = async () => {
                 try {
                     const response = await apiService.get(`/api/courses/${id}`);
-                    if (response.success) {
-                        setForm(response.data);
+                    if (response && response.success && response.data) {
+                        setForm({
+                            name: response.data.name || '',
+                            description: response.data.description || '',
+                            startDate: response.data.startDate || '',
+                            endDate: response.data.endDate || '',
+                            status: response.data.status || 'Upcoming',
+                            fees: response.data.fees ?? 0,
+                            instructor: response.data.instructor || ''
+                        });
                     } else {
-                        toast.error(response.error || 'Failed to fetch course');
+                        toast.error(response?.error || 'Failed to fetch course');
                         navigate('/courses');
                     }
                 } catch {
