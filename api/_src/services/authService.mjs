@@ -125,12 +125,14 @@ export const toPublicUser = (row) => {
     // The global casing map restores `users.username` as `userName` (collision
     // with audit_logs."userName"); read both spellings defensively.
     const username = row.username || row.userName;
+    const devoteeId = row.devoteeId || row._devoteeId || null;
     return {
         id: String(row.id),
         username,
         email: row.email || null,
         role: row.role || 'viewer',
-        fullName: row.fullname || row.fullName || username
+        fullName: row.fullname || row.fullName || username,
+        ...(devoteeId ? { devoteeId } : {})
     };
 };
 

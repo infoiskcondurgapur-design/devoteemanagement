@@ -85,10 +85,13 @@ const RequireAdmin = ({ children }) => {
 
 // Counselor or Admin route guard
 const RequireCounselorOrAdmin = ({ children }) => {
-  const { isAuthenticated, isAdmin, isCounselor, loading } = useAuth();
+  const { isAuthenticated, isAdmin, isCounselor, currentUser, loading } = useAuth();
   if (loading) return <PageLoader />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (!isAdmin && !isCounselor) return <Navigate to="/" replace />;
+  if (!isAdmin && !isCounselor) {
+    const target = currentUser?.devoteeId ? `/devotees/${currentUser.devoteeId}` : '/profile';
+    return <Navigate to={target} replace />;
+  }
   return children;
 };
 
@@ -123,26 +126,26 @@ function App() {
                               <Route index element={<Dashboard />} />
 
                               {/* Devotee Management */}
-                              <Route path="devotees" element={<DevoteeList />} />
+                              <Route path="devotees" element={<RequireCounselorOrAdmin><DevoteeList /></RequireCounselorOrAdmin>} />
                               <Route path="devotees/new" element={<RequireAdmin><DevoteeForm /></RequireAdmin>} />
                               <Route path="devotees/bulk-upload" element={<RequireAdmin><BulkDevoteeUpload /></RequireAdmin>} />
                               <Route path="devotees/batch-id" element={<RequireAdmin><BatchIDCardGenerator /></RequireAdmin>} />
                               <Route path="devotees/:id" element={<DevoteeProfile />} />
                               <Route path="devotees/:id/edit" element={<RequireAdmin><DevoteeForm /></RequireAdmin>} />
-                              <Route path="change-request/:id" element={<RequireAuth><ChangeRequestForm /></RequireAuth>} />
-                              <Route path="my-requests" element={<RequireAuth><MyRequests /></RequireAuth>} />
+                              <Route path="change-request/:id" element={<RequireCounselorOrAdmin><ChangeRequestForm /></RequireCounselorOrAdmin>} />
+                              <Route path="my-requests" element={<RequireCounselorOrAdmin><MyRequests /></RequireCounselorOrAdmin>} />
                               <Route path="admin/change-requests" element={<RequireAdmin><AdminChangeRequests /></RequireAdmin>} />
 
                               {/* Events & Seva */}
-                              <Route path="seva" element={<SevaBoard />} />
+                              <Route path="seva" element={<RequireCounselorOrAdmin><SevaBoard /></RequireCounselorOrAdmin>} />
                               <Route path="finance" element={<RequireAdmin><DonationList /></RequireAdmin>} />
                               <Route path="finance/new" element={<RequireAdmin><DonationForm /></RequireAdmin>} />
 
-                              <Route path="events" element={<Events />} />
-                              <Route path="calendar" element={<VaishnavaCalendar />} />
+                              <Route path="events" element={<RequireCounselorOrAdmin><Events /></RequireCounselorOrAdmin>} />
+                              <Route path="calendar" element={<RequireCounselorOrAdmin><VaishnavaCalendar /></RequireCounselorOrAdmin>} />
                               <Route path="counseling" element={<RequireCounselorOrAdmin><CounselorDashboard /></RequireCounselorOrAdmin>} />
-                              <Route path="network" element={<NetworkGraph />} />
-                              <Route path="map" element={<DevoteeMap />} />
+                              <Route path="network" element={<RequireCounselorOrAdmin><NetworkGraph /></RequireCounselorOrAdmin>} />
+                              <Route path="map" element={<RequireCounselorOrAdmin><DevoteeMap /></RequireCounselorOrAdmin>} />
 
                               {/* Communication & User */}
                               <Route path="communication" element={<RequireAdmin><Communication /></RequireAdmin>} />
@@ -156,15 +159,15 @@ function App() {
                               <Route path="attendance" element={<RequireCounselorOrAdmin><Attendance /></RequireCounselorOrAdmin>} />
 
                               {/* Courses */}
-                              <Route path="courses" element={<CourseList />} />
+                              <Route path="courses" element={<RequireCounselorOrAdmin><CourseList /></RequireCounselorOrAdmin>} />
                               <Route path="courses/new" element={<RequireAdmin><CourseForm /></RequireAdmin>} />
-                              <Route path="courses/:id" element={<CourseDetails />} />
+                              <Route path="courses/:id" element={<RequireCounselorOrAdmin><CourseDetails /></RequireCounselorOrAdmin>} />
                               <Route path="courses/:id/edit" element={<RequireAdmin><CourseForm /></RequireAdmin>} />
 
                               {/* Tours */}
-                              <Route path="tours" element={<TourList />} />
+                              <Route path="tours" element={<RequireCounselorOrAdmin><TourList /></RequireCounselorOrAdmin>} />
                               <Route path="tours/new" element={<RequireAdmin><TourForm /></RequireAdmin>} />
-                              <Route path="tours/:id" element={<TourDetails />} />
+                              <Route path="tours/:id" element={<RequireCounselorOrAdmin><TourDetails /></RequireCounselorOrAdmin>} />
                               <Route path="tours/:id/edit" element={<RequireAdmin><TourForm /></RequireAdmin>} />
                             </Route>
 

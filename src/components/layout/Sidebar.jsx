@@ -1,32 +1,40 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { FiTool } from 'react-icons/fi';
-import { LayoutDashboard, Users, Calendar, CalendarDays, Share2, MapPin, BarChart3, CalendarCheck, Shield, Briefcase, IndianRupee, GraduationCap, MessageSquare, Download, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, CalendarDays, Share2, MapPin, BarChart3, CalendarCheck, Shield, Briefcase, IndianRupee, GraduationCap, MessageSquare, Download, ChevronLeft, User } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../../context/AuthContext';
+import { useDevotees } from '../../context/DevoteeContext';
 import { useTranslation } from '../../context/LanguageContext';
 import { usePWA } from '../../hooks/usePWA';
 
 const Sidebar = ({ isOpen, toggle }) => {
     const { currentUser, isAdmin, isCounselor } = useAuth();
+    const { devotees } = useDevotees();
     const { t } = useTranslation();
     const { isInstallable, installApp } = usePWA();
 
+    const myDevoteeId = currentUser?.devoteeId || (Array.isArray(devotees) ? devotees.find(d => d.contact === currentUser?.username)?.id : null);
+    const myProfilePath = myDevoteeId ? `/devotees/${myDevoteeId}` : '/profile';
+
     const allNavItems = [
-        { name: t('dashboard'), icon: LayoutDashboard, path: '/' },
-        { name: t('devotees'), icon: Users, path: '/devotees' },
+        { name: t('dashboard'), icon: LayoutDashboard, path: '/', requires: 'counselor' },
+        // For admin and counselors, show full congregation Devotee directory
+        { name: t('devotees'), icon: Users, path: '/devotees', requires: 'counselor' },
+        // For regular devotees, show their own profile directly
+        { name: 'My Profile', icon: User, path: myProfilePath, requires: 'viewer_only' },
         { name: 'Counseling', icon: Users, path: '/counseling', requires: 'counselor' },
         { name: 'Attendance', icon: CalendarCheck, path: '/attendance', requires: 'counselor' },
-        { name: t('seva'), icon: Briefcase, path: '/seva' },
+        { name: t('seva'), icon: Briefcase, path: '/seva', requires: 'counselor' },
         { name: t('finance'), icon: IndianRupee, path: '/finance', requires: 'admin' },
-        { name: 'Network', icon: Share2, path: '/network' },
-        { name: 'Live Map', icon: MapPin, path: '/map' },
+        { name: 'Network', icon: Share2, path: '/network', requires: 'counselor' },
+        { name: 'Live Map', icon: MapPin, path: '/map', requires: 'counselor' },
         { name: 'Reports', icon: BarChart3, path: '/reports', requires: 'admin' },
         { name: 'Communication', icon: MessageSquare, path: '/communication', requires: 'admin' },
-        { name: 'Events', icon: Calendar, path: '/events' },
-        { name: 'Vaishnava Calendar', icon: CalendarDays, path: '/calendar' },
-        { name: 'Courses', icon: GraduationCap, path: '/courses' },
-        { name: 'Tours', icon: MapPin, path: '/tours' },
+        { name: 'Events', icon: Calendar, path: '/events', requires: 'counselor' },
+        { name: 'Vaishnava Calendar', icon: CalendarDays, path: '/calendar', requires: 'counselor' },
+        { name: 'Courses', icon: GraduationCap, path: '/courses', requires: 'counselor' },
+        { name: 'Tours', icon: MapPin, path: '/tours', requires: 'counselor' },
         { name: 'Users & Roles', icon: Shield, path: '/users', requires: 'admin' },
         { name: t('settings'), icon: FiTool, path: '/settings', requires: 'admin' },
         { name: 'Maintenance', icon: FiTool, path: '/maintenance', requires: 'admin' },
@@ -36,6 +44,7 @@ const Sidebar = ({ isOpen, toggle }) => {
         if (!item.requires) return true;
         if (item.requires === 'admin') return isAdmin;
         if (item.requires === 'counselor') return isAdmin || isCounselor;
+        if (item.requires === 'viewer_only') return !isAdmin && !isCounselor;
         return true;
     });
 

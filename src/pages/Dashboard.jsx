@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { formatDate } from '../lib/dateUtils';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { Users, Calendar, Plus, Crown, Shield, User, Heart, Cake, Download, TrendingUp, Sparkles, Activity, RefreshCw, ChevronRight, MapPin, Maximize2, Glasses, MessageSquare } from 'lucide-react';
 import clsx from 'clsx';
 import { useDevotees } from '../context/DevoteeContext';
@@ -33,10 +33,14 @@ const StatCard = ({ title, value, label, icon: Icon, _delay }) => {
 
 const Dashboard = () => {
     const navigate = useNavigate();
-    const { isAdmin } = useAuth();
-    const { getDashboardStats, fetchStats, lastUpdated, events, fetchEvents: fetchDashboardEvents } = useDevotees();
+    const { isAdmin, isCounselor, currentUser } = useAuth();
+    const { getDashboardStats, fetchStats, lastUpdated, events, fetchEvents: fetchDashboardEvents, devotees } = useDevotees();
     const { eyeProtectMode, toggleEyeProtect } = useTheme();
     const toast = useToast();
+
+    const isViewer = !isAdmin && !isCounselor;
+    const myDevoteeId = currentUser?.devoteeId || (Array.isArray(devotees) ? devotees.find(d => d.contact === currentUser?.username)?.id : null);
+
     const statsData = getDashboardStats();
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeDevotee, setActiveDevotee] = useState(null);
@@ -75,6 +79,10 @@ const Dashboard = () => {
         { title: 'Sheltered', value: statsData.shelteredCount, label: 'Official members', icon: Shield, delay: 200 },
         { title: 'Aspiring', value: statsData.aspiringCount, label: 'New spiritual seekers', icon: User, delay: 300 },
     ];
+
+    if (isViewer) {
+        return <Navigate to={myDevoteeId ? `/devotees/${myDevoteeId}` : '/profile'} replace />;
+    }
 
     return (
         <div className="space-y-8 pb-16">

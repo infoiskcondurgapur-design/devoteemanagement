@@ -58,9 +58,20 @@ const DevoteeProfile = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { devotees, deleteDevotee, getDevoteeById, updateDevotee } = useDevotees();
-    const { isAdmin, canRequestChanges } = useAuth();
+    const { isAdmin, isCounselor, currentUser } = useAuth();
     const toast = useToast();
     const idCardRef = useRef(null);
+
+    const isViewer = !isAdmin && !isCounselor;
+    const myDevoteeId = currentUser?.devoteeId || (Array.isArray(devotees) ? devotees.find(d => d.contact === currentUser?.username)?.id : null);
+
+    // Security: Regular devotee can strictly view ONLY their own profile.
+    useEffect(() => {
+        if (isViewer && myDevoteeId && String(id) !== String(myDevoteeId)) {
+            toast.error('You can only view your own profile.');
+            navigate(`/devotees/${myDevoteeId}`, { replace: true });
+        }
+    }, [isViewer, myDevoteeId, id, navigate, toast]);
 
     const [activeSection, setActiveSection] = useState('overview');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -96,6 +107,11 @@ const DevoteeProfile = () => {
         return () => { cancelled = true; };
     }, [id, getDevoteeById]);
 
+    // If viewer is attempting to view someone else's ID, don't display another devotee's data
+    if (isViewer && myDevoteeId && String(id) !== String(myDevoteeId)) {
+        return null;
+    }
+
     if (!devotee) {
         if (loading) {
             return (
@@ -109,7 +125,9 @@ const DevoteeProfile = () => {
             <div className="flex flex-col items-center justify-center min-h-[60vh]">
                 <div className="text-slate-400 dark:text-slate-500 mb-4"><User size={48} /></div>
                 <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">Devotee Not Found</h3>
-                <button onClick={() => navigate('/devotees')} className="mt-4 text-blue-600 dark:text-blue-400 hover:underline">Go Back to Devotees</button>
+                <button onClick={() => navigate(isViewer ? '/profile' : '/devotees')} className="mt-4 text-blue-600 dark:text-blue-400 hover:underline">
+                    {isViewer ? 'Go to My Profile' : 'Go Back to Devotees'}
+                </button>
             </div>
         );
     }
@@ -194,9 +212,15 @@ const DevoteeProfile = () => {
                     <div className="flex-1 flex flex-col md:flex-row justify-between w-full gap-4">
                         <div>
                             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-2">
-                                <span onClick={() => navigate('/devotees')} className="cursor-pointer hover:text-blue-600 transition-colors">Devotees</span>
-                                <ChevronLeft size={10} className="rotate-180" />
-                                <span className="font-semibold text-slate-800 dark:text-slate-100">{devotee.name}</span>
+                                {isViewer ? (
+                                    <span className="font-semibold text-slate-800 dark:text-slate-100">My Profile</span>
+                                ) : (
+                                    <>
+                                        <span onClick={() => navigate('/devotees')} className="cursor-pointer hover:text-blue-600 transition-colors">Devotees</span>
+                                        <ChevronLeft size={10} className="rotate-180" />
+                                        <span className="font-semibold text-slate-800 dark:text-slate-100">{devotee.name}</span>
+                                    </>
+                                )}
                             </div>
                             <h1 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                                 {devotee.name}
@@ -235,7 +259,7 @@ const DevoteeProfile = () => {
                                 <MessageSquare size={16} />
                                 <span className="hidden sm:inline">WhatsApp</span>
                             </button>
-                            {isAdmin ? (
+                            {isAdmin && (
                                 <>
                                     {devotee.status === 'Pending' && (
                                         <button
@@ -265,13 +289,6 @@ const DevoteeProfile = () => {
                                         <Trash size={16} /> Delete
                                     </button>
                                 </>
-                            ) : canRequestChanges && (
-                                <button
-                                    onClick={() => navigate(`/change-request/${id}`)}
-                                    className="px-4 py-2 text-sm font-medium text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/40 border border-orange-300 dark:border-orange-800 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/40 flex items-center gap-2"
-                                >
-                                    <FileEdit size={16} /> Request Changes
-                                </button>
                             )}
                         </div>
                     </div>

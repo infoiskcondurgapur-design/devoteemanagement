@@ -6,7 +6,7 @@ import { User, Mail, Shield, Camera, Save, Maximize2, KeyRound, Eye, EyeOff, Loc
 import ImageModal from '../components/ImageModal';
 
 const Profile = () => {
-    const { currentUser } = useAuth();
+    const { currentUser, isAdmin } = useAuth();
     const toast = useToast();
     const [isEditing, setIsEditing] = useState(false);
     const [showImageModal, setShowImageModal] = useState(false);
@@ -121,16 +121,18 @@ const Profile = () => {
                                 )}
                                 <p className="text-slate-500 dark:text-slate-400">{currentUser?.email || currentUser?.username}</p>
                             </div>
-                            <button
-                                onClick={isEditing ? handleSave : () => setIsEditing(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium transition-colors"
-                            >
-                                {isEditing ? (
-                                    <><Save className="w-4 h-4" /> Save</>
-                                ) : (
-                                    'Edit Profile'
-                                )}
-                            </button>
+                            {isAdmin && (
+                                <button
+                                    onClick={isEditing ? handleSave : () => setIsEditing(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium transition-colors"
+                                >
+                                    {isEditing ? (
+                                        <><Save className="w-4 h-4" /> Save</>
+                                    ) : (
+                                        'Edit Profile'
+                                    )}
+                                </button>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

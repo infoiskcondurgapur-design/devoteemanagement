@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, ChevronDown, Calendar, MessageSquare, Smile, Meh, Frown, Clock, RefreshCw } from 'lucide-react';
 import { useToast } from './Toast';
+import { useAuth } from '../context/AuthContext';
 import apiService from '../services/api';
 import clsx from 'clsx';
 
@@ -93,6 +94,8 @@ const LogSessionForm = ({ devoteeId, devotee, onSaved, onCancel }) => {
 // ─── Main Component ──────────────────────────────────────────────────────────
 const CounselingSessionLog = ({ devoteeId, devotee }) => {
     const toast = useToast();
+    const { isAdmin, isCounselor } = useAuth();
+    const canManage = isAdmin || isCounselor;
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -134,10 +137,12 @@ const CounselingSessionLog = ({ devoteeId, devotee }) => {
                         <span className="ml-1 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">{sessions.length}</span>
                     )}
                 </div>
-                <button onClick={() => setShowForm(v => !v)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors">
-                    <Plus size={13} /> Log Session
-                </button>
+                {canManage && (
+                    <button onClick={() => setShowForm(v => !v)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors">
+                        <Plus size={13} /> Log Session
+                    </button>
+                )}
             </div>
 
             {/* Add Session Form */}
@@ -197,9 +202,11 @@ const CounselingSessionLog = ({ devoteeId, devotee }) => {
                                         )}
                                     </div>
 
-                                    <button onClick={() => handleDelete(session.id)} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors shrink-0">
-                                        <Trash2 size={14} />
-                                    </button>
+                                    {canManage && (
+                                        <button onClick={() => handleDelete(session.id)} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors shrink-0">
+                                            <Trash2 size={14} />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         );

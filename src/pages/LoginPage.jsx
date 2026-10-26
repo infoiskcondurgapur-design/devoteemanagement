@@ -5,7 +5,7 @@ import apiService from '../services/api';
 import { Eye, EyeOff, ArrowLeft, KeyRound, CheckCircle2, MessageSquare, AlertCircle } from 'lucide-react';
 
 const LoginPage = () => {
-    const { login, isAuthenticated, loading, bypassEnabled, bypassLogin } = useAuth();
+    const { login, isAuthenticated, currentUser, isAdmin, isCounselor, loading, bypassEnabled, bypassLogin } = useAuth();
     const navigate = useNavigate();
 
     // Mode: 'login' | 'forgot_request' | 'forgot_verify' | 'forgot_success'
@@ -50,7 +50,11 @@ const LoginPage = () => {
         );
     }
 
-    if (isAuthenticated) return <Navigate to="/" replace />;
+    if (isAuthenticated) {
+        const isViewer = !isAdmin && !isCounselor;
+        const myDevoteeId = currentUser?.devoteeId;
+        return <Navigate to={isViewer ? (myDevoteeId ? `/devotees/${myDevoteeId}` : '/profile') : '/'} replace />;
+    }
 
     const resetFeedback = () => {
         setError('');
@@ -68,7 +72,10 @@ const LoginPage = () => {
         try {
             const res = await login(username.trim(), password);
             if (res.success) {
-                navigate('/', { replace: true });
+                const user = res.user;
+                const isViewer = user?.role === 'viewer' || (!user?.isAdmin && user?.role !== 'admin' && user?.role !== 'counselor');
+                const target = isViewer ? (user?.devoteeId ? `/devotees/${user.devoteeId}` : '/profile') : '/';
+                navigate(target, { replace: true });
             } else {
                 setError(res.error || 'Invalid credentials');
             }
@@ -85,7 +92,10 @@ const LoginPage = () => {
         try {
             const res = await bypassLogin();
             if (res.success) {
-                navigate('/', { replace: true });
+                const user = res.user;
+                const isViewer = user?.role === 'viewer' || (!user?.isAdmin && user?.role !== 'admin' && user?.role !== 'counselor');
+                const target = isViewer ? (user?.devoteeId ? `/devotees/${user.devoteeId}` : '/profile') : '/';
+                navigate(target, { replace: true });
             } else {
                 setError(res.error || 'Bypass login failed');
             }

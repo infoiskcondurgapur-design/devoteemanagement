@@ -2,6 +2,24 @@
 
 ## [2026-10-26]
 
+### Strict User Role Restriction: Read-Only Personal Profile (সাধারণ ব্যবহারকারীদের শুধুমাত্র নিজস্ব প্রোফাইল ভিউ এবং এডিটিং সম্পূর্ণ বন্ধকরণ)
+- **Dedicated Single-Profile View for Regular Devotees (`Sidebar.jsx`, `App.jsx`, `DevoteeProfile.jsx`)**:
+  - Regular devotee accounts (`viewer`) now only have access to their personal profile ("My Profile" / "আমার প্রোফাইল").
+  - Replaced the congregation-wide "Devotees" directory link with "My Profile" (`/devotees/${myDevoteeId}` or `/profile`) in the sidebar navigation.
+  - Restricted `Dashboard`, `Devotees`, `Counseling`, `Attendance`, `Seva`, `Finance`, `Network`, `Live Map`, `Reports`, `Communication`, `Events`, `Vaishnava Calendar`, `Courses`, and `Tours` from `viewer` users.
+  - Route guards in `App.jsx` automatically redirect non-counselor/non-admin users to their own profile if they attempt direct URL navigation.
+- **Strict Read-Only Enforcement (`DevoteeProfile.jsx`, `Profile.jsx`, `CounselingSessionLog.jsx`)**:
+  - Removed Edit, Delete, Approve, and Request Changes buttons for `viewer` users across the profile pages.
+  - Blocked viewers from accessing other devotees' profiles (`id !== myDevoteeId`) with an automatic redirect back to their own profile.
+  - Hidden "Log Session" and "Delete Session" actions from `CounselingSessionLog` for non-counselors/non-admins.
+  - Hidden "Edit Profile" button from `Profile.jsx` for non-admins.
+- **Search & Command Palette Protection (`HeaderSearch.jsx`, `CommandPalette.jsx`)**:
+  - Hidden the global congregation Header Search bar for regular devotee users.
+  - Limited the Command Palette (`Ctrl+K`) for regular devotees to strictly open "My Profile", preventing searches of other devotees.
+- **Backend API Access Verification (`api/_src/routes/devoteeRoutes.mjs`, `whatsapp-bot/routes/devoteeRoutes.mjs`)**:
+  - Protected `POST /api/devotees`, `POST /api/devotees/bulk`, `PUT /api/devotees/:id`, and `DELETE /api/devotees/:id` with `requireAdmin` middleware on both local and serverless backends to guarantee that unauthorized users cannot modify devotee records via API requests.
+  - Automatically linked `devoteeId` to authenticated devotee sessions during login and session restoration.
+
 ### Role-Based Access Control (RBAC) Enforcement (ইউজার ও অ্যাডমিন রোল ভিত্তিক অ্যাক্সেস কন্ট্রোল বাস্তবায়ন)
 - **Dynamic Role-Based Sidebar Navigation (`src/components/layout/Sidebar.jsx`)**:
   - Filtered navigation items according to user roles (`admin`, `counselor`, `viewer`).

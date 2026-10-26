@@ -13,7 +13,10 @@ const CommandPalette = () => {
     const inputRef = useRef(null);
     const navigate = useNavigate();
     const { devotees } = useDevotees();
-    const { isAdmin, canRequestChanges, devoteeId } = useAuth();
+    const { isAdmin, isCounselor, currentUser } = useAuth();
+    const isViewer = !isAdmin && !isCounselor;
+    const myDevoteeId = currentUser?.devoteeId || (Array.isArray(devotees) ? devotees.find(d => d.contact === currentUser?.username)?.id : null);
+    const myProfilePath = myDevoteeId ? `/devotees/${myDevoteeId}` : '/profile';
 
     // Toggle with Ctrl+K
     useEffect(() => {
@@ -40,18 +43,19 @@ const CommandPalette = () => {
         }
     }, [isOpen]);
 
-    // Define Actions/Pages
-    const pages = [
+    // Define Actions/Pages based on user role
+    const pages = isViewer ? [
+        { id: 'profile', title: 'My Profile', icon: User, path: myProfilePath, type: 'Page' },
+    ] : [
         { id: 'home', title: 'Go to Dashboard', icon: LayoutDashboard, path: '/', type: 'Page' },
         { id: 'devotees', title: 'Go to Devotees', icon: Users, path: '/devotees', type: 'Page' },
         { id: 'bulk-devotees', title: 'Bulk Upload Devotees', icon: Users, path: '/devotees/bulk-upload', type: 'Page' },
         { id: 'seva', title: 'Go to Events', icon: Calendar, path: '/seva', type: 'Page' },
-        { id: 'profile', title: 'My Profile', icon: User, path: '/profile', type: 'Page' },
+        { id: 'profile', title: 'My Profile', icon: User, path: myProfilePath, type: 'Page' },
     ];
 
-    // Quick actions (non-admin)
+    // Quick actions (Admin only)
     const quickActions = [
-        ...(canRequestChanges && devoteeId ? [{ id: 'request-changes', title: 'Request Changes', icon: FileEdit, path: `/change-request/${devoteeId}`, type: 'Action' }] : []),
         ...(isAdmin ? [{ id: 'admin-requests', title: 'Change Requests', icon: ClipboardList, path: '/admin/change-requests', type: 'Action' }] : []),
     ];
 
@@ -63,15 +67,15 @@ const CommandPalette = () => {
         // Quick Actions
         ...quickActions.filter(a => a.title.toLowerCase().includes(query.toLowerCase())),
 
-        // Devotees (Admin Only)
-        ...(isAdmin && query.trim() ? searchDevoteesByName(devotees, query, { limit: 5 }).map(d => ({
+        // Devotees Search (Admin & Counselors only)
+        ...(!isViewer && query.trim() ? searchDevoteesByName(devotees, query, { limit: 5 }).map(d => ({
             id: d.id,
             title: d.name,
             subtitle: d.initiatedName || d.spiritualName,
             icon: Users,
             path: `/devotees/${d.id}`,
             type: 'Devotee'
-        })) : []) // Limit to 5 devotees
+        })) : [])
     ];
 
     // Validation for active index
@@ -157,7 +161,6 @@ const CommandPalette = () => {
                         </div>
                     ) : (
                         <div className="space-y-1">
-                            {/* Group Label if needed, for simplicity just list */}
                             {filteredItems.map((item, index) => {
                                 const Icon = item.icon;
                                 const isActive = index === activeIndex;

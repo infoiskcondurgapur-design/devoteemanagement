@@ -133,13 +133,17 @@ export const login = async (req, res) => {
             return res.status(401).json({ success: false, error: 'Invalid username or password' });
         }
 
+        const devotee = await getDevoteeByContact(String(username).trim()).catch(() => null);
+        const devoteeId = devotee ? String(devotee.id) : null;
+
         const token = signToken({
             uid: String(user.id),
             username: userName,
-            role: user.role || 'admin'
+            role: user.role || 'viewer',
+            devoteeId
         });
 
-        res.json({ success: true, token, user: toPublicUser(user) });
+        res.json({ success: true, token, user: toPublicUser({ ...user, _devoteeId: devoteeId }) });
     } catch (err) {
         console.error('[Auth] login error:', err.message);
         res.status(500).json({ success: false, error: 'Login failed' });
@@ -152,7 +156,9 @@ export const session = async (req, res) => {
             return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const user = await getUserByIdentity(req.user.username).catch(() => null);
-        res.json({ success: true, user: toPublicUser(user || req.user) });
+        const devotee = await getDevoteeByContact(String(user?.username || req.user.username).trim()).catch(() => null);
+        const devoteeId = devotee ? String(devotee.id) : (req.user.devoteeId || null);
+        res.json({ success: true, user: toPublicUser({ ...(user || req.user), _devoteeId: devoteeId }) });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }

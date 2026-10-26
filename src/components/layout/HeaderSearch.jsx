@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, X, User, Phone, ArrowRight, ShieldCheck, Sparkles, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDevotees } from '../../context/DevoteeContext';
+import { useAuth } from '../../context/AuthContext';
 import { searchDevoteesByName, HighlightText } from '../../lib/searchUtils';
 
 const HeaderSearch = () => {
+    const { isAdmin, isCounselor } = useAuth();
     const { devotees } = useDevotees();
     const navigate = useNavigate();
 
@@ -33,6 +35,11 @@ const HeaderSearch = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Regular viewers must not have congregation search
+    if (!isAdmin && !isCounselor) {
+        return null;
+    }
 
     // Handle keyboard navigation
     const handleKeyDown = (e) => {

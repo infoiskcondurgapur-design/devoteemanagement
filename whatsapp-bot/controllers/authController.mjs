@@ -133,7 +133,9 @@ export const session = async (req, res) => {
             return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
         const user = await getUserByIdentity(req.user.username).catch(() => null);
-        res.json({ success: true, user: toPublicUser(user || req.user) });
+        const devotee = await getDevoteeByContact(String(user?.username || req.user.username).trim()).catch(() => null);
+        const devoteeId = devotee ? String(devotee.id) : (req.user.devoteeId || null);
+        res.json({ success: true, user: toPublicUser({ ...(user || req.user), _devoteeId: devoteeId }) });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }

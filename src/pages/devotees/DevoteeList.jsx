@@ -14,7 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 const PAGE_SIZE = 25;
 
 const DevoteeList = () => {
-    const { isAdmin } = useAuth();
+    const { isAdmin, isCounselor, currentUser } = useAuth();
     const { 
         devotees, paginatedDevotees: contextPaginatedDevotees, totalCount, filterOptions, fetchPaginatedDevotees, 
         deleteDevotee, updateDevotee, isLiveConnected, fetchDevotees
@@ -22,6 +22,15 @@ const DevoteeList = () => {
     const navigate = useNavigate();
     const toast = useToast();
     const [searchParams] = useSearchParams();
+
+    const isViewer = !isAdmin && !isCounselor;
+    const myDevoteeId = currentUser?.devoteeId || (Array.isArray(devotees) ? devotees.find(d => d.contact === currentUser?.username)?.id : null);
+
+    React.useEffect(() => {
+        if (isViewer) {
+            navigate(myDevoteeId ? `/devotees/${myDevoteeId}` : '/profile', { replace: true });
+        }
+    }, [isViewer, myDevoteeId, navigate]);
 
     const [searchTerm, setSearchTerm] = useState(() => searchParams.get('search') || '');
     const [viewMode, setViewMode] = useState('list');
@@ -210,6 +219,10 @@ const DevoteeList = () => {
     };
 
     const selectClass = "px-3 py-2 bg-card border border-border rounded-lg text-sm text-foreground focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none";
+
+    if (isViewer) {
+        return null;
+    }
 
     return (
         <div className="space-y-6">
