@@ -22,7 +22,6 @@ import {
 import clsx from 'clsx';
 import {
     getAllEvents,
-    getEventsByMonth,
     getNextEkadashi,
     searchVaishnavaEvents,
     FASTING_GUIDELINES

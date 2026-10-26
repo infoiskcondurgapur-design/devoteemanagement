@@ -3,7 +3,7 @@ import { X, Search, IndianRupee, Save, MessageSquare, CheckCircle2, UserCheck, U
 import * as htmlToImage from 'html-to-image';
 import TourReceipt from '../tours/TourReceipt';
 import WhatsAppModal from '../WhatsAppModal';
-import { openWhatsApp, sanitizeWhatsAppNumber } from '../../services/whatsappLink';
+import { openWhatsApp } from '../../services/whatsappLink';
 import { searchDevoteesByName } from '../../lib/searchUtils';
 import { useDevotees } from '../../context/DevoteeContext';
 import { useToast } from '../Toast';
@@ -21,7 +21,7 @@ const AddParticipantForm = ({ tour, onClose, onSuccess }) => {
     const [showDropdown, setShowDropdown] = useState(false);
     const [saving, setSaving] = useState(false);
     const [savedBooking, setSavedBooking] = useState(null);
-    const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
+    const [sendingWhatsApp, _setSendingWhatsApp] = useState(false);
     const [whatsappSent, setWhatsappSent] = useState(false);
     const [targetPhone, setTargetPhone] = useState('');
     const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, Send, Sparkles, MessageCircle, Moon, Sun, Info } from 'lucide-react';
 import clsx from 'clsx';
-import { generateEkadashiWhatsAppText, formatParanaNotice } from '../../lib/vaishnavaCalendarUtils';
+import { generateEkadashiWhatsAppText } from '../../lib/vaishnavaCalendarUtils';
 import { useToast } from '../Toast';
 
 const EkadashiBroadcastModal = ({ isOpen, onClose, event, initialRecipientPhone = '', initialRecipientName = '' }) => {

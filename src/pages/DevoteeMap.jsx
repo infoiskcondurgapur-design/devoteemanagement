@@ -140,7 +140,6 @@ const DevoteeMap = () => {
     const [selectedCounselor, setSelectedCounselor] = useState('all');
     const [mapCenter, setMapCenter] = useState(TEMPLE_CENTER);
     const [mapZoom, setMapZoom] = useState(13);
-    const [showCounselorDropdown, setShowCounselorDropdown] = useState(false);
 
     // Get list of unique counselors
     const counselors = useMemo(() => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { formatDateRange } from '../../lib/dateUtils';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -382,7 +382,7 @@ const CourseDetails = () => {
         }
     };
 
-    const safeEnrollments = Array.isArray(enrollments) ? enrollments : [];
+    const safeEnrollments = useMemo(() => Array.isArray(enrollments) ? enrollments : [], [enrollments]);
 
     const filteredEnrollments = safeEnrollments.filter(e => {
         if (!e) return false;

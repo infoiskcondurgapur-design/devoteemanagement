@@ -347,7 +347,7 @@ const performAutoBackup = async () => {
             const token = await getElectronToken();
             const syncReq = net.request({
                 method: 'POST',
-                url: `${API_BASE}/api/backup/auto-sync-check`
+                url: 'http://localhost:3001/api/backup/auto-sync-check'
             });
             if (token) syncReq.setHeader('Authorization', `Bearer ${token}`);
             syncReq.on('response', (res) => {
