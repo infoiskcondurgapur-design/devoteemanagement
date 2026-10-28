@@ -28,7 +28,6 @@ const Sidebar = ({ isOpen, toggle }) => {
         { name: t('seva'), icon: Briefcase, path: '/seva', requires: 'counselor' },
         { name: t('finance'), icon: IndianRupee, path: '/finance', requires: 'admin' },
         { name: 'Network', icon: Share2, path: '/network', requires: 'counselor' },
-        { name: 'Live Map', icon: MapPin, path: '/map', requires: 'counselor' },
         { name: 'Reports', icon: BarChart3, path: '/reports', requires: 'admin' },
         { name: 'Communication', icon: MessageSquare, path: '/communication', requires: 'admin' },
         { name: 'Events', icon: Calendar, path: '/events', requires: 'counselor' },

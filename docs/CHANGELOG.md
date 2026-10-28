@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## [2026-10-28]
+
+### Removed Live Map Feature (লাইভ ম্যাপ অপশন ও সংশ্লিষ্ট কম্পোনেন্ট অপসারণ)
+- **Removed Live Map from Navigation & Routing (`Sidebar.jsx`, `App.jsx`)**:
+  - Removed "Live Map" item (`/map`) from the main sidebar navigation menu in `src/components/layout/Sidebar.jsx`.
+  - Removed route definition `<Route path="map" ... />` and unused lazy import of `DevoteeMap` from `src/App.jsx`.
+- **Cleaned Up Unused Component (`src/pages/DevoteeMap.jsx`)**:
+  - Removed `src/pages/DevoteeMap.jsx`, eliminating heavy map dependencies from the production bundle (reduced precached assets and overall bundle size).
+
 ## [2026-10-26]
 
 ### Strict User Role Restriction: Read-Only Personal Profile (সাধারণ ব্যবহারকারীদের শুধুমাত্র নিজস্ব প্রোফাইল ভিউ এবং এডিটিং সম্পূর্ণ বন্ধকরণ)

@@ -30,7 +30,6 @@ const DonationForm = lazy(() => import('./pages/finance/DonationForm'));
 // Counseling
 const CounselorDashboard = lazy(() => import('./pages/counseling/CounselorDashboard'));
 const NetworkGraph = lazy(() => import('./pages/NetworkGraph'));
-const DevoteeMap = lazy(() => import('./pages/DevoteeMap'));
 
 // Other
 const Communication = lazy(() => import('./pages/Communication'));
@@ -145,7 +144,6 @@ function App() {
                               <Route path="calendar" element={<RequireCounselorOrAdmin><VaishnavaCalendar /></RequireCounselorOrAdmin>} />
                               <Route path="counseling" element={<RequireCounselorOrAdmin><CounselorDashboard /></RequireCounselorOrAdmin>} />
                               <Route path="network" element={<RequireCounselorOrAdmin><NetworkGraph /></RequireCounselorOrAdmin>} />
-                              <Route path="map" element={<RequireCounselorOrAdmin><DevoteeMap /></RequireCounselorOrAdmin>} />
 
                               {/* Communication & User */}
                               <Route path="communication" element={<RequireAdmin><Communication /></RequireAdmin>} />
