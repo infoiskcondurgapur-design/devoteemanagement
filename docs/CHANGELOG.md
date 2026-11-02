@@ -2,6 +2,20 @@
 
 ## [2026-11-02]
 
+### Interactive System Changelog & Update Timeline in About Hub (সিস্টেমের নতুন আপডেট ও পরিবর্তন বিবরণী)
+- **Live Updates & Changelog Timeline (`src/pages/About.jsx`)**:
+  - Embedded an interactive, searchable and tag-filtered release timeline directly inside the About page.
+  - Users can view chronologically every release (from v0.8.0 to v1.2.0) with formatted dates in Bengali and English, version badges, categorized tags (`Features`, `Security`, `Fixes`, `Theme`, `Performance`, `Backup`), and bilingual bullet-point highlights.
+  - Added live search bar and one-click filter pills to quickly look up changes (e.g. backup, profile, calendar, useMemo).
+- **Direct About Access in UI (`Sidebar.jsx`, `Header.jsx`, `CommandPalette.jsx`, `App.jsx`)**:
+  - Added direct "About" link in the Sidebar navigation accessible to all user roles (Admin, Counselor, Viewer).
+  - Added quick-access Information (ℹ️) button in the Top Header next to the notification bell.
+  - Added "About Devotee Management" page action in Command Palette (`Ctrl + K`).
+  - Integrated `/about` seamlessly within `<Layout />` with Eye-Comfort dark theme and back navigation.
+- **Cloud Backup Deduplication & Auto-Sync Scheduled Backoff (`CloudBackupService.mjs`, `DropboxAutoSyncService.mjs`, `backupController.mjs`)**:
+  - Prevented redundant error log spamming in `system_logs` when Dropbox short-lived access tokens expire.
+  - Updated auto-sync scheduling to back off and respect the configured interval upon sync failures rather than retrying every 60 seconds.
+
 ### Fix Blank Screen on App Initialization & Dev Server Optimization
 - **Fixed Missing Lazy Import for About Page (`src/App.jsx`)**:
   - Added missing `const About = lazy(() => import('./pages/About'));` import in `src/App.jsx` to prevent `ReferenceError: About is not defined` from crashing the root React tree during initial mount.
