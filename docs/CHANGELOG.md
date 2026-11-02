@@ -2,6 +2,14 @@
 
 ## [2026-11-02]
 
+### Centered & Enlarged Date, Time & Day Widget on Dashboard (ড্যাশবোর্ড হেডার মাঝে ও বড় আকারে প্রদর্শন)
+- **Centered Layout Alignment (`src/pages/Dashboard.jsx`)**:
+  - Moved the real-time Date, Time & Day section to the **exact visual center** of the Dashboard header row.
+  - Added responsive flex centering with symmetry balancers for large displays so it sits prominently between the left title and page margins.
+- **Enhanced Visual Prominence & Typography**:
+  - Enlarged the live digital clock typography to `text-xl sm:text-2xl md:text-3xl` monospace font for high-visibility readability.
+  - Enlarged day and date typography (`text-sm sm:text-base md:text-lg`) and expanded icon container sizing (`w-6 h-6 sm:w-7 sm:h-7`) with increased container padding.
+
 ### Streamlined Dashboard Header: Removed Action Buttons (ড্যাশবোর্ড হেডার পরিচ্ছন্নকরণ)
 - **Removed Header Buttons (`src/pages/Dashboard.jsx`)**:
   - Removed **Eye Comfort**, **Refresh**, and **New Devotee** buttons from the top right of the Dashboard header.

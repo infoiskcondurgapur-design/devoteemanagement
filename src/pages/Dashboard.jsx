@@ -96,7 +96,7 @@ const Dashboard = () => {
     return (
         <div className="space-y-8 pb-16">
             {/* Header Section */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="space-y-1">
                     <h1 className="text-3xl font-bold tracking-tight text-[#c7ded9] flex items-center gap-3">
                         Overview
@@ -107,33 +107,38 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* Live Date, Time & Day Widget */}
-                <div 
-                    className="flex items-center gap-3.5 px-4 py-2.5 bg-card border border-border rounded-xl shadow-sm"
-                    title={currentTime.toLocaleDateString('bn-BD', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                >
-                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
-                        <Clock className="w-5 h-5 animate-pulse" />
-                    </div>
-                    <div className="border-r border-border pr-3.5">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                            Live Time
+                {/* Live Date, Time & Day Widget - Center & Bigger */}
+                <div className="flex justify-center flex-1 w-full lg:w-auto">
+                    <div 
+                        className="flex items-center gap-5 sm:gap-6 px-6 sm:px-8 py-3.5 sm:py-4 bg-card border border-border rounded-2xl shadow-md hover:shadow-lg transition-all"
+                        title={currentTime.toLocaleDateString('bn-BD', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    >
+                        <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
+                            <Clock className="w-6 h-6 sm:w-7 sm:h-7 animate-pulse" />
                         </div>
-                        <div className="text-base sm:text-lg font-mono font-bold text-[#c7ded9] tracking-tight whitespace-nowrap">
-                            {timeFormatted}
+                        <div className="border-r border-border pr-5 sm:pr-6">
+                            <div className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2 mb-0.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                Live Time
+                            </div>
+                            <div className="text-xl sm:text-2xl md:text-3xl font-mono font-bold text-[#c7ded9] tracking-tight whitespace-nowrap">
+                                {timeFormatted}
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <div className="text-xs font-bold text-amber-400 flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span>{dayName}</span>
-                        </div>
-                        <div className="text-xs sm:text-sm font-semibold text-[#c7ded9] whitespace-nowrap">
-                            {dateFormatted}
+                        <div className="space-y-0.5">
+                            <div className="text-sm sm:text-base font-bold text-amber-400 flex items-center gap-2">
+                                <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+                                <span>{dayName}</span>
+                            </div>
+                            <div className="text-sm sm:text-base md:text-lg font-semibold text-[#c7ded9] whitespace-nowrap">
+                                {dateFormatted}
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                {/* Right symmetry balancer on large desktop */}
+                <div className="hidden lg:block w-48 shrink-0"></div>
             </div>
 
             {/* Stats Grid */}
