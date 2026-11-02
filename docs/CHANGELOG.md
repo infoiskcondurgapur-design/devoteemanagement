@@ -2,6 +2,14 @@
 
 ## [2026-11-02]
 
+### Live Real-Time Date, Time & Day Header Widget on Dashboard (ড্যাশবোর্ডে লাইভ তারিখ, সময় ও বার প্রদর্শন)
+- **Real-Time Clock & Date Header Badge (`src/pages/Dashboard.jsx`)**:
+  - Added a dedicated, eye-comfort styled live clock widget directly in the main Dashboard header.
+  - **Live Time**: Monospace digital clock updating every second (`hh:mm:ss AM/PM`) with a pulsing green live indicator.
+  - **Day & Date**: Displays the current day of the week (e.g. `Monday`) with a calendar icon and the full formatted date (e.g. `2 November 2026`).
+  - **Bengali Cultural Integration**: Hover tooltip displays the full Bengali date & day format for temple administration convenience.
+  - **Responsive Design**: Smoothly adapts to desktop, tablet, and mobile layouts while adhering to the dark eye-protection color scheme (`#213738`, `#c7ded9`, amber & emerald accents).
+
 ### Full-Width Form Layout & Removal of Redundant "Form Sections" Side Panel (ফর্ম সেকশন্স সাইড প্যানেল অপসারণ ও ফুল-উইডথ ফর্ম)
 - **Removed Side Navigation Panel (`VerticalNav.jsx`)**:
   - Completely removed the redundant "Form Sections" left-hand sidebar widget (`VerticalNav`) from both `DevoteeForm.jsx` (admin form) and `PublicRegister.jsx` (public registration form).

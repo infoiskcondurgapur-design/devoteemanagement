@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { formatDate } from '../lib/dateUtils';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Users, Calendar, Plus, Crown, Shield, User, Heart, Cake, Download, TrendingUp, Sparkles, Activity, RefreshCw, ChevronRight, MapPin, Maximize2, Glasses, MessageSquare } from 'lucide-react';
+import { Users, Calendar, Plus, Crown, Shield, User, Heart, Cake, Download, TrendingUp, Sparkles, Activity, RefreshCw, ChevronRight, MapPin, Maximize2, Glasses, MessageSquare, Clock } from 'lucide-react';
 import clsx from 'clsx';
 import { useDevotees } from '../context/DevoteeContext';
 import { useToast } from '../components/Toast';
@@ -46,6 +46,18 @@ const Dashboard = () => {
     const [activeDevotee, setActiveDevotee] = useState(null);
     const [showWhatsApp, setShowWhatsApp] = useState(false);
     const [selectedImageDevotee, setSelectedImageDevotee] = useState(null);
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const dayName = currentTime.toLocaleDateString('en-US', { weekday: 'long' });
+    const dateFormatted = currentTime.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    const timeFormatted = currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
 
     const upcomingBirthdays = (() => {
         const today = new Date();
@@ -87,14 +99,44 @@ const Dashboard = () => {
     return (
         <div className="space-y-8 pb-16">
             {/* Header Section */}
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
-                <div className="space-y-1">
-                    <h1 className="text-3xl font-bold tracking-tight text-[#c7ded9] flex items-center gap-3">
-                        Overview
-                    </h1>
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
-                        <Activity className="w-4 h-4 text-emerald-400" />
-                        <span>System synchronized {lastUpdated.toLocaleTimeString()}</span>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+                    <div className="space-y-1">
+                        <h1 className="text-3xl font-bold tracking-tight text-[#c7ded9] flex items-center gap-3">
+                            Overview
+                        </h1>
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
+                            <Activity className="w-4 h-4 text-emerald-400" />
+                            <span>System synchronized {lastUpdated.toLocaleTimeString()}</span>
+                        </div>
+                    </div>
+
+                    {/* Live Date, Time & Day Widget */}
+                    <div 
+                        className="flex items-center gap-3.5 px-4 py-2.5 bg-card border border-border rounded-xl shadow-sm"
+                        title={currentTime.toLocaleDateString('bn-BD', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    >
+                        <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
+                            <Clock className="w-5 h-5 animate-pulse" />
+                        </div>
+                        <div className="border-r border-border pr-3.5">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                Live Time
+                            </div>
+                            <div className="text-base sm:text-lg font-mono font-bold text-[#c7ded9] tracking-tight whitespace-nowrap">
+                                {timeFormatted}
+                            </div>
+                        </div>
+                        <div>
+                            <div className="text-xs font-bold text-amber-400 flex items-center gap-1">
+                                <Calendar className="w-3.5 h-3.5" />
+                                <span>{dayName}</span>
+                            </div>
+                            <div className="text-xs sm:text-sm font-semibold text-[#c7ded9] whitespace-nowrap">
+                                {dateFormatted}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
