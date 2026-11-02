@@ -2,6 +2,16 @@
 
 ## [2026-11-02]
 
+### Full-Width Form Layout & Removal of Redundant "Form Sections" Side Panel (ফর্ম সেকশন্স সাইড প্যানেল অপসারণ ও ফুল-উইডথ ফর্ম)
+- **Removed Side Navigation Panel (`VerticalNav.jsx`)**:
+  - Completely removed the redundant "Form Sections" left-hand sidebar widget (`VerticalNav`) from both `DevoteeForm.jsx` (admin form) and `PublicRegister.jsx` (public registration form).
+  - The form now spans full width (`w-full`), providing maximum horizontal space and clarity for entering devotee details without side cramping.
+- **Top Header Step Navigation Tabs**:
+  - Integrated sleek horizontal step pills (`Personal Details` & `Spiritual Life`) directly in the form's top header card.
+  - Users can either click these pills to instantly toggle between steps or navigate sequentially using the standard "Next: Spiritual Life" and "Previous" step buttons.
+- **Zero Form Disruption**:
+  - Preserved 100% of the form components, validations, React Hook Form contexts, Zod schema rules, duplicate checking, and submission workflows.
+
 ### Streamlined Devotee Form: Removed Family & Misc Step (ফর্ম সহজীকরণ: ফ্যামিলি ও মিসক অপশন অপসারণ)
 - **Removed Family & Misc Step (`DevoteeForm.jsx`, `PublicRegister.jsx`, `VerticalNav.jsx`)**:
   - Devotee registration and edit forms now have a focused 2-step flow:

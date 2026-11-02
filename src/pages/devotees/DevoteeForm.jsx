@@ -10,7 +10,6 @@ import { compressImage } from '../../lib/imageCompression';
 
 // Sub-components
 import FormHeader from './components/FormHeader';
-import VerticalNav from './components/VerticalNav';
 import StepNavigation from './components/StepNavigation';
 import PersonalDetailsStep from './components/PersonalDetailsStep';
 import SpiritualLifeStep from './components/SpiritualLifeStep';
@@ -223,14 +222,33 @@ const DevoteeForm = () => {
             <div className="max-w-7xl mx-auto pb-12 w-full">
                 <FormHeader name={formData.name} isEdit={isEdit} navigate={navigate} handleSubmit={handleSubmit(onFormSubmit, onFormError)} isSaving={isSaving} />
 
-                <div className="flex gap-6 items-start">
-                    <VerticalNav steps={steps} currentStep={currentStep} setCurrentStep={setCurrentStep} isEdit={isEdit} />
-
-                    <div className="flex-1 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 min-h-[500px]">
-                        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{steps[currentStep - 1].name}</h2>
-                            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Step {currentStep} of {steps.length}</span>
+                <div className="w-full bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 min-h-[500px]">
+                    <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                            {steps.map((step) => {
+                                const Icon = step.icon;
+                                const isActive = currentStep === step.id;
+                                return (
+                                    <button
+                                        key={step.id}
+                                        type="button"
+                                        onClick={() => setCurrentStep(step.id)}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                                            isActive
+                                                ? 'bg-indigo-600 text-white shadow-sm'
+                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                        }`}
+                                    >
+                                        <Icon size={16} />
+                                        <span>{step.name}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
+                        <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                            Step {currentStep} of {steps.length}
+                        </span>
+                    </div>
 
                         <div className="p-8">
                             <form className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300" onSubmit={handleSubmit(onFormSubmit, onFormError)}>
@@ -260,7 +278,6 @@ const DevoteeForm = () => {
                             />
                         </div>
                     </div>
-                </div>
 
                 {/* Duplicate Modal */}
                 {showDuplicateModal && (
