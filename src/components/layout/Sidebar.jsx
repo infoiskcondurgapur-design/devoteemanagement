@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { FiTool } from 'react-icons/fi';
-import { LayoutDashboard, Users, Calendar, CalendarDays, Share2, MapPin, BarChart3, CalendarCheck, Shield, Briefcase, IndianRupee, GraduationCap, MessageSquare, Download, ChevronLeft, User } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, CalendarDays, Share2, MapPin, BarChart3, CalendarCheck, Shield, Briefcase, IndianRupee, GraduationCap, MessageSquare, Download, ChevronLeft, User, Info } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../../context/AuthContext';
 import { useDevotees } from '../../context/DevoteeContext';
@@ -37,6 +37,7 @@ const Sidebar = ({ isOpen, toggle }) => {
         { name: 'Users & Roles', icon: Shield, path: '/users', requires: 'admin' },
         { name: t('settings'), icon: FiTool, path: '/settings', requires: 'admin' },
         { name: 'Maintenance', icon: FiTool, path: '/maintenance', requires: 'admin' },
+        { name: 'About', icon: Info, path: '/about' },
     ];
 
     const navItems = allNavItems.filter(item => {

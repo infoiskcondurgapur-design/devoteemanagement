@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Command, LayoutDashboard, Users, Heart, Calendar, ArrowRight, User, FileEdit, ClipboardList } from 'lucide-react';
+import { Search, Command, LayoutDashboard, Users, Heart, Calendar, ArrowRight, User, FileEdit, ClipboardList, Info } from 'lucide-react';
 import { useDevotees } from '../context/DevoteeContext';
 import { useAuth } from '../context/AuthContext';
 import { searchDevoteesByName } from '../lib/searchUtils';
@@ -46,12 +46,14 @@ const CommandPalette = () => {
     // Define Actions/Pages based on user role
     const pages = isViewer ? [
         { id: 'profile', title: 'My Profile', icon: User, path: myProfilePath, type: 'Page' },
+        { id: 'about', title: 'About Devotee Management', icon: Info, path: '/about', type: 'Page' },
     ] : [
         { id: 'home', title: 'Go to Dashboard', icon: LayoutDashboard, path: '/', type: 'Page' },
         { id: 'devotees', title: 'Go to Devotees', icon: Users, path: '/devotees', type: 'Page' },
         { id: 'bulk-devotees', title: 'Bulk Upload Devotees', icon: Users, path: '/devotees/bulk-upload', type: 'Page' },
         { id: 'seva', title: 'Go to Events', icon: Calendar, path: '/seva', type: 'Page' },
         { id: 'profile', title: 'My Profile', icon: User, path: myProfilePath, type: 'Page' },
+        { id: 'about', title: 'About Devotee Management', icon: Info, path: '/about', type: 'Page' },
     ];
 
     // Quick actions (Admin only)

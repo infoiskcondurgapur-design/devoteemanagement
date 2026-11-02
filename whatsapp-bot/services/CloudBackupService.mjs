@@ -3,7 +3,7 @@ import path from 'path';
 import zlib from 'zlib';
 import { fileURLToPath } from 'url';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { dbPath, updateSetting, getSettings, logIssue, getBackupData } from '../database.mjs';
+import { dbPath, updateSetting, getSettings, logIssue, getBackupData, getIssues } from '../database.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

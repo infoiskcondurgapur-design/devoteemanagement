@@ -73,6 +73,7 @@ class DropboxAutoSyncService {
                     } catch { }
                 } catch (syncErr) {
                     console.error('[Dropbox Auto-Sync] Sync failed:', syncErr.message);
+                    try { await db.updateSetting('last_dropbox_backup_time', new Date().toISOString()); } catch { }
                 } finally {
                     this.isSyncing = false;
                 }

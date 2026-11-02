@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Search, ChevronRight, Menu, Sun, Moon, LogOut, Glasses } from 'lucide-react';
+import { Bell, Search, ChevronRight, Menu, Sun, Moon, LogOut, Glasses, Info } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -77,6 +77,10 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                 </button>
 
                 <div className="h-8 w-px bg-border mx-1 sm:mx-2"></div>
+
+                <Link to="/about" className="p-2 text-muted-foreground hover:bg-muted hover:text-foreground rounded-full transition-colors" title="About System">
+                    <Info className="w-5 h-5" />
+                </Link>
 
                 <Link to="/notifications" className="relative p-2 text-muted-foreground hover:bg-muted rounded-full transition-colors">
                     <Bell className="w-5 h-5" />

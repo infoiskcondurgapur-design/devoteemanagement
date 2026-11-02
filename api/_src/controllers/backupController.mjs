@@ -209,6 +209,10 @@ export const checkAndRunAutoSync = async (req, res) => {
             message: `Dropbox auto-sync completed successfully (${result.sizeFormatted})`
         });
     } catch (err) {
+        try {
+            const { updateSetting } = await import('../database.mjs');
+            await updateSetting('last_dropbox_backup_time', new Date().toISOString());
+        } catch { }
         res.status(500).json({ success: false, error: err.message });
     }
 };
@@ -232,6 +236,10 @@ export const cronSync = async (req, res) => {
         await updateSetting('last_dropbox_auto_sync_time', new Date().toISOString());
         return res.json({ success: true, synced: true, result });
     } catch (err) {
+        try {
+            const { updateSetting } = await import('../database.mjs');
+            await updateSetting('last_dropbox_backup_time', new Date().toISOString());
+        } catch { }
         res.status(500).json({ success: false, error: err.message });
     }
 };

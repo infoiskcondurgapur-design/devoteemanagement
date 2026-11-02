@@ -1,6 +1,6 @@
 import zlib from 'zlib';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { updateSetting, getSettings, logIssue, getBackupData } from '../database.mjs';
+import { updateSetting, getSettings, logIssue, getBackupData, getIssues } from '../database.mjs';
 
 function formatBytes(bytes) {
     if (!bytes || bytes === 0) return '0 B';
@@ -226,7 +226,15 @@ class CloudBackupService {
             };
         } catch (dbxErr) {
             await updateSetting('last_dropbox_backup_status', `Failed: ${dbxErr.message}`);
-            await logIssue('error', 'cloud-backup-dropbox', `Dropbox Sync failed: ${dbxErr.message}`, dbxErr.stack);
+            try {
+                const existing = await getIssues(true);
+                const hasUnresolved = (existing || []).some(i => i.source === 'cloud-backup-dropbox');
+                if (!hasUnresolved) {
+                    await logIssue('error', 'cloud-backup-dropbox', `Dropbox Sync failed: ${dbxErr.message}`, dbxErr.stack);
+                }
+            } catch {
+                await logIssue('error', 'cloud-backup-dropbox', `Dropbox Sync failed: ${dbxErr.message}`, dbxErr.stack);
+            }
             throw dbxErr;
         }
     }

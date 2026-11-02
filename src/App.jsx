@@ -122,11 +122,9 @@ function App() {
                             {/* Public, shareable self-registration — no auth required */}
                             <Route path="/register" element={<PublicRegister />} />
 
-                            {/* About page — no auth required */}
-                            <Route path="/about" element={<About />} />
-
                             <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
                               <Route index element={<Dashboard />} />
+                              <Route path="about" element={<About />} />
 
                               {/* Devotee Management */}
                               <Route path="devotees" element={<RequireCounselorOrAdmin><DevoteeList /></RequireCounselorOrAdmin>} />
