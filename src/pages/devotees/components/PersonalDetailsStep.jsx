@@ -1,10 +1,41 @@
-import React from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { User, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useFormContext } from 'react-hook-form';
 import { CorporateInput, CorporateSelect } from '../../../components/FormControls';
 
 const PersonalDetailsStep = ({ handleChange, previewUrl, sameAsContact, setSameAsContact }) => {
-    const { register, formState: { errors } } = useFormContext();
+    const { register, formState: { errors }, watch, setValue } = useFormContext();
+
+    const gender = watch('gender') || 'Male';
+    const relationType = watch('relationType') || 'Father';
+
+    // Relationship options based on Gender:
+    // Female -> Father & Husband
+    // Male -> Father & Wife
+    // Other -> Father, Husband, Wife
+    const relationOptions = useMemo(() => {
+        if (gender === 'Female') {
+            return ['Father', 'Husband'];
+        }
+        if (gender === 'Male') {
+            return ['Father', 'Wife'];
+        }
+        return ['Father', 'Husband', 'Wife'];
+    }, [gender]);
+
+    // Ensure selected relationType remains valid when gender changes
+    useEffect(() => {
+        if (relationOptions && !relationOptions.includes(relationType)) {
+            setValue('relationType', 'Father', { shouldValidate: true, shouldDirty: true });
+        }
+    }, [gender, relationOptions, relationType, setValue]);
+
+    // When Relationship is Husband or Wife, Marital Status automatically selects Married
+    useEffect(() => {
+        if (relationType === 'Husband' || relationType === 'Wife') {
+            setValue('maritalStatus', 'Married', { shouldValidate: true, shouldDirty: true });
+        }
+    }, [relationType, setValue]);
 
     return (
         <div className="grid grid-cols-12 gap-8">
@@ -29,7 +60,16 @@ const PersonalDetailsStep = ({ handleChange, previewUrl, sameAsContact, setSameA
                             <CorporateSelect
                                 label="Gender"
                                 options={['Male', 'Female', 'Other']}
-                                {...register('gender')}
+                                {...register('gender', {
+                                    onChange: (e) => {
+                                        const newGender = e.target.value;
+                                        if (newGender === 'Female' && relationType === 'Wife') {
+                                            setValue('relationType', 'Father', { shouldValidate: true, shouldDirty: true });
+                                        } else if (newGender === 'Male' && relationType === 'Husband') {
+                                            setValue('relationType', 'Father', { shouldValidate: true, shouldDirty: true });
+                                        }
+                                    }
+                                })}
                             />
                         </div>
                     </div>
@@ -38,8 +78,15 @@ const PersonalDetailsStep = ({ handleChange, previewUrl, sameAsContact, setSameA
                         <div className="md:col-span-4">
                             <CorporateSelect
                                 label="Relationship"
-                                options={['Father', 'Husband', 'Wife']}
-                                {...register('relationType')}
+                                options={relationOptions}
+                                {...register('relationType', {
+                                    onChange: (e) => {
+                                        const newRel = e.target.value;
+                                        if (newRel === 'Husband' || newRel === 'Wife') {
+                                            setValue('maritalStatus', 'Married', { shouldValidate: true, shouldDirty: true });
+                                        }
+                                    }
+                                })}
                             />
                         </div>
                         <div className="md:col-span-8">

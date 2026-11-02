@@ -322,7 +322,6 @@ const BulkDevoteeUpload = () => {
                     const dob = parseDateVal(getValue('dob'));
                     const age = getValue('age') || '';
                     const bloodGroup = getValue('bloodGroup');
-                    const maritalStatus = getValue('maritalStatus') || 'Single';
                     const counselor = getValue('counselor') || defaultCounselor;
                     const spiritualStatus = normalizeSpiritualStatus(getValue('spiritualStatus'), defaultSpiritualStatus);
                     const spiritualMaster = getValue('spiritualMaster');
@@ -339,7 +338,17 @@ const BulkDevoteeUpload = () => {
                     const occupation = getValue('occupation');
                     const education = getValue('education');
                     const guardianName = getValue('guardianName');
-                    const relationType = getValue('relationType') || 'Father';
+                    let relationType = getValue('relationType') || 'Father';
+                    if (gender === 'Female' && relationType === 'Wife') relationType = 'Husband';
+                    if (gender === 'Male' && relationType === 'Husband') relationType = 'Wife';
+
+                    let maritalStatus = getValue('maritalStatus');
+                    if (!maritalStatus) {
+                        maritalStatus = (relationType === 'Husband' || relationType === 'Wife') ? 'Married' : 'Single';
+                    } else if (relationType === 'Husband' || relationType === 'Wife') {
+                        maritalStatus = 'Married';
+                    }
+
                     const currentService = getValue('currentService');
 
                     // Validation checks

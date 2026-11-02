@@ -2,6 +2,17 @@
 
 ## [2026-11-02]
 
+### Dynamic Gender-Based Relationship Options & Auto-Married Status (জেন্ডার অনুযায়ী সম্পর্কের ধরন ও স্বয়ংক্রিয় বৈবাহিক অবস্থা নির্বাচন)
+- **Dynamic Relationship Dropdown by Gender (`PersonalDetailsStep.jsx`)**:
+  - **Female (মহিলা)**: Relationship অপশনে শুধুমাত্র **Father** ও **Husband** প্রদর্শিত হবে।
+  - **Male (পুরুষ)**: Relationship অপশনে শুধুমাত্র **Father** ও **Wife** প্রদর্শিত হবে।
+  - জেন্ডার পরিবর্তনের সাথে সাথে পূর্ববর্তী অসংগতিপূর্ণ সিলেকশন স্বয়ংক্রিয়ভাবে বৈধ ডিফল্ট অপশনে রিসেট হবে।
+- **Automatic Marital Status Selection (`PersonalDetailsStep.jsx`, `BulkDevoteeUpload.jsx`)**:
+  - Relationship হিসেবে **Husband** অথবা **Wife** নির্বাচন করলে Marital Status স্বয়ংক্রিয়ভাবে **Married** সিলেক্ট হবে।
+  - এক্সেল বাল্ক আপলোডেও (`BulkDevoteeUpload.jsx`) স্বামী/স্ত্রী সম্পর্কের ক্ষেত্রে বৈবাহিক অবস্থা স্বয়ংক্রিয়ভাবে Married নির্ধারিত হবে।
+- **Automated Verification Suite (`test/relationship_gender_marital.test.mjs`)**:
+  - ৭টি নতুন স্বয়ংক্রিয় টেস্ট যুক্ত করা হয়েছে যা জেন্ডার অনুযায়ী অপশন ফিল্টারিং, স্বয়ংক্রিয় Married স্ট্যাটাস সিলেকশন ও স্কিমা ভ্যালিডেশন নিশ্চিত করে (২৪/২৪ টেস্ট পাস)।
+
 ### Interactive System Changelog & Update Timeline in About Hub (সিস্টেমের নতুন আপডেট ও পরিবর্তন বিবরণী)
 - **Live Updates & Changelog Timeline (`src/pages/About.jsx`)**:
   - Embedded an interactive, searchable and tag-filtered release timeline directly inside the About page.
