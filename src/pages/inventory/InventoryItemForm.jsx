@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
     Save, X, Package, Tag, Info, IndianRupee, 
-    Box, AlertTriangle, ArrowLeft, ChevronDown 
+    Box, AlertTriangle, ArrowLeft, ChevronDown, RefreshCw 
 } from 'lucide-react';
 import apiService from '../../services/api';
 import { useToast } from '../../components/Toast';

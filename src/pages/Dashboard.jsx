@@ -2,9 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { formatDate } from '../lib/dateUtils';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { Users, Calendar, Crown, Shield, User, Heart, Cake, Download, TrendingUp, Sparkles, Activity, ChevronRight, MapPin, Maximize2, MessageSquare, Clock } from 'lucide-react';
-import clsx from 'clsx';
 import { useDevotees } from '../context/DevoteeContext';
-import { useToast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 import ErrorBoundary from '../components/ErrorBoundary';
 import WhatsAppModal from '../components/WhatsAppModal';
@@ -34,7 +32,6 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const { isAdmin, isCounselor, currentUser } = useAuth();
     const { getDashboardStats, lastUpdated, events, devotees } = useDevotees();
-    const toast = useToast();
 
     const isViewer = !isAdmin && !isCounselor;
     const myDevoteeId = currentUser?.devoteeId || (Array.isArray(devotees) ? devotees.find(d => d.contact === currentUser?.username)?.id : null);

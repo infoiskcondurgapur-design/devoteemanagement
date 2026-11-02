@@ -2,6 +2,14 @@
 
 ## [2026-11-02]
 
+### Bug Fix: Resolved Missing Icon Imports in Communication & Inventory Modules (কমিউনিকেশন ও ইনভেন্টরি মডিউলে এরর সমাধান)
+- **Resolved "Copy is not defined" Frontend Crash (`src/pages/Communication.jsx`)**:
+  - Added missing `Copy` and `Check` icon imports from `lucide-react` in `Communication.jsx` to eliminate the ErrorBoundary frontend crash during bulk message copying.
+- **Proactive Fix in Inventory Item Form (`src/pages/inventory/InventoryItemForm.jsx`)**:
+  - Added missing `RefreshCw` icon import in `InventoryItemForm.jsx` to prevent runtime crashes during item saving.
+- **Removed Unused Variables (`src/pages/Dashboard.jsx`)**:
+  - Cleaned up unused `clsx` and `useToast` in `Dashboard.jsx`, achieving 0 ESLint errors across the entire project.
+
 ### Centered & Enlarged Date, Time & Day Widget on Dashboard (ড্যাশবোর্ড হেডার মাঝে ও বড় আকারে প্রদর্শন)
 - **Centered Layout Alignment (`src/pages/Dashboard.jsx`)**:
   - Moved the real-time Date, Time & Day section to the **exact visual center** of the Dashboard header row.

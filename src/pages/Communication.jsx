@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { MessageSquare, Send, Search, User, Phone, RefreshCw, Megaphone, Heart, Sparkles } from 'lucide-react';
+import { MessageSquare, Send, Search, User, Phone, RefreshCw, Megaphone, Heart, Sparkles, Copy, Check } from 'lucide-react';
 import clsx from 'clsx';
 import { useDevotees } from '../context/DevoteeContext';
 import { useToast } from '../components/Toast';
