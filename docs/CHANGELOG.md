@@ -2,6 +2,12 @@
 
 ## [2026-11-02]
 
+### Removed Reports Option from Sidebar & Navigation (সাইডবার ও মেনু থেকে রিপোর্টস অপশন অপসারণ)
+- **Navigation & Routing Streamlining (`src/components/layout/Sidebar.jsx`, `src/App.jsx`)**:
+  - Completely removed the "Reports" option from the Sidebar navigation menu.
+  - Removed obsolete `BarChart3` icon import from `Sidebar.jsx`.
+  - Removed `/reports` lazy route from `src/App.jsx`, reducing the production PWA precache bundle by over 37 kB.
+
 ### Bug Fix: Resolved Missing Icon Imports in Communication & Inventory Modules (কমিউনিকেশন ও ইনভেন্টরি মডিউলে এরর সমাধান)
 - **Resolved "Copy is not defined" Frontend Crash (`src/pages/Communication.jsx`)**:
   - Added missing `Copy` and `Check` icon imports from `lucide-react` in `Communication.jsx` to eliminate the ErrorBoundary frontend crash during bulk message copying.

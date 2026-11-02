@@ -43,7 +43,6 @@ const About = lazy(() => import('./pages/About'));
 
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Profile = lazy(() => import('./pages/Profile'));
-const Reports = lazy(() => import('./pages/Reports'));
 const AutoRepairHub = lazy(() => import('./pages/maintenance/AutoRepairHub'));
 const Attendance = lazy(() => import('./pages/Attendance'));
 
@@ -153,7 +152,6 @@ function App() {
                               <Route path="users" element={<RequireAdmin><UserManagement /></RequireAdmin>} />
 
                               <Route path="notifications" element={<Notifications />} />
-                              <Route path="reports" element={<RequireAdmin><Reports /></RequireAdmin>} />
                               <Route path="profile" element={<Profile />} />
                               <Route path="maintenance" element={<RequireAdmin><AutoRepairHub /></RequireAdmin>} />
                               <Route path="attendance" element={<RequireCounselorOrAdmin><Attendance /></RequireCounselorOrAdmin>} />

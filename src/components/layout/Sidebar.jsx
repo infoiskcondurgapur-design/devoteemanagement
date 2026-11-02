@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { FiTool } from 'react-icons/fi';
-import { LayoutDashboard, Users, Calendar, CalendarDays, Share2, MapPin, BarChart3, CalendarCheck, Shield, Briefcase, IndianRupee, GraduationCap, MessageSquare, Download, ChevronLeft, User, Info } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, CalendarDays, Share2, MapPin, CalendarCheck, Shield, Briefcase, IndianRupee, GraduationCap, MessageSquare, Download, ChevronLeft, User, Info } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../../context/AuthContext';
 import { useDevotees } from '../../context/DevoteeContext';
@@ -28,7 +28,6 @@ const Sidebar = ({ isOpen, toggle }) => {
         { name: t('seva'), icon: Briefcase, path: '/seva', requires: 'counselor' },
         { name: t('finance'), icon: IndianRupee, path: '/finance', requires: 'admin' },
         { name: 'Network', icon: Share2, path: '/network', requires: 'counselor' },
-        { name: 'Reports', icon: BarChart3, path: '/reports', requires: 'admin' },
         { name: 'Communication', icon: MessageSquare, path: '/communication', requires: 'admin' },
         { name: 'Events', icon: Calendar, path: '/events', requires: 'counselor' },
         { name: 'Vaishnava Calendar', icon: CalendarDays, path: '/calendar', requires: 'counselor' },
