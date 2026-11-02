@@ -2,6 +2,12 @@
 
 ## [2026-11-02]
 
+### Streamlined Dashboard Header: Removed Action Buttons (ড্যাশবোর্ড হেডার পরিচ্ছন্নকরণ)
+- **Removed Header Buttons (`src/pages/Dashboard.jsx`)**:
+  - Removed **Eye Comfort**, **Refresh**, and **New Devotee** buttons from the top right of the Dashboard header.
+  - The Dashboard header now features a clean, uncluttered layout showcasing the **Overview** title and synchronization status on the left, paired directly with the **Real-Time Date, Time & Day Widget** on the right.
+  - Reduced bundle size and eliminated redundant local refresh states, keeping theme toggling centralized in header settings and devotee creation in the Devotee Management module.
+
 ### Live Real-Time Date, Time & Day Header Widget on Dashboard (ড্যাশবোর্ডে লাইভ তারিখ, সময় ও বার প্রদর্শন)
 - **Real-Time Clock & Date Header Badge (`src/pages/Dashboard.jsx`)**:
   - Added a dedicated, eye-comfort styled live clock widget directly in the main Dashboard header.

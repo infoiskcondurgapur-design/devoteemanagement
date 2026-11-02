@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { formatDate } from '../lib/dateUtils';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Users, Calendar, Plus, Crown, Shield, User, Heart, Cake, Download, TrendingUp, Sparkles, Activity, RefreshCw, ChevronRight, MapPin, Maximize2, Glasses, MessageSquare, Clock } from 'lucide-react';
+import { Users, Calendar, Crown, Shield, User, Heart, Cake, Download, TrendingUp, Sparkles, Activity, ChevronRight, MapPin, Maximize2, MessageSquare, Clock } from 'lucide-react';
 import clsx from 'clsx';
 import { useDevotees } from '../context/DevoteeContext';
 import { useToast } from '../components/Toast';
-import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import ErrorBoundary from '../components/ErrorBoundary';
 import WhatsAppModal from '../components/WhatsAppModal';
@@ -34,15 +33,13 @@ const StatCard = ({ title, value, label, icon: Icon, _delay }) => {
 const Dashboard = () => {
     const navigate = useNavigate();
     const { isAdmin, isCounselor, currentUser } = useAuth();
-    const { getDashboardStats, fetchStats, lastUpdated, events, fetchEvents: fetchDashboardEvents, devotees } = useDevotees();
-    const { eyeProtectMode, toggleEyeProtect } = useTheme();
+    const { getDashboardStats, lastUpdated, events, devotees } = useDevotees();
     const toast = useToast();
 
     const isViewer = !isAdmin && !isCounselor;
     const myDevoteeId = currentUser?.devoteeId || (Array.isArray(devotees) ? devotees.find(d => d.contact === currentUser?.username)?.id : null);
 
     const statsData = getDashboardStats();
-    const [isRefreshing, setIsRefreshing] = useState(false);
     const [activeDevotee, setActiveDevotee] = useState(null);
     const [showWhatsApp, setShowWhatsApp] = useState(false);
     const [selectedImageDevotee, setSelectedImageDevotee] = useState(null);
@@ -99,88 +96,43 @@ const Dashboard = () => {
     return (
         <div className="space-y-8 pb-16">
             {/* Header Section */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-                    <div className="space-y-1">
-                        <h1 className="text-3xl font-bold tracking-tight text-[#c7ded9] flex items-center gap-3">
-                            Overview
-                        </h1>
-                        <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
-                            <Activity className="w-4 h-4 text-emerald-400" />
-                            <span>System synchronized {lastUpdated.toLocaleTimeString()}</span>
-                        </div>
-                    </div>
-
-                    {/* Live Date, Time & Day Widget */}
-                    <div 
-                        className="flex items-center gap-3.5 px-4 py-2.5 bg-card border border-border rounded-xl shadow-sm"
-                        title={currentTime.toLocaleDateString('bn-BD', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                    >
-                        <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
-                            <Clock className="w-5 h-5 animate-pulse" />
-                        </div>
-                        <div className="border-r border-border pr-3.5">
-                            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                                Live Time
-                            </div>
-                            <div className="text-base sm:text-lg font-mono font-bold text-[#c7ded9] tracking-tight whitespace-nowrap">
-                                {timeFormatted}
-                            </div>
-                        </div>
-                        <div>
-                            <div className="text-xs font-bold text-amber-400 flex items-center gap-1">
-                                <Calendar className="w-3.5 h-3.5" />
-                                <span>{dayName}</span>
-                            </div>
-                            <div className="text-xs sm:text-sm font-semibold text-[#c7ded9] whitespace-nowrap">
-                                {dateFormatted}
-                            </div>
-                        </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                <div className="space-y-1">
+                    <h1 className="text-3xl font-bold tracking-tight text-[#c7ded9] flex items-center gap-3">
+                        Overview
+                    </h1>
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
+                        <Activity className="w-4 h-4 text-emerald-400" />
+                        <span>System synchronized {lastUpdated.toLocaleTimeString()}</span>
                     </div>
                 </div>
-                
-                <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
-                    {/* Eye Comfort Quick Toggle */}
-                    <button
-                        onClick={toggleEyeProtect}
-                        className={clsx(
-                            "px-3.5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold border transition-all shadow-sm",
-                            eyeProtectMode
-                                ? "bg-amber-500/20 text-amber-300 border-amber-400/40 ring-1 ring-amber-400/30 shadow-sm"
-                                : "bg-card text-muted-foreground border-border hover:bg-muted/60 hover:text-[#c7ded9]"
-                        )}
-                        title={eyeProtectMode ? "চোখের সুরক্ষা মোড সক্রিয় (Eye Comfort ON - Click to disable)" : "চোখের সুরক্ষা অন করুন (Enable Eye Comfort Mode)"}
-                    >
-                        <Glasses className={clsx("w-4 h-4", eyeProtectMode ? "text-amber-400" : "text-muted-foreground")} />
-                        <span className="hidden sm:inline">{eyeProtectMode ? 'Eye Comfort ON' : 'Eye Comfort'}</span>
-                    </button>
 
-                    <button
-                        onClick={async () => {
-                            setIsRefreshing(true);
-                            await Promise.all([fetchStats(), fetchDashboardEvents()]);
-                            setTimeout(() => setIsRefreshing(false), 800);
-                            toast.success('System Refreshed');
-                        }}
-                        className={clsx(
-                            "bg-card border border-border px-4 sm:px-5 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold text-[#c7ded9] hover:bg-muted/60 transition-all shadow-sm",
-                            isRefreshing && "opacity-50 pointer-events-none"
-                        )}
-                    >
-                        <RefreshCw className={clsx("w-4 h-4 text-emerald-400", isRefreshing && "animate-spin")} />
-                        <span>{isRefreshing ? 'Updating...' : 'Refresh'}</span>
-                    </button>
-                    
-                    {isAdmin && (
-                        <button 
-                            onClick={() => navigate('/devotees/new')} 
-                            className="bg-corporate-600 hover:bg-corporate-700 px-5 sm:px-6 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold text-[#e0edeb] shadow-md transition-all"
-                        >
-                            <Plus className="w-5 h-5" />
-                            <span>New Devotee</span>
-                        </button>
-                    )}
+                {/* Live Date, Time & Day Widget */}
+                <div 
+                    className="flex items-center gap-3.5 px-4 py-2.5 bg-card border border-border rounded-xl shadow-sm"
+                    title={currentTime.toLocaleDateString('bn-BD', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                >
+                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
+                        <Clock className="w-5 h-5 animate-pulse" />
+                    </div>
+                    <div className="border-r border-border pr-3.5">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                            Live Time
+                        </div>
+                        <div className="text-base sm:text-lg font-mono font-bold text-[#c7ded9] tracking-tight whitespace-nowrap">
+                            {timeFormatted}
+                        </div>
+                    </div>
+                    <div>
+                        <div className="text-xs font-bold text-amber-400 flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span>{dayName}</span>
+                        </div>
+                        <div className="text-xs sm:text-sm font-semibold text-[#c7ded9] whitespace-nowrap">
+                            {dateFormatted}
+                        </div>
+                    </div>
                 </div>
             </div>
 
