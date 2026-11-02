@@ -2,6 +2,14 @@
 
 ## [2026-11-02]
 
+### Streamlined Devotee Form: Removed Family & Misc Step (ফর্ম সহজীকরণ: ফ্যামিলি ও মিসক অপশন অপসারণ)
+- **Removed Family & Misc Step (`DevoteeForm.jsx`, `PublicRegister.jsx`, `VerticalNav.jsx`)**:
+  - Devotee registration and edit forms now have a focused 2-step flow:
+    - **Step 1: Personal Details** (নাম, জেন্ডার, সম্পর্ক, মোবাইল, ঠিকানা, শিক্ষাগত যোগ্যতা, বৈবাহিক অবস্থা)
+    - **Step 2: Spiritual Life** (দীক্ষা স্ট্যাটাস, গুরু মহারাজ, কাউন্সেলর, জপ সংখ্যা, গ্রন্থ অধ্যায়ন ও কোর্স)
+  - Removed obsolete Step 3 "Family & Misc" (`FamilyMiscStep.jsx`), removing unnecessary form fields and reducing production bundle size.
+  - On Step 2, clicking "Save & Finish" submits the form directly.
+
 ### Dynamic Gender-Based Relationship Options & Auto-Married Status (জেন্ডার অনুযায়ী সম্পর্কের ধরন ও স্বয়ংক্রিয় বৈবাহিক অবস্থা নির্বাচন)
 - **Dynamic Relationship Dropdown by Gender (`PersonalDetailsStep.jsx`)**:
   - **Female (মহিলা)**: Relationship অপশনে শুধুমাত্র **Father** ও **Husband** প্রদর্শিত হবে।

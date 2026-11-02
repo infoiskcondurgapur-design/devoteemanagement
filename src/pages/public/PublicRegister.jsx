@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { User, Heart, BookOpen, CheckCircle2, AlertTriangle, RotateCcw } from 'lucide-react';
+import { User, BookOpen, CheckCircle2, AlertTriangle, RotateCcw } from 'lucide-react';
 import { devoteeSchema } from '../devotees/devoteeSchema';
 import apiService from '../../services/api';
 import { compressImage } from '../../lib/imageCompression';
@@ -11,15 +11,13 @@ import VerticalNav from '../devotees/components/VerticalNav';
 import StepNavigation from '../devotees/components/StepNavigation';
 import PersonalDetailsStep from '../devotees/components/PersonalDetailsStep';
 import SpiritualLifeStep from '../devotees/components/SpiritualLifeStep';
-import FamilyMiscStep from '../devotees/components/FamilyMiscStep';
 
 const MAX_PHOTO_BASE64_CHARS = 14000000;
 
 const steps = [
     { id: 1, name: 'Personal Details', icon: User },
     { id: 2, name: 'Spiritual Life', icon: BookOpen },
-    { id: 3, name: 'Family & Misc', icon: Heart },
-];
+    ];
 
 const PublicRegister = () => {
     const defaultValues = {
@@ -132,10 +130,8 @@ const PublicRegister = () => {
         const firstErrorKey = Object.keys(errors)[0];
         if (firstErrorKey) {
             const step1Fields = ['name', 'spiritualName', 'email', 'gender', 'dob', 'age', 'bloodGroup', 'education', 'occupation', 'relationType', 'guardianName', 'contact', 'whatsapp', 'address', 'village', 'district', 'pinCode', 'state', 'maritalStatus', 'skills', 'specialDay', 'specialDayName'];
-            const step2Fields = ['spiritualStatus', 'initiatedName', 'counselor', 'spiritualMaster', 'shelterDate', 'initiatedDate1', 'initiatedDate2', 'rounds', 'followingPrinciplesSince', 'booksRead', 'booksReading', 'courses'];
             if (step1Fields.includes(firstErrorKey)) setCurrentStep(1);
-            else if (step2Fields.includes(firstErrorKey)) setCurrentStep(2);
-            else setCurrentStep(3);
+            else setCurrentStep(2);
             setServerError(errors[firstErrorKey].message || 'Please check all fields.');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -226,10 +222,7 @@ const PublicRegister = () => {
                                     {currentStep === 2 && (
                                         <SpiritualLifeStep formData={formData} />
                                     )}
-                                    {currentStep === 3 && (
-                                        <FamilyMiscStep formData={formData} />
-                                    )}
-
+                                    
                                     {/* Honeypot — invisible to humans, tempting for bots */}
                                     <input
                                         type="text"

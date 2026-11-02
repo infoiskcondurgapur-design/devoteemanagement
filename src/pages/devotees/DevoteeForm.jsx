@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDevotees } from '../../context/DevoteeContext';
-import { User, Heart, BookOpen } from 'lucide-react';
+import { User, BookOpen } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,7 +14,6 @@ import VerticalNav from './components/VerticalNav';
 import StepNavigation from './components/StepNavigation';
 import PersonalDetailsStep from './components/PersonalDetailsStep';
 import SpiritualLifeStep from './components/SpiritualLifeStep';
-import FamilyMiscStep from './components/FamilyMiscStep';
 
 const DevoteeForm = () => {
     const navigate = useNavigate();
@@ -187,11 +186,9 @@ const DevoteeForm = () => {
         
         if (firstErrorKey) {
             const step1Fields = ['name', 'spiritualName', 'email', 'gender', 'dob', 'age', 'bloodGroup', 'education', 'occupation', 'relationType', 'guardianName', 'contact', 'whatsapp', 'address', 'village', 'district', 'pinCode', 'state', 'maritalStatus', 'skills', 'specialDay', 'specialDayName'];
-            const step2Fields = ['spiritualStatus', 'initiatedName', 'counselor', 'spiritualMaster', 'shelterDate', 'initiatedDate1', 'initiatedDate2', 'rounds', 'followingPrinciplesSince', 'booksRead', 'booksReading', 'courses'];
             
             if (step1Fields.includes(firstErrorKey)) setCurrentStep(1);
-            else if (step2Fields.includes(firstErrorKey)) setCurrentStep(2);
-            else setCurrentStep(3);
+            else setCurrentStep(2);
 
             toast.error(`Validation Error: ${errors[firstErrorKey].message || 'Please check all fields.'}`);
         } else {
@@ -202,8 +199,7 @@ const DevoteeForm = () => {
     const steps = [
         { id: 1, name: 'Personal Details', icon: User },
         { id: 2, name: 'Spiritual Life', icon: BookOpen },
-        { id: 3, name: 'Family & Misc', icon: Heart },
-    ];
+            ];
 
     const handleChange = async (e) => {
         const { name, files } = e.target;
@@ -252,12 +248,7 @@ const DevoteeForm = () => {
                                         formData={formData}
                                     />
                                 )}
-                                {currentStep === 3 && (
-                                    <FamilyMiscStep
-                                        formData={formData}
-                                    />
-                                )}
-                            </form>
+                                                            </form>
 
                             <StepNavigation
                                 currentStep={currentStep}

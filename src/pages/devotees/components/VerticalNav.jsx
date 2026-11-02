@@ -11,7 +11,7 @@ const VerticalNav = ({ steps, currentStep, setCurrentStep, isEdit }) => {
             <div>
                 {steps.map((step) => {
                     const isActive = currentStep === step.id;
-                    const isCompleted = currentStep > step.id || (isEdit && step.id < 3);
+                    const isCompleted = currentStep > step.id || (isEdit && step.id < steps.length);
 
                     return (
                         <button
