@@ -1211,13 +1211,21 @@ export const getBackupData = () => {
 
 export const restoreFromBackup = (backupData) => {
     return new Promise((resolve, reject) => {
+        // Validate backup structure before touching the DB
+        if (!backupData || typeof backupData !== 'object') {
+            return reject(new Error('Invalid backup data: expected object'));
+        }
+        if (backupData.devotees === undefined || backupData.sadhana === undefined) {
+            return reject(new Error('Invalid backup data: missing devotees or sadhana fields'));
+        }
+
         db.serialize(() => {
             // Start transaction
             db.run("BEGIN TRANSACTION", (err) => {
                 if (err) return reject(err);
             });
 
-            // Clear existing data
+            // Clear existing data only after validation passes
             db.run("DELETE FROM sadhana", (err) => {
                 if (err) {
                     db.run("ROLLBACK");
@@ -1235,6 +1243,19 @@ export const restoreFromBackup = (backupData) => {
             // Restore devotees
             const devotees = backupData.devotees || [];
             let devoteesRestored = 0;
+
+            if (devotees.length === 0 && (backupData.sadhana || []).length === 0) {
+                // Empty backup — nothing to restore, rollback the DELETEs and exit
+                db.run("ROLLBACK", (err) => {
+                    if (err) console.error('[DB] Restore Rollback Error:', err);
+                });
+                return resolve({
+                    success: false,
+                    error: 'Backup contains no devotee or sadhana data',
+                    devoteesRestored: 0,
+                    sadhanaRestored: 0
+                });
+            }
 
             if (devotees.length === 0) {
                 // No devotees to restore, move to sadhana

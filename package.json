@@ -72,16 +72,17 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1127.0",
+    "@grpc/grpc-js": "^1.14.5",
     "@hookform/resolvers": "^5.2.2",
     "@vercel/postgres": "^0.10.0",
-    "body-parser": "^2.3.0",
+    "body-parser": "^2.4.0",
     "cloudinary": "^2.11.0",
     "clsx": "^2.1.1",
     "cors": "^2.8.6",
     "date-fns": "^4.1.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.1",
-    "firebase": "^12.7.0",
+    "firebase": "^12.19.0",
     "gapi-script": "^1.2.0",
     "googleapis": "^170.1.0",
     "helmet": "^8.3.0",
@@ -101,7 +102,7 @@
     "recharts": "^3.6.0",
     "tailwind-merge": "^3.4.0",
     "xlsx": "^0.18.5",
-    "zod": "^4.3.6"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -112,7 +113,7 @@
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "electron": "^39.2.7",
-    "electron-builder": "^26.4.0",
+    "electron-builder": "^26.18.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

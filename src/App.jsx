@@ -39,6 +39,7 @@ const Events = lazy(() => import('./pages/Events'));
 const VaishnavaCalendar = lazy(() => import('./pages/VaishnavaCalendar'));
 const SelfUpdate = lazy(() => import('./pages/SelfUpdate'));
 const PublicRegister = lazy(() => import('./pages/public/PublicRegister'));
+const About = lazy(() => import('./pages/About'));
 
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -120,6 +121,9 @@ function App() {
 
                             {/* Public, shareable self-registration — no auth required */}
                             <Route path="/register" element={<PublicRegister />} />
+
+                            {/* About page — no auth required */}
+                            <Route path="/about" element={<About />} />
 
                             <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
                               <Route index element={<Dashboard />} />

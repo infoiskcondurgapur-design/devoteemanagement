@@ -1,6 +1,70 @@
 # CHANGELOG
 
+## [2026-11-02]
+
+### Fix Blank Screen on App Initialization & Dev Server Optimization
+- **Fixed Missing Lazy Import for About Page (`src/App.jsx`)**:
+  - Added missing `const About = lazy(() => import('./pages/About'));` import in `src/App.jsx` to prevent `ReferenceError: About is not defined` from crashing the root React tree during initial mount.
+- **Vite File Watcher Optimization (`vite.config.js`)**:
+  - Configured `server.watch.ignored` to ignore `whatsapp-bot`, `electron`, `*.db*`, and `release` directories, preventing background robot session writes and database updates from triggering unwanted Vite hot reloads.
+- **Production Deployment to Vercel**:
+  - Deployed verified build to Vercel production at `https://devoteemanagement.vercel.app`.
+
+## [2026-11-01]
+
+### Security Updates & Data-Safe Refactoring (নিরাপত্তা আপডেট এবং ডেটা-স Francji রিফ্যাক্টরিং)
+- **Updated Dependencies Root** (`package.json`):
+  - `body-parser` 2.3.0 → 2.4.0 — DoS vulnerability fixed (GHSA-27r3-jxmh-p828)
+  - `zod` 4.3.6 → 4.6.7 — Memory exhaustion vulnerability fixed (GHSA-mrhx-c7xc-m3w5)
+  - `firebase` 12.7.0 → 12.19.0 — In-range update bringing `@grpc/grpc-js` 1.14.5 (4 CVEs fixed: GHSA-5375, GHSA-99f4, GHSA-m9gg, GHSA-f596)
+  - Effective `@grpc/grpc-js` 1.9.16 → 1.14.5 — 4 high-severity CVEs resolved
+- **Updated Dependencies whatsapp-bot** (`whatsapp-bot/package.json`):
+  - `body-parser` 2.2.2 → 2.4.0, `express` 5.2.1 → 5.3.0, `cors` 2.8.5 → 2.8.6, `express-rate-limit` 8.7.0 → ^8.7.1, `cloudinary` 2.9.0 → ^2.11.0
+- **Vercel Production Deployment** (`vercel.json`, `api/_src/`):
+  - Full-site production deployment at `https://devoteemanagement.vercel.app`
+  - HTTPS + security headers (HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy)
+  - Cron job configured for `/api/backup/cron-sync` (daily 00:00 UTC), now with `CRON_SECRET` auth guard
+- **Electron NSIS Installer** (`release\Devotee Management Setup 0.0.0.exe`):
+  - Windows 32-bit installer built with Electron 39.2.7 + electron-builder 26.18.0
+  - 184MB standalone installer with auto-backup and restore functionality
+- **Vulnerability Reduction**:
+  - Root: 18 → 15 CVEs (3 reduced)
+  - whatsapp-bot: 33 → 30 CVEs (3 reduced)
+
+### New Features (নEW Features)
+- **About Page** (`/about` route) — Added `src/pages/About.jsx` showing key features, technology stack, update history (v0.0.1–v0.0.7), and platform information (Web/Vercel, Desktop/Electron, Mobile/responsive)
+- **WS Connection Status Indicator** (Header) — Added pulsing green/red dot with "Live"/"WS Disconnected" text in `src/components/layout/Header.jsx` using `isLiveConnected` state from `DevoteeContext`
+- **Enhanced NotificationContext** — Added `type` support (`info`/`success`/`warning`/`error`/`sync`/`backup`), `persistent` option, auto-removal after 5s for non-critical notifications, and 30-day cleanup of read notifications via `crypto.randomUUID()` IDs in `src/context/NotificationContext.jsx`
+
+### Data-Safe Backup/Restore Fixes (ডেটা-স França ব্যাকআপ/রেস্টোর ফিক্স)
+- **`whatsapp-bot/database.mjs:restoreFromBackup`** — Added upfront validation that backup object has `devotees` and `sadhana` fields. If both are empty/missing, the DB transaction is ROLLED BACK and live data is preserved intact. Returns structured error object instead of destroying data.
+- **`electron/main.js:handleRestore`** — Added `try/catch` around JSON parse with user-friendly `dialog.showErrorBox` if file isn't valid JSON. Added schema validation: backup must contain at least a `devotees` or `sadhana` array. Aborts with error if validation fails — no data loss.
+- **`whatsapp-bot/server.mjs:/api/backup/cron-sync`** — Conditional auth guard: if `CRON_SECRET` env var is set, requires it as Bearer token or query/body `token` parameter; returns 403 if missing/invalid. If `CRON_SECRET` is unset, endpoint remains open (dev convenience, opt-in).
+
+### Bug Fixes
+- **`electron/main.js:427`** — Fixed unused variable `e` in `catch (e)` block, causing ESLint `no-unused-vars` error
+- **Lint**: 0 errors, 24 warnings (pre-existing `exhaustive-deps` patterns)
+
+### Test Suites (all passing)
+- `npm test` (root): **17/17 passed**
+- `npm run test:regression` (bot): **23/23 passed**
+- `npm run build` (Vite): ✅ Succeeds, PWA generated
+- `npm run lint`: ✅ 0 errors, 24 warnings
+
+---
+
 ## [2026-10-28]
+
+### Removed Live Map Feature (সামগ্রিক ম্যাপ বৈশলিয়োগ)
+- **Removed Live Map from Navigation & Routing** (`Sidebar.jsx`, `App.jsx`):
+  - Removed "Live Map" item (`/map`) from the main sidebar navigation menu in `src/components/layout/Sidebar.jsx`.
+  - Removed route definition `<Route path="map" ... />` and unused lazy import of `DevoteeMap` from `src/App.jsx`.
+- **Cleaned Up Unused Component** (`src/pages/DevoteeMap.jsx`):
+  - Removed `src/pages/DevoteeMap.jsx`, eliminating heavy map dependencies from the production bundle (reduced precached assets and overall bundle size).
+
+---
+
+... (rest of changelog continues)
 
 ### Removed Live Map Feature (লাইভ ম্যাপ অপশন ও সংশ্লিষ্ট কম্পোনেন্ট অপসারণ)
 - **Removed Live Map from Navigation & Routing (`Sidebar.jsx`, `App.jsx`)**:

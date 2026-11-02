@@ -421,7 +421,19 @@ const handleRestore = async () => {
         }
 
         // Read backup file
-        const backupData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        let backupData;
+        try {
+            backupData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        } catch {
+            dialog.showErrorBox('Invalid Backup File', 'The selected file is not valid JSON.');
+            return;
+        }
+
+        // Simple schema validation — must have at least one of devotees or sadhana
+        if (!backupData || (typeof backupData.devotees === 'undefined' && typeof backupData.sadhana === 'undefined')) {
+            dialog.showErrorBox('Invalid Backup File', 'The backup file must contain a "devotees" or "sadhana" array.');
+            return;
+        }
 
         const token = await getElectronToken();
         // Send restore request to backend

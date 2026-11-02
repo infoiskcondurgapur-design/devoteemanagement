@@ -175,7 +175,23 @@ app.use((req, res, next) => {
     const publicPath = p.includes('/public/register');
     const bypassPath = p.includes('/api/auth/bypass') || p.includes('/auth/bypass');
     const cronPath = p.includes('/api/backup/cron-sync') || p.includes('/backup/cron-sync');
-    if (loginPath || forgotPath || googlePath || healthPath || publicPath || bypassPath || cronPath) return next();
+    // Cron-sync is open only when CRON_SECRET is unset; when set, require it as Bearer token or query param
+    const cronSecret = process.env.CRON_SECRET;
+    if (cronPath) {
+        if (!cronSecret) return next(); // open by default (dev convenience)
+        // Inline token extraction (same logic as authService.extractToken)
+        const auth = (req.headers.authorization || '').split(' ');
+        const supplied = auth.length > 1 && auth[1]
+            ? auth[1]
+            : (req.query && req.query.token) ? String(req.query.token)
+            : (req.body && req.body.token) ? String(req.body.token)
+            : null;
+        if (!supplied || supplied !== cronSecret) {
+            return res.status(403).json({ success: false, error: 'Forbidden: cron secret required' });
+        }
+        return next();
+    }
+    if (loginPath || forgotPath || googlePath || healthPath || publicPath || bypassPath) return next();
     return requireAuth(req, res, next);
 });
 

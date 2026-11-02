@@ -16,16 +16,36 @@ export const NotificationProvider = ({ children }) => {
         setUnreadCount(notifications.filter(n => !n.read).length);
     }, [notifications]);
 
-    const addNotification = async (title, message, type = 'info') => {
+    // Auto-clear read notifications older than 30 days
+    useEffect(() => {
+        const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+        const now = new Date().getTime();
+        const cleaned = notifications.filter(n => {
+            const created = new Date(n.createdAt).getTime();
+            return now - created < thirtyDays || !n.read;
+        });
+        if (cleaned.length !== notifications.length) {
+            setNotifications(cleaned);
+        }
+    }, [notifications]);
+
+    const addNotification = async (title, message, type = 'info', options = {}) => {
         const newNotif = {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             title,
             message,
-            type,
+            type, // 'info' | 'success' | 'warning' | 'error' | 'sync' | 'backup'
             read: false,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            ...options
         };
         setNotifications(prev => [newNotif, ...prev]);
+        // Auto-remove after 5 seconds for non-critical notifications
+        if (type !== 'error' && !options.persistent) {
+            setTimeout(() => {
+                deleteNotification(newNotif.id);
+            }, 5000);
+        }
     };
 
     const markAsRead = async (id) => {
